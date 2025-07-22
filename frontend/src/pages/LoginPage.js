@@ -1,23 +1,17 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
+import api from '../services/api';
 
 // Imports depuis Material-UI
 import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress } from '@mui/material';
 
 function LoginPage() {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // État pour l'indicateur de chargement
-
+  const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  const { username, password } = formData;
 
   const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,15 +22,13 @@ function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/auth/login';
-      const response = await axios.post(API_URL, formData);
-      
+      const response = await api.post('/auth/login', formData);
       login(response.data.token);
       navigate('/ventes');
-
     } catch (err) {
       setError(err.response?.data?.message || 'Une erreur est survenue.');
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -48,41 +40,15 @@ function LoginPage() {
         </Typography>
         <Box component="form" onSubmit={onSubmit} sx={{ mt: 1 }}>
           <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="username"
-            label="Nom d'utilisateur"
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={onChange}
+            margin="normal" required fullWidth id="username" label="Nom d'utilisateur"
+            name="username" autoComplete="username" autoFocus value={formData.username} onChange={onChange}
           />
           <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Mot de passe"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={onChange}
+            margin="normal" required fullWidth name="password" label="Mot de passe"
+            type="password" id="password" autoComplete="current-password" value={formData.password} onChange={onChange}
           />
-          {error && (
-            <Typography color="error" variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-              {error}
-            </Typography>
-          )}
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={loading}
-          >
+          {error && <Typography color="error" variant="body2" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
+          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
           </Button>
           <Box textAlign="center">
