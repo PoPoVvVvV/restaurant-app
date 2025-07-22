@@ -18,7 +18,7 @@ dotenv.config();
 const app = express();
 
 // --- Configuration CORS pour la Production ---
-// Remplacez l'URL ci-dessous par celle de votre site Vercel
+// Accepte uniquement les requêtes venant de votre site Vercel
 const corsOptions = {
   origin: 'https://restaurant-app-coral-six.vercel.app', 
   optionsSuccessStatus: 200
