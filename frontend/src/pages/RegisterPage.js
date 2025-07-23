@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import api from '../services/api'; // Utiliser notre instance api configurée
 
 // Imports depuis Material-UI
 import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress, Alert } from '@mui/material';
 
 function RegisterPage() {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    invitationCode: '',
-  });
+  const [formData, setFormData] = useState({ username: '', password: '', invitationCode: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const { username, password, invitationCode } = formData;
 
   const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -33,10 +27,10 @@ function RegisterPage() {
     }
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://restaurant-app-production-61c2.up.railway.app/api/auth/register';
-      const response = await axios.post(REACT_APP_API_URL, formData);
-      setSuccess(response.data.message);
-
+      // LIGNE CORRIGÉE : Utiliser api.post avec le chemin relatif correct
+      const response = await api.post('/auth/register', formData);
+      setSuccess(response.data.message + ' Redirection vers la connexion...');
+      
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -55,51 +49,14 @@ function RegisterPage() {
           Créer un Compte
         </Typography>
         <Box component="form" onSubmit={onSubmit} sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="username"
-            label="Nom d'utilisateur"
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={onChange}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Mot de passe"
-            type="password"
-            id="password"
-            value={password}
-            onChange={onChange}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="invitationCode"
-            label="Code d'invitation"
-            type="text"
-            id="invitationCode"
-            value={invitationCode}
-            onChange={onChange}
-          />
+          <TextField margin="normal" required fullWidth id="username" label="Nom d'utilisateur" name="username" value={formData.username} onChange={onChange} />
+          <TextField margin="normal" required fullWidth name="password" label="Mot de passe" type="password" id="password" value={formData.password} onChange={onChange} />
+          <TextField margin="normal" required fullWidth name="invitationCode" label="Code d'invitation" type="text" id="invitationCode" value={formData.invitationCode} onChange={onChange} />
           
           {error && <Alert severity="error" sx={{ mt: 2, width: '100%' }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mt: 2, width: '100%' }}>{success}</Alert>}
 
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={loading}
-          >
+          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
             {loading ? <CircularProgress size={24} color="inherit" /> : "S'inscrire"}
           </Button>
 
