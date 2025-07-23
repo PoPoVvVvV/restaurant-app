@@ -28,7 +28,7 @@ function StockPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const LOW_STOCK_THRESHOLD = 10;
+  const LOW_STOCK_THRESHOLD = 100;
 
   useEffect(() => {
     const fetchData = async () => {
