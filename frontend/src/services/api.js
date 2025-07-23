@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // L'URL de base de votre API
+  baseURL: 'https://restaurant-app-production-61c2.up.railway.app/api', // L'URL de base de votre API
 });
 
 // Intercepteur pour ajouter le token à chaque requête
