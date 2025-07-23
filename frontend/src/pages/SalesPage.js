@@ -21,6 +21,7 @@ function SalesPage() {
       setProducts(data.filter(p => p.stock > 0));
     } catch (err) {
       setError("Impossible de charger les produits.");
+      console.error("Erreur détaillée:", err);
     } finally {
       setLoading(false);
     }
@@ -103,27 +104,26 @@ function SalesPage() {
   const margin = totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
 
   return (
-    // LA CORRECTION EST ICI : Le Box principal prend maintenant toute la largeur.
     <Box sx={{ width: '100%', p: 2 }}>
-      <Grid container spacing={3}>
-        {/* Colonne de gauche : Liste des produits */}
+      <Grid container spacing={2}>
+        {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
           {loading && <CircularProgress />}
           {error && <Typography color="error">{error}</Typography>}
           
           {Object.entries(productsByCategory).map(([category, items]) => (
             items.length > 0 && (
-              <Box key={category} sx={{ mb: 4 }}>
-                <Typography variant="h4" gutterBottom component="h2">{category}</Typography>
+              <Box key={category} sx={{ mb: 3 }}>
+                <Typography variant="h5" gutterBottom component="h2">{category}</Typography>
                 <Grid container spacing={2}>
                   {items.map(product => (
-                    <Grid item key={product._id} xs={12} sm={6} md={4} lg={3}>
-                      <Card>
-                        <CardActionArea onClick={() => addToCart(product)}>
+                    <Grid item key={product._id} xs={6} sm={4} md={3}>
+                      <Card sx={{ height: '100%' }}>
+                        <CardActionArea onClick={() => addToCart(product)} sx={{ height: '100%' }}>
                           <CardContent>
-                            <Typography gutterBottom variant="h6" component="div">{product.name}</Typography>
+                            <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>{product.name}</Typography>
                             <Typography variant="body2" color="text.secondary">Stock: {product.stock}</Typography>
-                            <Typography variant="h5" color="primary" sx={{ mt: 1 }}>${product.price.toFixed(2)}</Typography>
+                            <Typography variant="h6" color="primary" sx={{ mt: 1 }}>${product.price.toFixed(2)}</Typography>
                           </CardContent>
                         </CardActionArea>
                       </Card>
@@ -135,29 +135,22 @@ function SalesPage() {
           ))}
         </Grid>
 
-        {/* Colonne de droite : Panier */}
+        {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
-          <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '84px' }}>
+          <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Commande en cours</Typography>
             {cart.length === 0 ? (
               <Typography>La commande est vide.</Typography>
             ) : (
               <>
-                <List sx={{ maxHeight: '50vh', overflow: 'auto' }}>
+                <List sx={{ maxHeight: '55vh', overflow: 'auto' }}>
                   {cart.map(item => (
-                    <ListItem key={item._id} disablePadding sx={{ mb: 2 }}>
-                      <ListItemText primary={item.name} secondary={`$${item.price.toFixed(2)}/unité`} />
+                    <ListItem key={item._id} disablePadding sx={{ mb: 1 }}>
+                      <ListItemText primary={item.name} />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon /></IconButton>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateCartQuantity(item._id, e.target.value)}
-                          sx={{ width: '55px', mx: 0.5 }}
-                          inputProps={{ style: { textAlign: 'center' }}}
-                        />
-                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon /></IconButton>
+                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
+                        <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateCartQuantity(item._id, e.target.value)} sx={{ width: '50px' }} inputProps={{ style: { textAlign: 'center' }}} />
+                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
                       </Box>
                     </ListItem>
                   ))}
@@ -168,7 +161,7 @@ function SalesPage() {
                   <Typography variant="body2" color="text.secondary">Marge brute: ${margin.toFixed(2)}</Typography>
                 </Box>
                 <Button variant="contained" color="success" fullWidth sx={{ mt: 2 }} onClick={handleSaveTransaction} disabled={loading || cart.length === 0}>
-                  {loading ? <CircularProgress size={24} /> : 'Enregistrer la transaction'}
+                  {loading ? <CircularProgress size={24} /> : 'Enregistrer'}
                 </Button>
               </>
             )}
