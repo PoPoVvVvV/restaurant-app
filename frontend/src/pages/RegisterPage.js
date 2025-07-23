@@ -34,7 +34,7 @@ function RegisterPage() {
 
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'https://restaurant-app-production-61c2.up.railway.app/api/auth/register';
-      const response = await axios.post(API_URL, formData);
+      const response = await axios.post(REACT_APP_API_URL, formData);
       setSuccess(response.data.message);
 
       setTimeout(() => {
