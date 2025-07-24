@@ -20,7 +20,7 @@ import RecipePage from './pages/RecipePage';
 import CorporateSalesPage from './pages/CorporateSalesPage';
 
 function ThemedApp() {
-  const { mode } from useThemeMode();
+  const { mode } = useThemeMode();
 
   const theme = useMemo(
     () => createTheme({
