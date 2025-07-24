@@ -26,7 +26,7 @@ function CorporateSalesPage() {
           api.get('/users')
         ]);
         setProducts(productsRes.data.filter(p => p.stock > 0));
-        setUsers(usersRes.data.filter(u => u.isActive && u.role === 'employe'));
+        setUsers(usersRes.data.filter(u => u.isActive)); // On garde tous les utilisateurs actifs
       } catch (err) {
         setError("Impossible de charger les données.");
       } finally {

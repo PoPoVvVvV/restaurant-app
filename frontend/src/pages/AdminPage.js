@@ -5,7 +5,7 @@ import api from '../services/api';
 import {
   Container, Box, Paper, Typography, Grid, Button, TextField, Select, MenuItem,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, IconButton,
-  Switch, FormControlLabel, Chip
+  Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -119,7 +119,6 @@ const EmployeePerformance = ({ viewedWeek }) => {
   useEffect(() => {
     api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
-  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
@@ -155,24 +154,19 @@ const GeneralSettings = () => {
     const [bonusPercentage, setBonusPercentage] = useState(0);
     const [newCode, setNewCode] = useState('');
     const [users, setUsers] = useState([]);
-
     const fetchUsers = async () => { api.get('/users').then(res => setUsers(res.data)).catch(err => console.error(err)); };
-
     useEffect(() => {
         api.get('/settings/bonusPercentage').then(res => setBonusPercentage(res.data.value * 100)).catch(() => {});
         fetchUsers();
     }, []);
-
     const handleSaveBonus = async () => { await api.post('/settings', { key: 'bonusPercentage', value: parseFloat(bonusPercentage) / 100 }); alert('Prime enregistrée !'); };
     const generateInviteCode = async () => { const { data } = await api.post('/users/generate-code'); setNewCode(data.invitationCode); };
     const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); } catch (err) { alert("Erreur."); } };
-
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Paramètres & Employés</Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
-            
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                     <TableHead><TableRow><TableCell>Nom d'utilisateur</TableCell><TableCell>Rôle</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
@@ -216,25 +210,41 @@ const ExpenseManager = ({ viewedWeek }) => {
 // 9. Gestion des Produits
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
-  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, corporatePrice: 0, cost: 0, stock: 0 });
+  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 });
   const fetchProducts = async () => { try { const { data } = await api.get('/products'); setProducts(data); } catch (err) { console.error(err); } };
   useEffect(() => { fetchProducts(); }, []);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  const handleOpenModal = (product) => { setEditingProduct(product); setIsModalOpen(true); };
+  const handleCloseModal = () => { setIsModalOpen(false); setEditingProduct(null); };
+  const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); } catch (err) { alert("Erreur."); } };
+  
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: 0, cost: 0, stock: 0 }); } catch (err) { alert("Erreur."); } };
+  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 }); } catch (err) { alert("Erreur."); } };
   const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); } catch (err) { console.error(err); } } };
+
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Gestion des Produits</Typography>
       <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom du produit" required />
+          <TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom produit" required />
           <Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select>
-          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix Vente ($)" />
-          <TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={onChange} label="Prix Entreprise ($)" />
+          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix ($)" />
+          <TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={onChange} label="Prix Ent. ($)" />
           <TextField size="small" type="number" name="cost" value={formData.cost} onChange={onChange} label="Coût ($)" />
           <TextField size="small" type="number" name="stock" value={formData.stock} onChange={onChange} label="Stock" />
           <Button type="submit" variant="contained">Ajouter</Button>
       </Box>
-      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Nom</TableCell><TableCell>Catégorie</TableCell><TableCell align="right">Prix</TableCell><TableCell align="right">Prix Ent.</TableCell><TableCell align="right">Coût</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{products.map(p => (<TableRow key={p._id}><TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell align="right">${p.price.toFixed(2)}</TableCell><TableCell align="right">${(p.corporatePrice || 0).toFixed(2)}</TableCell><TableCell align="right">${p.cost.toFixed(2)}</TableCell><TableCell align="right">{p.stock}</TableCell><TableCell align="right"><Button size="small" color="error" onClick={() => onDelete(p._id)}>Supprimer</Button></TableCell></TableRow>))}</TableBody></Table></TableContainer>
+      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Nom</TableCell><TableCell>Catégorie</TableCell><TableCell align="right">Prix</TableCell><TableCell align="right">Prix Ent.</TableCell><TableCell align="right">Coût</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{products.map(p => (<TableRow key={p._id}><TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell align="right">${p.price.toFixed(2)}</TableCell><TableCell align="right">${(p.corporatePrice || 0).toFixed(2)}</TableCell><TableCell align="right">${p.cost.toFixed(2)}</TableCell><TableCell align="right">{p.stock}</TableCell><TableCell align="right"><Button size="small" onClick={() => handleOpenModal(p)}>Modifier</Button><Button size="small" color="error" onClick={() => onDelete(p._id)}>Supprimer</Button></TableCell></TableRow>))}</TableBody></Table></TableContainer>
+
+      <Dialog open={isModalOpen} onClose={handleCloseModal}><DialogTitle>Modifier le Produit</DialogTitle><DialogContent><Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>{editingProduct && <>
+          <TextField label="Nom" value={editingProduct.name} onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })} />
+          <TextField label="Prix Vente ($)" type="number" value={editingProduct.price} onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })} />
+          <TextField label="Prix Entreprise ($)" type="number" value={editingProduct.corporatePrice} onChange={e => setEditingProduct({ ...editingProduct, corporatePrice: e.target.value })} />
+          <TextField label="Coût ($)" type="number" value={editingProduct.cost} onChange={e => setEditingProduct({ ...editingProduct, cost: e.target.value })} />
+      </>} </Box></DialogContent><DialogActions><Button onClick={handleCloseModal}>Annuler</Button><Button onClick={handleSaveChanges} variant="contained">Sauvegarder</Button></DialogActions></Dialog>
     </Paper>
   );
 };
@@ -253,9 +263,7 @@ function AdminPage() {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Panneau Administrateur
-      </Typography>
+      <Typography variant="h4" component="h1" gutterBottom>Panneau Administrateur</Typography>
       <Grid container spacing={3}>
         <Grid item xs={12}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid>
