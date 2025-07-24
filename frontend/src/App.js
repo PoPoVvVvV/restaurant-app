@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 import { AuthProvider } from './context/AuthContext';
-import { ThemeContextProvider } from './context/ThemeContext';
+import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 
 import Navbar from './components/Navbar';
@@ -18,12 +18,24 @@ import AdminPage from './pages/AdminPage';
 import RecipePage from './pages/RecipePage';
 import CorporateSalesPage from './pages/CorporateSalesPage';
 
-function AppContent({ theme, mode }) {
+// Ce composant interne gère le changement de thème
+function ThemedApp() {
+  const { mode } = useThemeMode();
+
+  const theme = useMemo(
+    () => createTheme({
+        palette: {
+          mode,
+        },
+      }),
+    [mode]
+  );
+
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Navbar mode={mode} />
+        <Navbar />
         <main style={{ padding: '20px' }}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -42,14 +54,15 @@ function AppContent({ theme, mode }) {
   );
 }
 
+
 function App() {
   return (
     <AuthProvider>
-      <ThemeContextProvider>
+      <ThemeModeProvider>
         <NotificationProvider>
-          <AppContent />
+          <ThemedApp />
         </NotificationProvider>
-      </ThemeContextProvider>
+      </ThemeModeProvider>
     </AuthProvider>
   );
 }

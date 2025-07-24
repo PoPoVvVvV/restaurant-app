@@ -4,13 +4,15 @@ import { AppBar, Toolbar, Typography, Button, IconButton, Box } from '@mui/mater
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AuthContext from '../context/AuthContext';
-import { ThemeContext } from '../context/ThemeContext';
+import { useThemeMode } from '../context/ThemeContext';
 
-function Navbar({ mode }) {
-  const { user, logout } = useContext(AuthContext);
-  const { toggleTheme } = useContext(ThemeContext);
+function Navbar() {
+  const { user } = useContext(AuthContext);
+  const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
 
+  // La fonction logout est maintenant dans le AuthContext, mais on la définit ici pour l'appel
+  const { logout } = useContext(AuthContext);
   const onLogout = () => {
     logout();
     navigate('/login');
@@ -23,12 +25,11 @@ function Navbar({ mode }) {
           Resto-App
         </Typography>
 
-        {/* Espacement pour pousser les boutons de navigation */}
         <Box sx={{ flexGrow: 1, pl: 2 }}>
             {user && (
                  <>
                     <Button color="inherit" component={RouterLink} to="/ventes">Ventes</Button>
-                    <Button color="inherit" component={RouterLink} to="/ventes-entreprises">Vente Entreprise</Button>
+                    <Button color="inherit" component={RouterLink} to="/ventes-entreprises">Ventes Entreprises</Button>
                     <Button color="inherit" component={RouterLink} to="/stocks">Stocks</Button>
                     <Button color="inherit" component={RouterLink} to="/recettes">Recettes</Button>
                     <Button color="inherit" component={RouterLink} to="/comptabilite">Ma Comptabilité</Button>
@@ -38,7 +39,6 @@ function Navbar({ mode }) {
                 </>
             )}
         </Box>
-
 
         {user ? (
           <>

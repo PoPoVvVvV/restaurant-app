@@ -1,36 +1,32 @@
-import React, { createContext, useState, useMemo } from 'react';
-import { createTheme } from '@mui/material/styles';
+import React, { createContext, useState, useMemo, useContext } from 'react';
 
-export const ThemeContext = createContext({
+// Création du contexte qui exposera le mode et la fonction pour le changer
+const ThemeModeContext = createContext({
   toggleTheme: () => {},
+  mode: 'light',
 });
 
-export const ThemeContextProvider = ({ children }) => {
-  const [mode, setMode] = useState('light'); // 'light' ou 'dark'
+export const ThemeModeProvider = ({ children }) => {
+  const [mode, setMode] = useState('light');
 
-  const themeAPI = useMemo(
+  const themeModeAPI = useMemo(
     () => ({
       toggleTheme: () => {
         setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
       },
+      mode,
     }),
-    [],
-  );
-
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-        },
-      }),
     [mode],
   );
 
   return (
-    <ThemeContext.Provider value={themeAPI}>
-      {/* On passe le thème et le mode au provider MUI */}
-      {React.cloneElement(children, { theme: theme, mode: mode })}
-    </ThemeContext.Provider>
+    <ThemeModeContext.Provider value={themeModeAPI}>
+      {children}
+    </ThemeModeContext.Provider>
   );
+};
+
+// Hook personnalisé pour accéder facilement au contexte
+export const useThemeMode = () => {
+  return useContext(ThemeModeContext);
 };
