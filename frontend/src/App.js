@@ -9,6 +9,7 @@ import { NotificationProvider } from './context/NotificationContext';
 
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SalesPage from './pages/SalesPage';
@@ -18,9 +19,8 @@ import AdminPage from './pages/AdminPage';
 import RecipePage from './pages/RecipePage';
 import CorporateSalesPage from './pages/CorporateSalesPage';
 
-// Ce composant interne gère le changement de thème
 function ThemedApp() {
-  const { mode } = useThemeMode();
+  const { mode } from useThemeMode();
 
   const theme = useMemo(
     () => createTheme({
@@ -38,14 +38,19 @@ function ThemedApp() {
         <Navbar />
         <main style={{ padding: '20px' }}>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            {/* Routes Publiques */}
+            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+            
+            {/* Routes Protégées */}
             <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
             <Route path="/ventes-entreprises" element={<ProtectedRoute adminOnly={true}><CorporateSalesPage /></ProtectedRoute>} />
             <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
             <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
             <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
+            
+            {/* Route par défaut */}
             <Route path="/" element={<Navigate to="/ventes" />} />
           </Routes>
         </main>
