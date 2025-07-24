@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { protect, admin } from '../middleware/auth.js';
 import Transaction from '../models/Transaction.js';
 import Expense from '../models/Expense.js';
@@ -10,32 +11,22 @@ const router = express.Router();
 // Fonction pour calculer l'impôt progressif
 const calculateTax = (benefit) => {
   if (benefit <= 10000) return 0;
-  
   let tax = 0;
   const brackets = [
-    { limit: 10000, rate: 0 },
-    { limit: 50000, rate: 0.10 },
-    { limit: 100000, rate: 0.19 },
-    { limit: 250000, rate: 0.28 },
-    { limit: 500000, rate: 0.36 },
-    { limit: Infinity, rate: 0.46 },
+    { limit: 10000, rate: 0 }, { limit: 50000, rate: 0.10 }, { limit: 100000, rate: 0.19 },
+    { limit: 250000, rate: 0.28 }, { limit: 500000, rate: 0.36 }, { limit: Infinity, rate: 0.46 },
   ];
-
   let remainingBenefit = benefit;
   let previousLimit = 0;
-
   for (const bracket of brackets) {
     if (remainingBenefit <= 0) break;
-    
     const taxableInBracket = Math.min(remainingBenefit, bracket.limit - previousLimit);
     tax += taxableInBracket * bracket.rate;
     remainingBenefit -= taxableInBracket;
     previousLimit = bracket.limit;
   }
-
   return tax;
 };
-
 
 // @route   GET /api/reports/financial-summary
 // @desc    Obtenir un résumé financier global pour une semaine donnée
@@ -53,19 +44,10 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
     const prevWeekBalanceSetting = await Setting.findOne({ key: `accountBalance_week_${weekIdToFetch - 1}` });
     const startingBalance = prevWeekBalanceSetting?.value || 0;
     
-    const salesData = await Transaction.aggregate([
-      { $match: { weekId: weekIdToFetch } },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' }, totalCostOfGoods: { $sum: '$totalCost' } } }
-    ]);
-    const expenseData = await Expense.aggregate([
-      { $match: { weekId: weekIdToFetch } },
-      { $group: { _id: null, totalExpenses: { $sum: '$amount' } } }
-    ]);
+    const salesData = await Transaction.aggregate([ { $match: { weekId: weekIdToFetch } }, { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' }, totalCostOfGoods: { $sum: '$totalCost' } } } ]);
+    const expenseData = await Expense.aggregate([ { $match: { weekId: weekIdToFetch } }, { $group: { _id: null, totalExpenses: { $sum: '$amount' } } } ]);
     const deductibleCategories = ["Matières Premières", "Frais Véhicule", "Frais Avocat"];
-    const deductibleExpenseData = await Expense.aggregate([
-      { $match: { weekId: weekIdToFetch, category: { $in: deductibleCategories } } },
-      { $group: { _id: null, totalDeductible: { $sum: '$amount' } } }
-    ]);
+    const deductibleExpenseData = await Expense.aggregate([ { $match: { weekId: weekIdToFetch, category: { $in: deductibleCategories } } }, { $group: { _id: null, totalDeductible: { $sum: '$amount' } } } ]);
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
 
@@ -78,11 +60,8 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
     };
     
     summary.grossMargin = summary.totalRevenue - summary.totalCostOfGoods;
-    
-    // Le bénéfice pour l'impôt est basé sur le CA moins les dépenses déductibles
     const benefitForTax = summary.totalRevenue - summary.taxDeductible;
     summary.taxPayable = calculateTax(benefitForTax);
-    
     summary.netMargin = summary.grossMargin - summary.totalExpenses;
     summary.totalBonus = summary.grossMargin * bonusPercentage;
     summary.liveBalance = summary.startingBalance + summary.netMargin - summary.taxPayable;
@@ -114,11 +93,30 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
     ]);
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
-    const finalReport = performanceData.map(data => ({
-      ...data,
-      estimatedBonus: data.totalMargin * bonusPercentage,
-    }));
+    const finalReport = performanceData.map(data => ({ ...data, estimatedBonus: data.totalMargin * bonusPercentage }));
     res.json(finalReport);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   GET /api/reports/daily-sales/me
+// @desc    Obtenir les ventes journalières de l'employé pour la semaine en cours
+// @access  Privé (Employé)
+router.get('/daily-sales/me', protect, async (req, res) => {
+  try {
+    const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
+    const currentWeekId = weekSetting?.value || 1;
+    const dailySales = await Transaction.aggregate([
+      { $match: { employeeId: new mongoose.Types.ObjectId(req.user.id), weekId: currentWeekId } },
+      { $project: { dayOfWeek: { $dayOfWeek: '$createdAt' }, totalAmount: '$totalAmount' } },
+      { $group: { _id: '$dayOfWeek', totalSales: { $sum: '$totalAmount' } } },
+      { $sort: { _id: 1 } }
+    ]);
+    const days = ["", "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+    const formattedData = dailySales.map(d => ({ name: days[d._id], Ventes: d.totalSales }));
+    res.json(formattedData);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erreur du serveur' });

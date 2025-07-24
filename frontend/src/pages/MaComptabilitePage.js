@@ -1,41 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../services/api';
+import AuthContext from '../context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Imports depuis Material-UI
-import {
-  Container,
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
-  CircularProgress
-} from '@mui/material';
+import { Container, Paper, Typography, Grid, CircularProgress, Box, Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemText } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 function MaComptabilitePage() {
+  const { user } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
+  const [dailyData, setDailyData] = useState([]);
   const [bonusPercentage, setBonusPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
-        const [transacRes, settingsRes] = await Promise.all([
+        const [transacRes, settingsRes, dailyRes] = await Promise.all([
           api.get('/transactions/me'),
-          api.get('/settings/bonusPercentage').catch(() => ({ data: { value: 0 } }))
+          api.get('/settings/bonusPercentage').catch(() => ({ data: { value: 0 } })),
+          api.get('/reports/daily-sales/me')
         ]);
         setTransactions(transacRes.data);
         setBonusPercentage(settingsRes.data.value);
+        setDailyData(dailyRes.data);
       } catch (err) {
-        setError('Impossible de charger les données.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -49,82 +38,64 @@ function MaComptabilitePage() {
   const totalBonus = totalMargin * bonusPercentage;
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
-  if (error) return <Typography color="error" align="center">{error}</Typography>;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Ma Comptabilité
+        Tableau de Bord - {user?.username}
       </Typography>
 
-      {/* Section des totaux */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6">Chiffre d'Affaires</Typography>
-            <Typography variant="h4" component="p" sx={{ fontWeight: 'bold' }}>
-              ${totalCA.toFixed(2)}
-            </Typography>
+      <Grid container spacing={3}>
+        {/* Cartes de KPIs */}
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Grade</Typography><Typography variant="h4" color="primary">{user?.grade || 'N/A'}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">CA Semaine</Typography><Typography variant="h4">${totalCA.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Marge Semaine</Typography><Typography variant="h4">${totalMargin.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Prime Estimée</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
+
+        {/* Graphique des ventes */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, height: '400px' }}>
+            <Typography variant="h6" gutterBottom>Ventes Journalières de la Semaine</Typography>
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Ventes" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6">Marge Générée</Typography>
-            <Typography variant="h4" component="p" sx={{ fontWeight: 'bold' }}>
-              ${totalMargin.toFixed(2)}
+        
+        {/* La liste des transactions reste disponible en dessous */}
+        <Grid item xs={12}>
+            <Typography variant="h5" component="h2" gutterBottom>
+                Historique Détaillé de la Semaine
             </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center', backgroundColor: 'success.light', color: 'white' }}>
-            <Typography variant="h6">Salaire Estimé ({(bonusPercentage * 100).toFixed(0)}%)</Typography>
-            <Typography variant="h4" component="p" sx={{ fontWeight: 'bold' }}>
-              ${totalBonus.toFixed(2)}
-            </Typography>
-          </Paper>
+            {transactions.length === 0 ? (
+                <Typography>Vous n'avez encore enregistré aucune transaction cette semaine.</Typography>
+            ) : (
+                transactions.map(t => (
+                <Accordion key={t._id}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Grid container justifyContent="space-between" alignItems="center">
+                        <Grid item xs={6}><Typography>{new Date(t.createdAt).toLocaleString('fr-FR')}</Typography></Grid>
+                        <Grid item xs={6} sx={{ textAlign: 'right' }}><Typography variant="body1" component="span" sx={{ mr: 2 }}>Total: <strong>${t.totalAmount.toFixed(2)}</strong></Typography><Typography variant="body1" component="span" color="text.secondary">Marge: ${t.margin.toFixed(2)}</Typography></Grid>
+                    </Grid>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ backgroundColor: 'action.hover' }}>
+                    <Typography variant="subtitle2">Détail des produits vendus :</Typography>
+                    <List dense>
+                        {t.products.map((p, index) => (<ListItem key={index}><ListItemText primary={`${p.quantity} x ${p.name || 'Produit'}`} secondary={`Vendu à ${p.priceAtSale.toFixed(2)}$ / unité`} /></ListItem>))}
+                    </List>
+                    </AccordionDetails>
+                </Accordion>
+                ))
+            )}
         </Grid>
       </Grid>
-
-      {/* Historique des transactions */}
-      <Typography variant="h5" component="h2" gutterBottom>
-        Historique Détaillé
-      </Typography>
-      {transactions.length === 0 ? (
-        <Typography>Vous n'avez encore enregistré aucune transaction.</Typography>
-      ) : (
-        transactions.map(t => (
-          <Accordion key={t._id}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Grid container justifyContent="space-between" alignItems="center">
-                <Grid item xs={6}>
-                  <Typography>{new Date(t.createdAt).toLocaleString('fr-FR')}</Typography>
-                </Grid>
-                <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                  <Typography variant="body1" component="span" sx={{ mr: 2 }}>
-                    Total: <strong>${t.totalAmount.toFixed(2)}</strong>
-                  </Typography>
-                  <Typography variant="body1" component="span" color="text.secondary">
-                    Marge: ${t.margin.toFixed(2)}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </AccordionSummary>
-            <AccordionDetails sx={{ backgroundColor: 'action.hover' }}>
-              <Typography variant="subtitle2">Détail des produits vendus :</Typography>
-              <List dense>
-                {t.products.map((p, index) => (
-                  <ListItem key={index}>
-                    <ListItemText
-                      primary={`${p.quantity} x (Produit ID: ${p.productId})`}
-                      secondary={`Vendu à ${p.priceAtSale.toFixed(2)}$ / unité`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </AccordionDetails>
-          </Accordion>
-        ))
-      )}
     </Container>
   );
 }
