@@ -123,6 +123,28 @@ router.get('/daily-sales/me', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/reports/leaderboard
+// @desc    Obtenir le classement des employés par CA pour la semaine en cours
+// @access  Privé
+router.get('/leaderboard', protect, async (req, res) => {
+  try {
+    const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
+    const currentWeekId = weekSetting?.value || 1;
+    const leaderboard = await Transaction.aggregate([
+      { $match: { weekId: currentWeekId } },
+      { $group: { _id: '$employeeId', totalRevenue: { $sum: '$totalAmount' } } },
+      { $sort: { totalRevenue: -1 } },
+      { $limit: 5 },
+      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
+      { $project: { _id: 0, employeeName: { $arrayElemAt: ['$employeeInfo.username', 0] }, totalRevenue: '$totalRevenue' } },
+    ]);
+    res.json(leaderboard);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   GET /api/reports/transactions/export
 // @desc    Exporter les transactions de la semaine en cours en CSV
 // @access  Privé/Admin

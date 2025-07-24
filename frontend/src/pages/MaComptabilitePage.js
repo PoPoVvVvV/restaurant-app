@@ -53,7 +53,7 @@ function MaComptabilitePage() {
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Prime Estimée</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
 
         {/* Graphique des ventes */}
-        <Grid item xs={12}>
+        <Grid item xs={12} md={8}>
           <Paper sx={{ p: 2, height: '400px' }}>
             <Typography variant="h6" gutterBottom>Ventes Journalières de la Semaine</Typography>
             <ResponsiveContainer width="100%" height="90%">
@@ -69,7 +69,12 @@ function MaComptabilitePage() {
           </Paper>
         </Grid>
         
-        {/* La liste des transactions reste disponible en dessous */}
+        {/* Classement */}
+        <Grid item xs={12} md={4}>
+            <Leaderboard />
+        </Grid>
+        
+        {/* Historique détaillé */}
         <Grid item xs={12}>
             <Typography variant="h5" component="h2" gutterBottom>
                 Historique Détaillé de la Semaine
@@ -99,5 +104,33 @@ function MaComptabilitePage() {
     </Container>
   );
 }
+
+// Composant pour le classement
+const Leaderboard = () => {
+    const [data, setData] = useState([]);
+    useEffect(() => {
+        api.get('/reports/leaderboard')
+           .then(res => setData(res.data))
+           .catch(err => console.error("Erreur chargement classement."));
+    }, []);
+    return (
+        <Paper sx={{ p: 2, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>🏆 Top 5 Vendeurs de la Semaine</Typography>
+            <TableContainer>
+                <Table size="small">
+                    <TableBody>
+                        {data.map((row, index) => (
+                            <TableRow key={index}>
+                                <TableCell sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>#{index + 1}</TableCell>
+                                <TableCell>{row.employeeName}</TableCell>
+                                <TableCell align="right">${row.totalRevenue.toFixed(2)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Paper>
+    );
+};
 
 export default MaComptabilitePage;
