@@ -85,6 +85,8 @@ const FinancialSummary = ({ viewedWeek }) => {
   }, [viewedWeek]);
 
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
+  
+  const liveBalance = (summary.startingBalance || 0) + (summary.netMargin || 0) - (summary.taxPayable || 0);
 
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
@@ -100,7 +102,12 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
+            <Typography>Solde Compte en Direct (Estimé)</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(liveBalance || 0).toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
       </Grid>
     </Paper>
   );
@@ -112,6 +119,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
   useEffect(() => {
     api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
+  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
@@ -162,8 +170,8 @@ const GeneralSettings = () => {
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Paramètres & Employés</Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
             
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -208,21 +216,28 @@ const ExpenseManager = ({ viewedWeek }) => {
 // 9. Gestion des Produits
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
-  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, cost: 0, stock: 0 });
+  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, corporatePrice: 0, cost: 0, stock: 0 });
   const fetchProducts = async () => { try { const { data } = await api.get('/products'); setProducts(data); } catch (err) { console.error(err); } };
   useEffect(() => { fetchProducts(); }, []);
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, cost: 0, stock: 0 }); } catch (err) { alert("Erreur."); } };
+  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: 0, cost: 0, stock: 0 }); } catch (err) { alert("Erreur."); } };
   const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); } catch (err) { console.error(err); } } };
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Gestion des Produits</Typography>
-      <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}><TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom du produit" required /><Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select><TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix ($)" /><TextField size="small" type="number" name="cost" value={formData.cost} onChange={onChange} label="Coût ($)" /><TextField size="small" type="number" name="stock" value={formData.stock} onChange={onChange} label="Stock" /><Button type="submit" variant="contained">Ajouter</Button></Box>
-      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Nom</TableCell><TableCell>Catégorie</TableCell><TableCell align="right">Prix</TableCell><TableCell align="right">Coût</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{products.map(p => (<TableRow key={p._id}><TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell align="right">${p.price.toFixed(2)}</TableCell><TableCell align="right">${p.cost.toFixed(2)}</TableCell><TableCell align="right">{p.stock}</TableCell><TableCell align="right"><Button size="small" color="error" onClick={() => onDelete(p._id)}>Supprimer</Button></TableCell></TableRow>))}</TableBody></Table></TableContainer>
+      <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom du produit" required />
+          <Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select>
+          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix Vente ($)" />
+          <TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={onChange} label="Prix Entreprise ($)" />
+          <TextField size="small" type="number" name="cost" value={formData.cost} onChange={onChange} label="Coût ($)" />
+          <TextField size="small" type="number" name="stock" value={formData.stock} onChange={onChange} label="Stock" />
+          <Button type="submit" variant="contained">Ajouter</Button>
+      </Box>
+      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Nom</TableCell><TableCell>Catégorie</TableCell><TableCell align="right">Prix</TableCell><TableCell align="right">Prix Ent.</TableCell><TableCell align="right">Coût</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{products.map(p => (<TableRow key={p._id}><TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell align="right">${p.price.toFixed(2)}</TableCell><TableCell align="right">${(p.corporatePrice || 0).toFixed(2)}</TableCell><TableCell align="right">${p.cost.toFixed(2)}</TableCell><TableCell align="right">{p.stock}</TableCell><TableCell align="right"><Button size="small" color="error" onClick={() => onDelete(p._id)}>Supprimer</Button></TableCell></TableRow>))}</TableBody></Table></TableContainer>
     </Paper>
   );
 };
-
 
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 function AdminPage() {

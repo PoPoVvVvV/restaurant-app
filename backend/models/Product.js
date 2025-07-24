@@ -9,12 +9,15 @@ const ProductSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Menus', 'Plats', 'Boissons', 'Desserts'], // Limite les valeurs possibles
+    enum: ['Menus', 'Plats', 'Boissons', 'Desserts'],
   },
   price: {
     type: Number,
     required: [true, 'Le prix de vente est obligatoire'],
     default: 0,
+  },
+  corporatePrice: {
+    type: Number,
   },
   cost: {
     type: Number,

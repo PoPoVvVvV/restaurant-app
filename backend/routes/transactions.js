@@ -9,13 +9,10 @@ import Setting from '../models/Setting.js';
 const router = express.Router();
 
 // @route   POST /api/transactions
-// @desc    Créer une nouvelle transaction et notifier Discord
-// @access  Privé (Employé)
+// @desc    Créer une ou plusieurs transactions (gère la répartition)
+// @access  Privé (Employé/Admin)
 router.post('/', protect, async (req, res) => {
-  const { cart } = req.body;
-  const employeeId = req.user.id;
-  const employeeName = req.user.username;
-  
+  const { cart, employeeIds } = req.body;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -26,6 +23,7 @@ router.post('/', protect, async (req, res) => {
     let totalCost = 0;
     const transactionProducts = [];
 
+    // 1. Calculer les totaux et mettre à jour les stocks
     for (const item of cart) {
       const product = await Product.findById(item._id).session(session);
       if (!product || product.stock < item.quantity) {
@@ -37,37 +35,49 @@ router.post('/', protect, async (req, res) => {
       totalCost += item.cost * item.quantity;
       transactionProducts.push({ productId: product._id, quantity: item.quantity, priceAtSale: product.price, costAtSale: product.cost, name: product.name });
     }
+    const totalMargin = totalAmount - totalCost;
 
-    const newTransaction = new Transaction({
-      weekId: currentWeekId,
-      employeeId,
-      products: transactionProducts,
-      totalAmount,
-      totalCost,
-      margin: totalAmount - totalCost
-    });
+    // 2. Déterminer la liste des employés cibles
+    const targetEmployeeIds = (req.user.role === 'admin' && employeeIds && employeeIds.length > 0)
+      ? employeeIds
+      : [req.user.id];
+      
+    const employeeCount = targetEmployeeIds.length;
+    const dividedAmount = totalAmount / employeeCount;
+    const dividedCost = totalCost / employeeCount;
+    const dividedMargin = totalMargin / employeeCount;
+
+    // 3. Créer une transaction pour chaque employé
+    for (const empId of targetEmployeeIds) {
+      const newTransaction = new Transaction({
+        weekId: currentWeekId,
+        employeeId: empId,
+        products: transactionProducts,
+        totalAmount: dividedAmount,
+        totalCost: dividedCost,
+        margin: dividedMargin
+      });
+      await newTransaction.save({ session });
+    }
     
-    await newTransaction.save({ session });
     await session.commitTransaction();
 
-    // Envoi de la notification sur Discord
+    // 4. Notifier Discord (la notification reste au nom de l'enregistrant)
     const webhookUrl = process.env.DISCORD_SALES_WEBHOOK_URL;
     if (webhookUrl) {
         const productList = transactionProducts.map(p => `• ${p.quantity} x ${p.name}`).join('\n');
         const embed = {
-            author: { name: `Nouvelle vente par ${employeeName}` },
+            author: { name: `Vente enregistrée par ${req.user.username}` },
             title: `Transaction de ${totalAmount.toFixed(2)}$`,
-            color: 5763719, // Vert
-            fields: [
-                { name: "Produits Vendus", value: productList },
-                { name: "Marge Brute", value: `$${(totalAmount - totalCost).toFixed(2)}`, inline: true },
-            ],
+            description: `Vente répartie sur ${employeeCount} employé(s).`,
+            color: 5763719,
+            fields: [ { name: "Produits Vendus", value: productList }, { name: "Marge Brute Totale", value: `$${totalMargin.toFixed(2)}` } ],
             timestamp: new Date().toISOString(),
         };
         axios.post(webhookUrl, { embeds: [embed] }).catch(err => console.error("Erreur Webhook Ventes:", err.message));
     }
 
-    res.status(201).json({ message: 'Transaction enregistrée avec succès !' });
+    res.status(201).json({ message: `Transaction de ${totalAmount.toFixed(2)}$ répartie entre ${employeeCount} employé(s) !` });
 
   } catch (error) {
     await session.abortTransaction();

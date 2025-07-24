@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SalesPage from './pages/SalesPage';
+import CorporateSalesPage from './pages/CorporateSalesPage'; // Assuming this is the new page for corporate sales 
 import StockPage from './pages/StockPage';
 import RecipePage from './pages/RecipePage';
 import MaComptabilitePage from './pages/MaComptabilitePage';
@@ -29,6 +30,7 @@ function AppContent({ theme, mode }) {
 
             {/* Routes Protégées */}
             <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+            <Route path="/ventes-entreprises" element={<ProtectedRoute adminOnly={true}><CorporateSalesPage /></ProtectedRoute>} />
             <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
             <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
             <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
