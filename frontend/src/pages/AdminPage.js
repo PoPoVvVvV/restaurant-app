@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
@@ -11,14 +12,15 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 // 1. Gestion de la Semaine
 const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
+    const { showNotification } = useNotification();
     const handleNewWeek = async () => {
         if (window.confirm(`Êtes-vous sûr de vouloir terminer la semaine ${currentWeek} et commencer une nouvelle semaine ? Les données de la semaine actuelle seront archivées.`)) {
             try {
                 const { data } = await api.post('/settings/new-week');
-                alert(data.message);
-                window.location.reload();
+                showNotification(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1500);
             } catch (err) {
-                alert("Erreur lors du changement de semaine.");
+                showNotification("Erreur lors du changement de semaine.", "error");
             }
         }
     };
@@ -38,6 +40,7 @@ const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
 const AccountBalanceManager = ({ viewedWeek }) => {
     const [balance, setBalance] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(0);
+    const { showNotification } = useNotification();
 
     const fetchBalance = () => {
         api.get(`/settings/accountBalance_week_${viewedWeek}`)
@@ -57,10 +60,10 @@ const AccountBalanceManager = ({ viewedWeek }) => {
     const handleSave = async () => {
         try {
             await api.post('/settings/account-balance', { balance, week: viewedWeek });
-            alert('Solde mis à jour !');
+            showNotification('Solde mis à jour !', 'success');
             fetchBalance();
         } catch (err) {
-            alert("Erreur lors de la mise à jour.");
+            showNotification("Erreur lors de la mise à jour.", "error");
         }
     };
 
@@ -86,8 +89,6 @@ const FinancialSummary = ({ viewedWeek }) => {
 
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
   
-  const liveBalance = (summary.startingBalance || 0) + (summary.netMargin || 0) - (summary.taxPayable || 0);
-
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Résumé Financier (Semaine {viewedWeek})</Typography>
@@ -102,12 +103,7 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
-            <Typography>Solde Compte en Direct (Estimé)</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(liveBalance || 0).toFixed(2)}</Typography>
-          </Paper>
-        </Grid>
+        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
     </Paper>
   );
@@ -119,6 +115,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
   useEffect(() => {
     api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
+  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
@@ -135,8 +132,9 @@ const EmployeePerformance = ({ viewedWeek }) => {
 // 5. Annonce de Livraison
 const DeliveryStatusManager = () => {
     const [status, setStatus] = useState({ isActive: false, companyName: '' });
+    const { showNotification } = useNotification();
     useEffect(() => { api.get('/settings/delivery-status').then(res => setStatus(res.data.value || { isActive: false, companyName: '' })).catch(() => {}); }, []);
-    const handleSave = async () => { try { await api.post('/settings/delivery-status', status); alert('Annonce mise à jour !'); } catch (err) { alert("Erreur."); } };
+    const handleSave = async () => { try { await api.post('/settings/delivery-status', status); showNotification('Annonce mise à jour !', 'success'); } catch (err) { showNotification("Erreur.", 'error'); } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Annonce de Livraison</Typography>
@@ -151,6 +149,7 @@ const DeliveryStatusManager = () => {
 
 // 6. Paramètres Généraux et Gestion des Employés
 const GeneralSettings = () => {
+    const { showNotification } = useNotification();
     const [bonusPercentage, setBonusPercentage] = useState(0);
     const [newCode, setNewCode] = useState('');
     const [users, setUsers] = useState([]);
@@ -159,9 +158,9 @@ const GeneralSettings = () => {
         api.get('/settings/bonusPercentage').then(res => setBonusPercentage(res.data.value * 100)).catch(() => {});
         fetchUsers();
     }, []);
-    const handleSaveBonus = async () => { await api.post('/settings', { key: 'bonusPercentage', value: parseFloat(bonusPercentage) / 100 }); alert('Prime enregistrée !'); };
+    const handleSaveBonus = async () => { await api.post('/settings', { key: 'bonusPercentage', value: parseFloat(bonusPercentage) / 100 }); showNotification('Prime enregistrée !', 'success'); };
     const generateInviteCode = async () => { const { data } = await api.post('/users/generate-code'); setNewCode(data.invitationCode); };
-    const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); } catch (err) { alert("Erreur."); } };
+    const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); showNotification("Statut de l'utilisateur mis à jour.", 'info'); } catch (err) { showNotification("Erreur.", 'error'); } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Paramètres & Employés</Typography>
@@ -179,9 +178,10 @@ const GeneralSettings = () => {
 
 // 7. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
+  const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
   useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)).catch(err => console.error(err)); }, [viewedWeek]);
-  const handleExport = async () => { /* ... */ };
+  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible de générer l'export CSV.", 'error'); } };
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h5">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
@@ -192,16 +192,18 @@ const TransactionLog = ({ viewedWeek }) => {
 
 // 8. Gestion des Dépenses
 const ExpenseManager = ({ viewedWeek }) => {
+    const { showNotification } = useNotification();
     const [expenses, setExpenses] = useState([]);
     const [formData, setFormData] = useState({ amount: '', category: 'Matières Premières', description: '' });
     const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)).catch(err => console.error(err)); };
     useEffect(fetchExpenses, [viewedWeek]);
-    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); } catch (err) { alert("Erreur."); } };
-    const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); } catch(err) { alert('Erreur.'); } } };
+    const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur lors de l'ajout.", "error"); } };
+    const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); showNotification("Dépense supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Gestion des Dépenses</Typography>
-            <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
+            <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={onChange} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={onChange} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
             <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Catégorie</TableCell><TableCell>Description</TableCell><TableCell align="right">Montant</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{expenses.map(exp => (<TableRow key={exp._id}><TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell align="right" sx={{ color: 'error.main' }}>-${exp.amount.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(exp._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table></TableContainer>
         </Paper>
     );
@@ -209,6 +211,7 @@ const ExpenseManager = ({ viewedWeek }) => {
 
 // 9. Gestion des Produits
 const ProductManager = () => {
+  const { showNotification } = useNotification();
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 });
   const fetchProducts = async () => { try { const { data } = await api.get('/products'); setProducts(data); } catch (err) { console.error(err); } };
@@ -217,13 +220,13 @@ const ProductManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  const handleOpenModal = (product) => { setEditingProduct(product); setIsModalOpen(true); };
+  const handleOpenModal = (product) => { setEditingProduct({ ...product }); setIsModalOpen(true); };
   const handleCloseModal = () => { setIsModalOpen(false); setEditingProduct(null); };
-  const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); } catch (err) { alert("Erreur."); } };
+  const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); showNotification("Produit mis à jour.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 }); } catch (err) { alert("Erreur."); } };
-  const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); } catch (err) { console.error(err); } } };
+  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 }); showNotification("Produit ajouté.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
+  const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); showNotification("Produit supprimé.", "info"); } catch (err) { showNotification("Erreur.", "error"); } } };
 
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
@@ -231,7 +234,7 @@ const ProductManager = () => {
       <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom produit" required />
           <Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select>
-          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix ($)" />
+          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix Vente ($)" />
           <TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={onChange} label="Prix Ent. ($)" />
           <TextField size="small" type="number" name="cost" value={formData.cost} onChange={onChange} label="Coût ($)" />
           <TextField size="small" type="number" name="stock" value={formData.stock} onChange={onChange} label="Stock" />
@@ -240,10 +243,10 @@ const ProductManager = () => {
       <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Nom</TableCell><TableCell>Catégorie</TableCell><TableCell align="right">Prix</TableCell><TableCell align="right">Prix Ent.</TableCell><TableCell align="right">Coût</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead><TableBody>{products.map(p => (<TableRow key={p._id}><TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell align="right">${p.price.toFixed(2)}</TableCell><TableCell align="right">${(p.corporatePrice || 0).toFixed(2)}</TableCell><TableCell align="right">${p.cost.toFixed(2)}</TableCell><TableCell align="right">{p.stock}</TableCell><TableCell align="right"><Button size="small" onClick={() => handleOpenModal(p)}>Modifier</Button><Button size="small" color="error" onClick={() => onDelete(p._id)}>Supprimer</Button></TableCell></TableRow>))}</TableBody></Table></TableContainer>
 
       <Dialog open={isModalOpen} onClose={handleCloseModal}><DialogTitle>Modifier le Produit</DialogTitle><DialogContent><Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>{editingProduct && <>
-          <TextField label="Nom" value={editingProduct.name} onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })} />
-          <TextField label="Prix Vente ($)" type="number" value={editingProduct.price} onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })} />
-          <TextField label="Prix Entreprise ($)" type="number" value={editingProduct.corporatePrice} onChange={e => setEditingProduct({ ...editingProduct, corporatePrice: e.target.value })} />
-          <TextField label="Coût ($)" type="number" value={editingProduct.cost} onChange={e => setEditingProduct({ ...editingProduct, cost: e.target.value })} />
+          <TextField margin="dense" label="Nom" value={editingProduct.name} onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })} />
+          <TextField margin="dense" label="Prix Vente ($)" type="number" value={editingProduct.price} onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })} />
+          <TextField margin="dense" label="Prix Entreprise ($)" type="number" value={editingProduct.corporatePrice} onChange={e => setEditingProduct({ ...editingProduct, corporatePrice: e.target.value })} />
+          <TextField margin="dense" label="Coût ($)" type="number" value={editingProduct.cost} onChange={e => setEditingProduct({ ...editingProduct, cost: e.target.value })} />
       </>} </Box></DialogContent><DialogActions><Button onClick={handleCloseModal}>Annuler</Button><Button onClick={handleSaveChanges} variant="contained">Sauvegarder</Button></DialogActions></Dialog>
     </Paper>
   );
@@ -263,7 +266,9 @@ function AdminPage() {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>Panneau Administrateur</Typography>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Panneau Administrateur
+      </Typography>
       <Grid container spacing={3}>
         <Grid item xs={12}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid>

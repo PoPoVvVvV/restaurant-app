@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
@@ -14,6 +15,7 @@ function SalesPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { showNotification } = useNotification();
 
   const fetchProducts = async () => {
     try {
@@ -21,7 +23,6 @@ function SalesPage() {
       setProducts(data.filter(p => p.stock > 0));
     } catch (err) {
       setError("Impossible de charger les produits.");
-      console.error("Erreur détaillée:", err);
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ function SalesPage() {
   const addToCart = (product) => {
     const itemInCart = cart.find(item => item._id === product._id);
     if (itemInCart && itemInCart.quantity >= product.stock) {
-      alert("Stock maximum atteint pour ce produit.");
+      showNotification("Stock maximum atteint pour ce produit.", "warning");
       return;
     }
     setCart(prevCart => {
@@ -62,27 +63,16 @@ function SalesPage() {
   const updateCartQuantity = (productId, newQuantity) => {
     const productInCatalog = products.find(p => p._id === productId);
     const quantity = parseInt(newQuantity, 10);
-
     if (isNaN(quantity) || quantity < 1) {
       setCart(prevCart => prevCart.filter(item => item._id !== productId));
       return;
     }
-
     if (quantity > productInCatalog.stock) {
-      alert(`Stock maximum pour ${productInCatalog.name} : ${productInCatalog.stock}`);
-      setCart(prevCart =>
-        prevCart.map(item =>
-          item._id === productId ? { ...item, quantity: productInCatalog.stock } : item
-        )
-      );
+      showNotification(`Stock maximum pour ${productInCatalog.name} : ${productInCatalog.stock}`, "warning");
+      setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
     }
-
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item._id === productId ? { ...item, quantity: quantity } : item
-      )
-    );
+    setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: quantity } : item));
   };
 
   const handleSaveTransaction = async () => {
@@ -90,11 +80,11 @@ function SalesPage() {
     setLoading(true);
     try {
       const { data } = await api.post('/transactions', { cart });
-      alert(data.message);
+      showNotification(data.message, 'success');
       setCart([]);
       fetchProducts();
     } catch (err) {
-      alert("Erreur: " + err.response?.data?.message || "Une erreur inconnue est survenue.");
+      showNotification(err.response?.data?.message || "Une erreur est survenue.", 'error');
     } finally {
       setLoading(false);
     }

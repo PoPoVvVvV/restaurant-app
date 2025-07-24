@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
@@ -17,6 +18,7 @@ function CorporateSalesPage() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,7 +28,7 @@ function CorporateSalesPage() {
           api.get('/users')
         ]);
         setProducts(productsRes.data.filter(p => p.stock > 0));
-        setUsers(usersRes.data.filter(u => u.isActive)); // On garde tous les utilisateurs actifs
+        setUsers(usersRes.data.filter(u => u.isActive));
       } catch (err) {
         setError("Impossible de charger les données.");
       } finally {
@@ -50,7 +52,10 @@ function CorporateSalesPage() {
 
   const addToCart = (product) => {
     const itemInCart = cart.find(item => item._id === product._id);
-    if (itemInCart && itemInCart.quantity >= product.stock) return;
+    if (itemInCart && itemInCart.quantity >= product.stock) {
+        showNotification("Stock maximum atteint pour ce produit.", "warning");
+        return;
+    };
     setCart(prevCart => {
       const existingProduct = prevCart.find(item => item._id === product._id);
       if (existingProduct) {
@@ -69,6 +74,7 @@ function CorporateSalesPage() {
       return;
     }
     if (quantity > productInCatalog.stock) {
+      showNotification(`Stock maximum pour ${productInCatalog.name} : ${productInCatalog.stock}`, "warning");
       setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
     }
@@ -78,17 +84,17 @@ function CorporateSalesPage() {
   const handleSaveTransaction = async () => {
     if (cart.length === 0) return;
     if (selectedEmployees.length === 0) {
-      alert("Veuillez sélectionner au moins un employé.");
+      showNotification("Veuillez sélectionner au moins un employé.", "warning");
       return;
     }
     setLoading(true);
     try {
       const { data } = await api.post('/transactions', { cart, employeeIds: selectedEmployees });
-      alert(data.message);
+      showNotification(data.message, 'success');
       setCart([]);
       setSelectedEmployees([]);
     } catch (err) {
-      alert("Erreur: " + err.response?.data?.message);
+      showNotification(err.response?.data?.message || "Une erreur est survenue.", 'error');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
@@ -27,8 +28,9 @@ function StockPage() {
   const [deliveryStatus, setDeliveryStatus] = useState({ isActive: false, companyName: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { showNotification } = useNotification();
 
-  const LOW_STOCK_THRESHOLD = 100;
+  const LOW_STOCK_THRESHOLD = 10;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,10 +40,7 @@ function StockPage() {
           api.get('/settings/delivery-status')
         ]);
         
-        // Définir l'ordre des catégories
         const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts"];
-
-        // Trier les produits selon l'ordre défini
         const sortedProducts = productsRes.data.sort((a, b) => {
           const indexA = categoryOrder.indexOf(a.category);
           const indexB = categoryOrder.indexOf(b.category);
@@ -75,7 +74,7 @@ function StockPage() {
     const newStock = product.editedStock;
 
     if (isNaN(parseInt(newStock, 10)) || parseInt(newStock, 10) < 0) {
-        alert("Veuillez entrer une valeur de stock valide.");
+        showNotification("Veuillez entrer une valeur de stock valide.", "error");
         return;
     }
 
@@ -86,9 +85,9 @@ function StockPage() {
           p._id === productId ? { ...p, stock: parseInt(newStock, 10) } : p
         )
       );
-      alert(`${product.name} mis à jour !`);
+      showNotification(`${product.name} mis à jour !`, 'success');
     } catch (err) {
-      alert("Erreur lors de la mise à jour du stock.");
+      showNotification("Erreur lors de la mise à jour du stock.", 'error');
     }
   };
 
