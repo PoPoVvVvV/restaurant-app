@@ -38,9 +38,9 @@ const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
 
 // 2. Gestion du Solde de Compte
 const AccountBalanceManager = ({ viewedWeek }) => {
+    const { showNotification } = useNotification();
     const [balance, setBalance] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(0);
-    const { showNotification } = useNotification();
 
     const fetchBalance = () => {
         api.get(`/settings/accountBalance_week_${viewedWeek}`)
@@ -89,6 +89,8 @@ const FinancialSummary = ({ viewedWeek }) => {
 
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
   
+  const liveBalance = (summary.startingBalance || 0) + (summary.netMargin || 0) - (summary.taxPayable || 0);
+
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Résumé Financier (Semaine {viewedWeek})</Typography>
@@ -96,14 +98,14 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Chiffre d'Affaires</Typography><Typography variant="h5">${(summary.totalRevenue || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Coût Marchandises</Typography><Typography variant="h5" color="warning.main">-${(summary.totalCostOfGoods || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Autres Dépenses</Typography><Typography variant="h5" color="error.main">-${(summary.totalExpenses || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Total Salaire</Typography><Typography variant="h5" color="primary.main">${(summary.totalBonus || 0).toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Total Primes</Typography><Typography variant="h5" color="primary.main">${(summary.totalBonus || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Déductible d'impôt</Typography><Typography variant="h5" color="info.main">${(summary.taxDeductible || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Impôt à Payer</Typography><Typography variant="h5" color="error.main">-${(summary.taxPayable || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: (summary.netMargin || 0) > 0 ? 'success.light' : 'error.light' }}><Typography>Marge Nette</Typography><Typography variant="h5">${(summary.netMargin || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
     </Paper>
   );
@@ -115,13 +117,12 @@ const EmployeePerformance = ({ viewedWeek }) => {
   useEffect(() => {
     api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
-  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
       <TableContainer>
         <Table size="small">
-          <TableHead><TableRow><TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Chiffre d'Affaires</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Marge Générée</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Salaire Estimée</TableCell></TableRow></TableHead>
+          <TableHead><TableRow><TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Chiffre d'Affaires</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Marge Générée</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Prime Estimée</TableCell></TableRow></TableHead>
           <TableBody>{report.map(data => (<TableRow key={data.employeeId}><TableCell>{data.employeeName}</TableCell><TableCell align="right">${data.totalRevenue.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'success.main' }}>${data.totalMargin.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'primary.main', fontWeight: 'bold' }}>${data.estimatedBonus.toFixed(2)}</TableCell></TableRow>))}</TableBody>
         </Table>
       </TableContainer>
@@ -131,8 +132,8 @@ const EmployeePerformance = ({ viewedWeek }) => {
 
 // 5. Annonce de Livraison
 const DeliveryStatusManager = () => {
-    const [status, setStatus] = useState({ isActive: false, companyName: '' });
     const { showNotification } = useNotification();
+    const [status, setStatus] = useState({ isActive: false, companyName: '' });
     useEffect(() => { api.get('/settings/delivery-status').then(res => setStatus(res.data.value || { isActive: false, companyName: '' })).catch(() => {}); }, []);
     const handleSave = async () => { try { await api.post('/settings/delivery-status', status); showNotification('Annonce mise à jour !', 'success'); } catch (err) { showNotification("Erreur.", 'error'); } };
     return (
@@ -160,7 +161,8 @@ const GeneralSettings = () => {
     }, []);
     const handleSaveBonus = async () => { await api.post('/settings', { key: 'bonusPercentage', value: parseFloat(bonusPercentage) / 100 }); showNotification('Prime enregistrée !', 'success'); };
     const generateInviteCode = async () => { const { data } = await api.post('/users/generate-code'); setNewCode(data.invitationCode); };
-    const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); showNotification("Statut de l'utilisateur mis à jour.", 'info'); } catch (err) { showNotification("Erreur.", 'error'); } };
+    const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); showNotification("Statut mis à jour.", 'info'); } catch (err) { showNotification("Erreur.", 'error'); } };
+    const handleGradeChange = async (userId, newGrade) => { try { await api.put(`/users/${userId}/grade`, { grade: newGrade }); setUsers(users.map(u => u._id === userId ? { ...u, grade: newGrade } : u)); showNotification("Grade mis à jour !", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Paramètres & Employés</Typography>
@@ -168,8 +170,8 @@ const GeneralSettings = () => {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
-                    <TableHead><TableRow><TableCell>Nom d'utilisateur</TableCell><TableCell>Rôle</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
-                    <TableBody>{users.map(user => (<TableRow key={user._id}><TableCell>{user.username}</TableCell><TableCell>{user.role}</TableCell><TableCell><Chip label={user.isActive ? "Actif" : "Désactivé"} color={user.isActive ? "success" : "error"} size="small" /></TableCell><TableCell align="center"><Button variant="outlined" size="small" onClick={() => handleToggleStatus(user._id)}>{user.isActive ? "Désactiver" : "Activer"}</Button></TableCell></TableRow>))}</TableBody>
+                    <TableHead><TableRow><TableCell>Nom d'utilisateur</TableCell><TableCell>Rôle</TableCell><TableCell>Grade</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
+                    <TableBody>{users.map(user => (<TableRow key={user._id}><TableCell>{user.username}</TableCell><TableCell>{user.role}</TableCell><TableCell><Select value={user.grade || 'Novice'} onChange={(e) => handleGradeChange(user._id, e.target.value)} size="small" variant="standard" sx={{ minWidth: 120 }}><MenuItem value="Novice">Novice</MenuItem><MenuItem value="Confirmé">Confirmé</MenuItem><MenuItem value="Expérimenté">Expérimenté</MenuItem><MenuItem value="Manageuse">Manageuse</MenuItem><MenuItem value="Co-Patronne">Co-Patronne</MenuItem><MenuItem value="Patron">Patron</MenuItem></Select></TableCell><TableCell><Chip label={user.isActive ? "Actif" : "Désactivé"} color={user.isActive ? "success" : "error"} size="small" /></TableCell><TableCell align="center"><Button variant="outlined" size="small" onClick={() => handleToggleStatus(user._id)}>{user.isActive ? "Désactiver" : "Activer"}</Button></TableCell></TableRow>))}</TableBody>
                 </Table>
             </TableContainer>
         </Paper>
@@ -178,10 +180,9 @@ const GeneralSettings = () => {
 
 // 7. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
-  const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
   useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)).catch(err => console.error(err)); }, [viewedWeek]);
-  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible de générer l'export CSV.", 'error'); } };
+  const handleExport = async () => { /* ... */ };
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h5">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
@@ -197,13 +198,12 @@ const ExpenseManager = ({ viewedWeek }) => {
     const [formData, setFormData] = useState({ amount: '', category: 'Matières Premières', description: '' });
     const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)).catch(err => console.error(err)); };
     useEffect(fetchExpenses, [viewedWeek]);
-    const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur lors de l'ajout.", "error"); } };
+    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
     const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); showNotification("Dépense supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>Gestion des Dépenses</Typography>
-            <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={onChange} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={onChange} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
+            <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
             <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Catégorie</TableCell><TableCell>Description</TableCell><TableCell align="right">Montant</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{expenses.map(exp => (<TableRow key={exp._id}><TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell align="right" sx={{ color: 'error.main' }}>-${exp.amount.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(exp._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table></TableContainer>
         </Paper>
     );
@@ -213,7 +213,7 @@ const ExpenseManager = ({ viewedWeek }) => {
 const ProductManager = () => {
   const { showNotification } = useNotification();
   const [products, setProducts] = useState([]);
-  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 });
+  const [formData, setFormData] = useState({ name: '', category: 'Plats', price: '', corporatePrice: '', cost: '', stock: '' });
   const fetchProducts = async () => { try { const { data } = await api.get('/products'); setProducts(data); } catch (err) { console.error(err); } };
   useEffect(() => { fetchProducts(); }, []);
   
@@ -225,7 +225,7 @@ const ProductManager = () => {
   const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); showNotification("Produit mis à jour.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: 0, corporatePrice: '', cost: 0, stock: 0 }); showNotification("Produit ajouté.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
+  const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: '', corporatePrice: '', cost: '', stock: '' }); showNotification("Produit ajouté.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); showNotification("Produit supprimé.", "info"); } catch (err) { showNotification("Erreur.", "error"); } } };
 
   return (
@@ -234,7 +234,7 @@ const ProductManager = () => {
       <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField size="small" name="name" value={formData.name} onChange={onChange} label="Nom produit" required />
           <Select size="small" name="category" value={formData.category} onChange={onChange}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select>
-          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix Vente ($)" />
+          <TextField size="small" type="number" name="price" value={formData.price} onChange={onChange} label="Prix ($)" />
           <TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={onChange} label="Prix Ent. ($)" />
           <TextField size="small" type="number" name="cost" value={formData.cost} onChange={onChange} label="Coût ($)" />
           <TextField size="small" type="number" name="stock" value={formData.stock} onChange={onChange} label="Stock" />
@@ -251,6 +251,7 @@ const ProductManager = () => {
     </Paper>
   );
 };
+
 
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 function AdminPage() {

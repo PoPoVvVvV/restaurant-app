@@ -62,4 +62,30 @@ router.put('/:id/status', [protect, admin], async (req, res) => {
   }
 });
 
+// @route   PUT /api/users/:id/grade
+// @desc    Modifier le grade d'un utilisateur
+// @access  Privé/Admin
+router.put('/:id/grade', [protect, admin], async (req, res) => {
+  try {
+    const { grade } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    const validGrades = ['Novice', 'Confirmé', 'Expérimenté', 'Manageuse', 'Co-Patronne', 'Patron'];
+    if (!validGrades.includes(grade)) {
+      return res.status(400).json({ message: 'Grade non valide.' });
+    }
+
+    user.grade = grade;
+    await user.save();
+    res.json({ message: `Le grade de ${user.username} a été mis à jour.` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 export default router;

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: [true, 'Le nom d\'utilisateur est obligatoire'],
+    required: [true, "Le nom d'utilisateur est obligatoire"],
     unique: true,
     trim: true,
   },
@@ -15,6 +15,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['employe', 'admin'],
     default: 'employe',
+  },
+  grade: {
+    type: String,
+    enum: ['Novice', 'Confirmé', 'Expérimenté', 'Manageuse', 'Co-Patronne', 'Patron'],
+    default: 'Novice'
   },
   isActive: {
     type: Boolean,
