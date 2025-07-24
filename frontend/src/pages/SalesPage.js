@@ -5,7 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 // Imports depuis Material-UI
 import {
   Box, Grid, Card, CardActionArea, CardContent, Typography, Paper, List, ListItem, ListItemText,
-  Divider, Button, CircularProgress, TextField, IconButton
+  Divider, Button, CircularProgress, TextField, IconButton, Alert, AlertTitle
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -41,6 +41,16 @@ function SalesPage() {
     });
     return grouped;
   }, [products]);
+  
+  const freeMenus = useMemo(() => {
+    return cart
+      .filter(item => item.category === 'Menus')
+      .map(item => ({
+        name: item.name,
+        freeCount: Math.floor(item.quantity / 5),
+      }))
+      .filter(item => item.freeCount > 0);
+  }, [cart]);
 
   const addToCart = (product) => {
     const itemInCart = cart.find(item => item._id === product._id);
@@ -129,6 +139,19 @@ function SalesPage() {
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Commande en cours</Typography>
+
+            {freeMenus.length > 0 && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                <AlertTitle>Promotion 5 achetés = 1 offert</AlertTitle>
+                Vous devez offrir :
+                {freeMenus.map(menu => (
+                  <strong key={menu.name} style={{ display: 'block' }}>
+                    {menu.freeCount} x {menu.name}
+                  </strong>
+                ))}
+              </Alert>
+            )}
+
             {cart.length === 0 ? (
               <Typography>La commande est vide.</Typography>
             ) : (
