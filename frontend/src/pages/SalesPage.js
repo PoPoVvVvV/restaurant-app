@@ -162,7 +162,7 @@ function SalesPage() {
                       <ListItemText primary={item.name} />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
-                        <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateCartQuantity(item._id, e.target.value)} sx={{ width: '50px' }} inputProps={{ style: { textAlign: 'center' }}} />
+                        <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateCartQuantity(item._id, e.target.value)} sx={{ width: '65px' }} inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}} />
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
                       </Box>
                     </ListItem>
