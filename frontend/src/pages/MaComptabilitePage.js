@@ -3,8 +3,40 @@ import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-import { Container, Paper, Typography, Grid, CircularProgress, Box, Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemText } from '@mui/material';
+import { 
+  Container, Paper, Typography, Grid, CircularProgress, Box, 
+  Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemText,
+  TableContainer, Table, TableBody, TableRow, TableCell
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+// Composant pour le classement
+const Leaderboard = () => {
+    const [data, setData] = useState([]);
+    useEffect(() => {
+        api.get('/reports/leaderboard')
+           .then(res => setData(res.data))
+           .catch(err => console.error("Erreur chargement classement."));
+    }, []);
+    return (
+        <Paper sx={{ p: 2, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>🏆 Top 5 Vendeurs de la Semaine</Typography>
+            <TableContainer>
+                <Table size="small">
+                    <TableBody>
+                        {data.map((row, index) => (
+                            <TableRow key={index}>
+                                <TableCell sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>#{index + 1}</TableCell>
+                                <TableCell>{row.employeeName}</TableCell>
+                                <TableCell align="right">${row.totalRevenue.toFixed(2)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Paper>
+    );
+};
 
 function MaComptabilitePage() {
   const { user } = useContext(AuthContext);
@@ -76,7 +108,7 @@ function MaComptabilitePage() {
         
         {/* Historique détaillé */}
         <Grid item xs={12}>
-            <Typography variant="h5" component="h2" gutterBottom>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 2 }}>
                 Historique Détaillé de la Semaine
             </Typography>
             {transactions.length === 0 ? (
@@ -86,8 +118,8 @@ function MaComptabilitePage() {
                 <Accordion key={t._id}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Grid container justifyContent="space-between" alignItems="center">
-                        <Grid item xs={6}><Typography>{new Date(t.createdAt).toLocaleString('fr-FR')}</Typography></Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}><Typography variant="body1" component="span" sx={{ mr: 2 }}>Total: <strong>${t.totalAmount.toFixed(2)}</strong></Typography><Typography variant="body1" component="span" color="text.secondary">Marge: ${t.margin.toFixed(2)}</Typography></Grid>
+                        <Grid item xs={12} sm={6}><Typography>{new Date(t.createdAt).toLocaleString('fr-FR')}</Typography></Grid>
+                        <Grid item xs={12} sm={6} sx={{ textAlign: { xs: 'left', sm: 'right' } }}><Typography variant="body1" component="span" sx={{ mr: 2 }}>Total: <strong>${t.totalAmount.toFixed(2)}</strong></Typography><Typography variant="body1" component="span" color="text.secondary">Marge: ${t.margin.toFixed(2)}</Typography></Grid>
                     </Grid>
                     </AccordionSummary>
                     <AccordionDetails sx={{ backgroundColor: 'action.hover' }}>
@@ -104,33 +136,5 @@ function MaComptabilitePage() {
     </Container>
   );
 }
-
-// Composant pour le classement
-const Leaderboard = () => {
-    const [data, setData] = useState([]);
-    useEffect(() => {
-        api.get('/reports/leaderboard')
-           .then(res => setData(res.data))
-           .catch(err => console.error("Erreur chargement classement."));
-    }, []);
-    return (
-        <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>🏆 Top 5 Vendeurs de la Semaine</Typography>
-            <TableContainer>
-                <Table size="small">
-                    <TableBody>
-                        {data.map((row, index) => (
-                            <TableRow key={index}>
-                                <TableCell sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>#{index + 1}</TableCell>
-                                <TableCell>{row.employeeName}</TableCell>
-                                <TableCell align="right">${row.totalRevenue.toFixed(2)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Paper>
-    );
-};
 
 export default MaComptabilitePage;
