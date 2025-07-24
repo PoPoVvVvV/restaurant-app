@@ -28,7 +28,7 @@ function Navbar({ mode }) {
             {user && (
                  <>
                     <Button color="inherit" component={RouterLink} to="/ventes">Ventes</Button>
-                    <Button color="inherit" component={RouterLink} to="/ventes-entreprises">Ventre Entreprise</Button>
+                    <Button color="inherit" component={RouterLink} to="/ventes-entreprises">Vente Entreprise</Button>
                     <Button color="inherit" component={RouterLink} to="/stocks">Stocks</Button>
                     <Button color="inherit" component={RouterLink} to="/recettes">Recettes</Button>
                     <Button color="inherit" component={RouterLink} to="/comptabilite">Ma Comptabilité</Button>
