@@ -1,18 +1,22 @@
 import React, { useContext } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, IconButton, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 
+const NavButton = ({ to, icon, text }) => (
+  <Button color="inherit" component={RouterLink} to={to} startIcon={<span>{icon}</span>}>
+    {text}
+  </Button>
+);
+
 function Navbar() {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
 
-  // La fonction logout est maintenant dans le AuthContext, mais on la définit ici pour l'appel
-  const { logout } = useContext(AuthContext);
   const onLogout = () => {
     logout();
     navigate('/login');
@@ -25,20 +29,29 @@ function Navbar() {
           Resto-App
         </Typography>
 
-        <Box sx={{ flexGrow: 1, pl: 2 }}>
+        <Box sx={{ flexGrow: 1, pl: 2, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
             {user && (
                  <>
-                    <Button color="inherit" component={RouterLink} to="/ventes">Ventes</Button>
-                    <Button color="inherit" component={RouterLink} to="/ventes-entreprises">Ventes Entreprises</Button>
-                    <Button color="inherit" component={RouterLink} to="/stocks">Stocks</Button>
-                    <Button color="inherit" component={RouterLink} to="/recettes">Recettes</Button>
-                    <Button color="inherit" component={RouterLink} to="/comptabilite">Ma Comptabilité</Button>
+                    <NavButton to="/ventes" icon="🛍️" text="Ventes" />
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <NavButton to="/ventes-entreprises" icon="🏢" text="Ventes Entreprises" />
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <NavButton to="/stocks" icon="📦" text="Stocks" />
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <NavButton to="/recettes" icon="📖" text="Recettes" />
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <NavButton to="/comptabilite" icon="📊" text="Ma Compta" />
                     {user.role === 'admin' && (
-                        <Button color="inherit" component={RouterLink} to="/admin">Admin</Button>
+                        <>
+                        <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                        <NavButton to="/admin" icon="⚙️" text="Admin" />
+                        </>
                     )}
                 </>
             )}
         </Box>
+
+        <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }} /> 
 
         {user ? (
           <>
