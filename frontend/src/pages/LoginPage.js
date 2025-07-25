@@ -65,15 +65,15 @@ function LoginPage() {
           <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
           </Button>
-          <Grid container>
-            <Grid item xs>
+          <Grid container sx={{ textAlign: 'center' }}>
+            <Grid item xs={12}>
               <Link component="button" type="button" variant="body2" onClick={handleForgotPassword}>
                 Mot de passe oublié ?
               </Link>
             </Grid>
-            <Grid item>
+            <Grid item xs={12}>
               <Link component={RouterLink} to="/register" variant="body2">
-                {"S'inscrire"}
+                {"Pas encore de compte ? S'inscrire"}
               </Link>
             </Grid>
           </Grid>
