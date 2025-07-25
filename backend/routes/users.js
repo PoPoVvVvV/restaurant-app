@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { protect, admin } from '../middleware/auth.js';
 import User from '../models/User.js';
 import InvitationCode from '../models/InvitationCode.js';
+import PasswordResetToken from '../models/PasswordResetToken.js';
 
 const router = express.Router();
 
@@ -86,6 +87,19 @@ router.put('/:id/grade', [protect, admin], async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Erreur du serveur' });
   }
+});
+
+// @route   GET /api/users/reset-tokens
+// @desc    Obtenir les tokens de réinitialisation de mot de passe actifs
+// @access  Privé/Admin
+router.get('/reset-tokens', [protect, admin], async (req, res) => {
+    try {
+        const tokens = await PasswordResetToken.find().populate('userId', 'username');
+        res.json(tokens);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur du serveur' });
+    }
 });
 
 export default router;

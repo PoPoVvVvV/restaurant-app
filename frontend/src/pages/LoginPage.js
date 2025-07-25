@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress } from '@mui/material';
@@ -12,6 +13,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,6 +31,18 @@ function LoginPage() {
       setError(err.response?.data?.message || 'Une erreur est survenue.');
     } finally {
         setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const username = prompt("Veuillez entrer votre nom d'utilisateur pour demander une réinitialisation :");
+    if (username) {
+        try {
+            const res = await api.post('/auth/forgot-password', { username });
+            showNotification(res.data, 'info');
+        } catch (err) {
+            showNotification(err.response?.data || 'Erreur', 'error');
+        }
     }
   };
 
@@ -51,11 +65,18 @@ function LoginPage() {
           <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
           </Button>
-          <Box textAlign="center">
-            <Link component={RouterLink} to="/register" variant="body2">
-              {"Pas encore de compte ? S'inscrire"}
-            </Link>
-          </Box>
+          <Grid container>
+            <Grid item xs>
+              <Link component="button" type="button" variant="body2" onClick={handleForgotPassword}>
+                Mot de passe oublié ?
+              </Link>
+            </Grid>
+            <Grid item>
+              <Link component={RouterLink} to="/register" variant="body2">
+                {"S'inscrire"}
+              </Link>
+            </Grid>
+          </Grid>
         </Box>
       </Paper>
     </Container>
