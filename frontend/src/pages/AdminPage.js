@@ -89,8 +89,6 @@ const FinancialSummary = ({ viewedWeek }) => {
 
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
   
-  const liveBalance = (summary.startingBalance || 0) + (summary.netMargin || 0) - (summary.taxPayable || 0);
-
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Résumé Financier (Semaine {viewedWeek})</Typography>
@@ -105,7 +103,12 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
+            <Typography>Solde Compte en Direct (Estimé)</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
       </Grid>
     </Paper>
   );
@@ -117,6 +120,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
   useEffect(() => {
     api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
+  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
@@ -180,9 +184,10 @@ const GeneralSettings = () => {
 
 // 7. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
+  const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
   useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)).catch(err => console.error(err)); }, [viewedWeek]);
-  const handleExport = async () => { /* ... */ };
+  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible de générer l'export CSV.", 'error'); } };
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h5">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
@@ -198,7 +203,7 @@ const ExpenseManager = ({ viewedWeek }) => {
     const [formData, setFormData] = useState({ amount: '', category: 'Matières Premières', description: '' });
     const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)).catch(err => console.error(err)); };
     useEffect(fetchExpenses, [viewedWeek]);
-    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
+    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur lors de l'ajout.", "error"); } };
     const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); showNotification("Dépense supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>

@@ -12,6 +12,10 @@ router.post('/', [protect, admin], async (req, res) => {
     const { name, category, price, corporatePrice, cost, stock } = req.body;
     const newProduct = new Product({ name, category, price, corporatePrice, cost, stock });
     const product = await newProduct.save();
+    
+    // Notifier tous les clients que les produits ont changé
+    req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
+    
     res.status(201).json(product);
   } catch (err) {
     console.error(err);
@@ -45,6 +49,10 @@ router.put('/:id', [protect, admin], async (req, res) => {
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Produit non trouvé' });
     }
+
+    // Notifier tous les clients que les produits ont changé
+    req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
+
     res.json(updatedProduct);
   } catch (error) {
     console.error(error);
@@ -62,6 +70,10 @@ router.delete('/:id', [protect, admin], async (req, res) => {
       return res.status(404).json({ message: 'Produit non trouvé' });
     }
     await product.deleteOne();
+
+    // Notifier tous les clients que les produits ont changé
+    req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
+
     res.json({ message: 'Produit supprimé' });
   } catch (err) {
     console.error(err);
@@ -85,6 +97,10 @@ router.put('/restock/:id', protect, async (req, res) => {
     }
     product.stock = stockValue;
     await product.save();
+
+    // Notifier tous les clients que les produits ont changé
+    req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
+
     res.json(product);
   } catch (error) {
     console.error(error);

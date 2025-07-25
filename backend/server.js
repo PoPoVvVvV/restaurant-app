@@ -1,9 +1,11 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
 
-// Importer les fichiers de routes
+// Importer toutes vos routes
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
 import transactionRoutes from './routes/transactions.js';
@@ -16,15 +18,32 @@ import recipeRoutes from './routes/recipes.js';
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 
-// --- Configuration CORS pour la Production ---
-// Accepte uniquement les requêtes venant de votre site Vercel
+// Remplacez l'URL ci-dessous par celle de votre site Vercel ou mettez la dans une variable d'environnement
+const clientURL = process.env.CLIENT_URL || 'https://restaurant-app-coral-six.vercel.app';
+
 const corsOptions = {
-  origin: 'https://restaurant-app-coral-six.vercel.app', 
+  origin: clientURL,
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-// ---
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: clientURL,
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('✅ Un utilisateur est connecté via WebSocket');
+});
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 app.use(express.json());
 
@@ -40,7 +59,7 @@ const connectDB = async () => {
 
 connectDB();
 
-// --- Définition des Routes de l'API ---
+// Définition des Routes de l'API
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
@@ -55,5 +74,4 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));

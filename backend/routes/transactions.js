@@ -62,7 +62,10 @@ router.post('/', protect, async (req, res) => {
     
     await session.commitTransaction();
 
-    // 4. Notifier Discord (la notification reste au nom de l'enregistrant)
+    // 4. Diffuser la mise à jour en temps réel
+    req.io.emit('data-updated', { type: 'TRANSACTIONS_UPDATED' });
+
+    // 5. Notifier Discord
     const webhookUrl = process.env.DISCORD_SALES_WEBHOOK_URL;
     if (webhookUrl) {
         const productList = transactionProducts.map(p => `• ${p.quantity} x ${p.name}`).join('\n');

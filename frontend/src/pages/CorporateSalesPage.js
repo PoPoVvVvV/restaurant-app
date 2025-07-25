@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
@@ -20,23 +21,33 @@ function CorporateSalesPage() {
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [productsRes, usersRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/users')
+      ]);
+      setProducts(productsRes.data.filter(p => p.stock > 0));
+      setUsers(usersRes.data.filter(u => u.isActive));
+    } catch (err) {
+      setError("Impossible de charger les données.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsRes, usersRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/users')
-        ]);
-        setProducts(productsRes.data.filter(p => p.stock > 0));
-        setUsers(usersRes.data.filter(u => u.isActive));
-      } catch (err) {
-        setError("Impossible de charger les données.");
-      } finally {
-        setLoading(false);
+    fetchData();
+    const handleDataUpdate = (data) => {
+      if (data.type === 'PRODUCTS_UPDATED' || data.type === 'USERS_UPDATED') {
+        fetchData();
       }
     };
-    fetchData();
-  }, []);
+    socket.on('data-updated', handleDataUpdate);
+    return () => {
+      socket.off('data-updated', handleDataUpdate);
+    };
+  }, [fetchData]);
 
   const productsByCategory = React.useMemo(() => {
     const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
@@ -53,7 +64,7 @@ function CorporateSalesPage() {
   const addToCart = (product) => {
     const itemInCart = cart.find(item => item._id === product._id);
     if (itemInCart && itemInCart.quantity >= product.stock) {
-        showNotification("Stock maximum atteint pour ce produit.", "warning");
+        showNotification("Stock maximum atteint.", "warning");
         return;
     };
     setCart(prevCart => {
@@ -74,7 +85,7 @@ function CorporateSalesPage() {
       return;
     }
     if (quantity > productInCatalog.stock) {
-      showNotification(`Stock maximum pour ${productInCatalog.name} : ${productInCatalog.stock}`, "warning");
+      showNotification(`Stock max : ${productInCatalog.stock}`, "warning");
       setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
     }
@@ -94,7 +105,7 @@ function CorporateSalesPage() {
       setCart([]);
       setSelectedEmployees([]);
     } catch (err) {
-      showNotification(err.response?.data?.message || "Une erreur est survenue.", 'error');
+      showNotification(err.response?.data?.message || "Erreur.", 'error');
     } finally {
       setLoading(false);
     }

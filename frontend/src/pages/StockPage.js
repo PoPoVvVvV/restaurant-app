@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
@@ -30,36 +31,48 @@ function StockPage() {
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
 
-  const LOW_STOCK_THRESHOLD = 100;
+  const LOW_STOCK_THRESHOLD = 10;
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [productsRes, statusRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/settings/delivery-status')
+      ]);
+      
+      const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts"];
+      const sortedProducts = productsRes.data.sort((a, b) => {
+        const indexA = categoryOrder.indexOf(a.category);
+        const indexB = categoryOrder.indexOf(b.category);
+        return indexA - indexB;
+      });
+      
+      const productsWithEdit = sortedProducts.map(p => ({ ...p, editedStock: p.stock }));
+      setProducts(productsWithEdit);
+      setDeliveryStatus(statusRes.data.value);
+
+    } catch (err) {
+      setError('Impossible de charger les données.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsRes, statusRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/settings/delivery-status')
-        ]);
-        
-        const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts"];
-        const sortedProducts = productsRes.data.sort((a, b) => {
-          const indexA = categoryOrder.indexOf(a.category);
-          const indexB = categoryOrder.indexOf(b.category);
-          return indexA - indexB;
-        });
-        
-        const productsWithEdit = sortedProducts.map(p => ({ ...p, editedStock: p.stock }));
-        setProducts(productsWithEdit);
-        setDeliveryStatus(statusRes.data.value);
+    fetchData();
 
-      } catch (err) {
-        setError('Impossible de charger les données.');
-      } finally {
-        setLoading(false);
+    const handleDataUpdate = (data) => {
+      if (data.type === 'PRODUCTS_UPDATED' || data.type === 'TRANSACTIONS_UPDATED' || data.type === 'SETTINGS_UPDATED') {
+        fetchData();
       }
     };
+    
+    socket.on('data-updated', handleDataUpdate);
 
-    fetchData();
-  }, []);
+    return () => {
+      socket.off('data-updated', handleDataUpdate);
+    };
+  }, [fetchData]);
 
   const handleStockChange = (productId, value) => {
     setProducts(prevProducts =>
