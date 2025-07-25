@@ -5,7 +5,7 @@ import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
-import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress } from '@mui/material';
+import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress, Grid } from '@mui/material';
 
 function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
