@@ -30,7 +30,7 @@ function StockPage() {
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
 
-  const LOW_STOCK_THRESHOLD = 10;
+  const LOW_STOCK_THRESHOLD = 100;
 
   useEffect(() => {
     const fetchData = async () => {
