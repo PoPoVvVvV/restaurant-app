@@ -26,10 +26,18 @@ function Navbar() {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div">
-          Resto-App
+          Delight
         </Typography>
 
-        <Box sx={{ flexGrow: 1, pl: 2, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+        {/* CONTENEUR DES LIENS CENTRÉS */}
+        <Box 
+          sx={{ 
+            flexGrow: 1, 
+            display: { xs: 'none', md: 'flex' }, 
+            justifyContent: 'center', // Centre les éléments horizontalement
+            alignItems: 'center'
+          }}
+        >
             {user && (
                  <>
                     <NavButton to="/ventes" icon="🛍️" text="Ventes" />
@@ -50,8 +58,6 @@ function Navbar() {
                 </>
             )}
         </Box>
-
-        <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }} /> 
 
         {user ? (
           <>
