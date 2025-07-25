@@ -9,6 +9,8 @@ import {
   Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 
 // 1. Gestion de la Semaine
 const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
@@ -79,7 +81,50 @@ const AccountBalanceManager = ({ viewedWeek }) => {
     );
 };
 
-// 3. Résumé Financier
+// 3. Graphique des Ventes Hebdomadaires
+const WeeklySalesChart = ({ viewedWeek }) => {
+  const [chartData, setChartData] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    api.get(`/reports/weekly-sales-summary?week=${viewedWeek}`)
+       .then(res => {
+         setChartData(res.data.chartData);
+         setEmployees(res.data.employees);
+       })
+       .catch(err => console.error(err));
+  }, [viewedWeek]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
+
+  return (
+    <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
+      <Typography variant="h5" gutterBottom>Ventes de la Semaine par Employé</Typography>
+      <ResponsiveContainer width="100%" height="90%">
+        <BarChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+          <Legend />
+          {employees.map((employeeName, index) => (
+            <Bar
+              key={employeeName}
+              dataKey={employeeName}
+              stackId="a"
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </Paper>
+  );
+};
+
+// 4. Résumé Financier
 const FinancialSummary = ({ viewedWeek }) => {
   const [summary, setSummary] = useState(null);
   useEffect(() => {
@@ -103,18 +148,13 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
-            <Typography>Solde Compte en Direct (Estimé)</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography>
-          </Paper>
-        </Grid>
+        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
     </Paper>
   );
 };
 
-// 4. Performance des Employés
+// 5. Performance des Employés
 const EmployeePerformance = ({ viewedWeek }) => {
   const [report, setReport] = useState([]);
   useEffect(() => {
@@ -134,7 +174,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
   );
 };
 
-// 5. Annonce de Livraison
+// 6. Annonce de Livraison
 const DeliveryStatusManager = () => {
     const { showNotification } = useNotification();
     const [status, setStatus] = useState({ isActive: false, companyName: '' });
@@ -152,7 +192,7 @@ const DeliveryStatusManager = () => {
     );
 };
 
-// 6. Paramètres Généraux et Gestion des Employés
+// 7. Paramètres Généraux et Gestion des Employés
 const GeneralSettings = () => {
     const { showNotification } = useNotification();
     const [bonusPercentage, setBonusPercentage] = useState(0);
@@ -182,7 +222,7 @@ const GeneralSettings = () => {
     );
 };
 
-// 7. Relevé des Transactions
+// 8. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
   const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
@@ -196,7 +236,7 @@ const TransactionLog = ({ viewedWeek }) => {
   );
 };
 
-// 8. Gestion des Dépenses
+// 9. Gestion des Dépenses
 const ExpenseManager = ({ viewedWeek }) => {
     const { showNotification } = useNotification();
     const [expenses, setExpenses] = useState([]);
@@ -214,7 +254,7 @@ const ExpenseManager = ({ viewedWeek }) => {
     );
 };
 
-// 9. Gestion des Produits
+// 10. Gestion des Produits
 const ProductManager = () => {
   const { showNotification } = useNotification();
   const [products, setProducts] = useState([]);
@@ -279,6 +319,7 @@ function AdminPage() {
         <Grid item xs={12}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><FinancialSummary viewedWeek={viewedWeek} /></Grid>
+        <Grid item xs={12}><WeeklySalesChart viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><EmployeePerformance viewedWeek={viewedWeek} /></Grid>
         <Grid item xs={12}><DeliveryStatusManager /></Grid>
         <Grid item xs={12}><GeneralSettings /></Grid>

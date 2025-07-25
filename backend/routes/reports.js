@@ -145,6 +145,41 @@ router.get('/leaderboard', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/reports/weekly-sales-summary
+// @desc    Obtenir le résumé des ventes de la semaine, par jour et par employé
+// @access  Privé/Admin
+router.get('/weekly-sales-summary', [protect, admin], async (req, res) => {
+  try {
+    let weekIdToFetch;
+    if (req.query.week && !isNaN(parseInt(req.query.week, 10))) {
+      weekIdToFetch = parseInt(req.query.week, 10);
+    } else {
+      const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
+      weekIdToFetch = weekSetting?.value || 1;
+    }
+    const salesByDay = await Transaction.aggregate([
+      { $match: { weekId: weekIdToFetch } },
+      { $lookup: { from: 'users', localField: 'employeeId', foreignField: '_id', as: 'employeeInfo' } },
+      { $project: { dayOfWeek: { $dayOfWeek: '$createdAt' }, employeeName: { $arrayElemAt: ['$employeeInfo.username', 0] }, totalAmount: '$totalAmount' } },
+      { $group: { _id: { day: '$dayOfWeek', employee: '$employeeName' }, totalSales: { $sum: '$totalAmount' } } },
+      { $sort: { '_id.day': 1 } }
+    ]);
+    const days = ["", "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    const report = {};
+    const employees = new Set();
+    salesByDay.forEach(item => {
+      const dayName = days[item._id.day];
+      const employeeName = item._id.employee;
+      if (!report[dayName]) report[dayName] = { name: dayName };
+      report[dayName][employeeName] = item.totalSales;
+      employees.add(employeeName);
+    });
+    res.json({ chartData: Object.values(report), employees: Array.from(employees) });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   GET /api/reports/transactions/export
 // @desc    Exporter les transactions de la semaine en cours en CSV
 // @access  Privé/Admin
