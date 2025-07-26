@@ -146,7 +146,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
       <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
       <TableContainer>
         <Table size="small">
-          <TableHead><TableRow><TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Chiffre d'Affaires</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Marge Générée</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Prime Estimée</TableCell></TableRow></TableHead>
+          <TableHead><TableRow><TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Chiffre d'Affaires</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Marge Générée</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Salaire Estimé</TableCell></TableRow></TableHead>
           <TableBody>{report.map(data => (<TableRow key={data.employeeId}><TableCell>{data.employeeName}</TableCell><TableCell align="right">${data.totalRevenue.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'success.main' }}>${data.totalMargin.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'primary.main', fontWeight: 'bold' }}>${data.estimatedBonus.toFixed(2)}</TableCell></TableRow>))}</TableBody>
         </Table>
       </TableContainer>
