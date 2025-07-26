@@ -7,30 +7,30 @@ import {
   Container, Box, Paper, Typography, Grid, Button, TextField, Select, MenuItem,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, IconButton,
   Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Accordion, AccordionSummary, AccordionDetails // Assurez-vous que ces éléments sont bien là
+  Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemText
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// --- SOUS-COMPOSANTS DE LA PAGE ADMIN ---
 
 // 1. Gestion de la Semaine
 const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
     const { showNotification } = useNotification();
     const handleNewWeek = async () => {
-        if (window.confirm(`Êtes-vous sûr de vouloir terminer la semaine ${currentWeek} et commencer une nouvelle semaine ? Les données de la semaine actuelle seront archivées.`)) {
+        if (window.confirm(`Êtes-vous sûr de vouloir terminer la semaine ${currentWeek} et commencer une nouvelle semaine ?`)) {
             try {
                 const { data } = await api.post('/settings/new-week');
                 showNotification(data.message, 'success');
                 setTimeout(() => window.location.reload(), 1500);
             } catch (err) {
-                showNotification("Erreur lors du changement de semaine.", "error");
+                showNotification("Erreur.", "error");
             }
         }
     };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Gestion de la Semaine</Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField size="small" type="number" label="Consulter Semaine" value={viewedWeek} onChange={e => onWeekChange(e.target.value ? parseInt(e.target.value, 10) : '')} sx={{ width: '180px' }} />
                 <Typography>Actuelle : <strong>{currentWeek}</strong></Typography>
@@ -53,10 +53,7 @@ const AccountBalanceManager = ({ viewedWeek }) => {
                 setBalance(bal);
                 setCurrentBalance(bal);
            })
-           .catch(() => {
-                setBalance(0);
-                setCurrentBalance(0);
-           });
+           .catch(() => { setBalance(0); setCurrentBalance(0); });
     };
 
     useEffect(fetchBalance, [viewedWeek]);
@@ -67,7 +64,7 @@ const AccountBalanceManager = ({ viewedWeek }) => {
             showNotification('Solde mis à jour !', 'success');
             fetchBalance();
         } catch (err) {
-            showNotification("Erreur lors de la mise à jour.", "error");
+            showNotification("Erreur.", "error");
         }
     };
 
@@ -87,39 +84,25 @@ const AccountBalanceManager = ({ viewedWeek }) => {
 const WeeklySalesChart = ({ viewedWeek }) => {
   const [chartData, setChartData] = useState([]);
   const [employees, setEmployees] = useState([]);
-
   useEffect(() => {
     api.get(`/reports/weekly-sales-summary?week=${viewedWeek}`)
        .then(res => {
          setChartData(res.data.chartData);
          setEmployees(res.data.employees);
-       })
-       .catch(err => console.error(err));
+       });
   }, [viewedWeek]);
-
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
-
   return (
     <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
       <Typography variant="h5" gutterBottom>Ventes de la Semaine par Employé</Typography>
       <ResponsiveContainer width="100%" height="90%">
-        <BarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
           <Legend />
-          {employees.map((employeeName, index) => (
-            <Bar
-              key={employeeName}
-              dataKey={employeeName}
-              stackId="a"
-              fill={COLORS[index % COLORS.length]}
-            />
-          ))}
+          {employees.map((employeeName, index) => ( <Bar key={employeeName} dataKey={employeeName} stackId="a" fill={COLORS[index % COLORS.length]} /> ))}
         </BarChart>
       </ResponsiveContainer>
     </Paper>
@@ -131,14 +114,11 @@ const FinancialSummary = ({ viewedWeek }) => {
   const [summary, setSummary] = useState(null);
   useEffect(() => {
     setSummary(null);
-    api.get(`/reports/financial-summary?week=${viewedWeek}`).then(res => setSummary(res.data)).catch(err => console.error(err));
+    api.get(`/reports/financial-summary?week=${viewedWeek}`).then(res => setSummary(res.data));
   }, [viewedWeek]);
-
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
-  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>Résumé Financier (Semaine {viewedWeek})</Typography>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Chiffre d'Affaires</Typography><Typography variant="h5">${(summary.totalRevenue || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Coût Marchandises</Typography><Typography variant="h5" color="warning.main">-${(summary.totalCostOfGoods || 0).toFixed(2)}</Typography></Paper></Grid>
@@ -149,9 +129,7 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: (summary.netMargin || 0) > 0 ? 'success.light' : 'error.light' }}><Typography>Marge Nette</Typography><Typography variant="h5">${(summary.netMargin || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
-      <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
-      </Grid>
+      <Grid container spacing={2} sx={{ mt: 1 }}><Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid></Grid>
     </Paper>
   );
 };
@@ -176,25 +154,7 @@ const EmployeePerformance = ({ viewedWeek }) => {
   );
 };
 
-// 6. Annonce de Livraison
-const DeliveryStatusManager = () => {
-    const { showNotification } = useNotification();
-    const [status, setStatus] = useState({ isActive: false, companyName: '' });
-    useEffect(() => { api.get('/settings/delivery-status').then(res => setStatus(res.data.value || { isActive: false, companyName: '' })).catch(() => {}); }, []);
-    const handleSave = async () => { try { await api.post('/settings/delivery-status', status); showNotification('Annonce mise à jour !', 'success'); } catch (err) { showNotification("Erreur.", 'error'); } };
-    return (
-        <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Annonce de Livraison</Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                <TextField size="small" label="Nom du fournisseur(s)" value={status.companyName} onChange={e => setStatus({ ...status, companyName: e.target.value })} sx={{ flexGrow: 1 }} />
-                <FormControlLabel control={<Switch checked={status.isActive} onChange={e => setStatus({ ...status, isActive: e.target.checked })} />} label="Afficher" />
-                <Button variant="contained" onClick={handleSave}>Enregistrer</Button>
-            </Box>
-        </Paper>
-    );
-};
-
-// 7. Paramètres Généraux et Gestion des Employés
+// 6. Paramètres et Employés
 const GeneralSettings = () => {
     const { showNotification } = useNotification();
     const [bonusPercentage, setBonusPercentage] = useState(0);
@@ -224,7 +184,7 @@ const GeneralSettings = () => {
     );
 };
 
-// 8. Relevé des Transactions
+// 7. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
   const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
@@ -238,7 +198,7 @@ const TransactionLog = ({ viewedWeek }) => {
   );
 };
 
-// 9. Gestion des Dépenses
+// 8. Gestion des Dépenses
 const ExpenseManager = ({ viewedWeek }) => {
     const { showNotification } = useNotification();
     const [expenses, setExpenses] = useState([]);
@@ -256,7 +216,7 @@ const ExpenseManager = ({ viewedWeek }) => {
     );
 };
 
-// 10. Gestion des Produits
+// 9. Gestion des Produits
 const ProductManager = () => {
   const { showNotification } = useNotification();
   const [products, setProducts] = useState([]);
@@ -299,108 +259,72 @@ const ProductManager = () => {
   );
 };
 
+// 10. Annonce de Livraison
+const DeliveryStatusManager = () => {
+    const { showNotification } = useNotification();
+    const [status, setStatus] = useState({ isActive: false, companyName: '' });
+    useEffect(() => { api.get('/settings/delivery-status').then(res => setStatus(res.data.value || { isActive: false, companyName: '' })).catch(() => {}); }, []);
+    const handleSave = async () => { try { await api.post('/settings/delivery-status', status); showNotification('Annonce mise à jour !', 'success'); } catch (err) { showNotification("Erreur.", 'error'); } };
+    return (
+        <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h5" gutterBottom>Annonce de Livraison</Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <TextField size="small" label="Nom du fournisseur(s)" value={status.companyName} onChange={e => setStatus({ ...status, companyName: e.target.value })} sx={{ flexGrow: 1 }} />
+                <FormControlLabel control={<Switch checked={status.isActive} onChange={e => setStatus({ ...status, isActive: e.target.checked })} />} label="Afficher" />
+                <Button variant="contained" onClick={handleSave}>Enregistrer</Button>
+            </Box>
+        </Paper>
+    );
+};
+
+// 11. Demandes de Réinitialisation de Mot de Passe
+const ResetTokenManager = () => {
+    const [tokens, setTokens] = useState([]);
+    useEffect(() => {
+        api.get('/users/reset-tokens').then(res => setTokens(res.data)).catch(err => console.error("Erreur."));
+    }, []);
+    return (
+        <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+            <Typography variant="h6" gutterBottom>Demandes de Réinitialisation en Attente</Typography>
+            {tokens.length > 0 ? (
+                <List dense>{tokens.map(t => (
+                    <ListItem key={t._id} divider>
+                        <ListItemText 
+                            primary={`Utilisateur : ${t.userId?.username || 'Inconnu'}`}
+                            secondary={`Token à transmettre : ${t.token}`}
+                            secondaryTypographyProps={{ fontFamily: 'monospace', color: 'primary.main', mt: 0.5 }}
+                        />
+                    </ListItem>
+                ))}</List>
+            ) : (<Typography variant="body2">Aucune demande en attente.</Typography>)}
+        </Paper>
+    );
+};
+
 
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 function AdminPage() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [viewedWeek, setViewedWeek] = useState(1);
-
   useEffect(() => {
     api.get('/settings/currentWeekId').then(res => {
       const week = res.data.value || 1;
       setCurrentWeek(week);
       setViewedWeek(week);
-    }).catch(() => {});
+    });
   }, []);
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Panneau Administrateur
-      </Typography>
-      
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Gestion de la Semaine & Solde</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={7}>
-              <WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} />
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <AccountBalanceManager viewedWeek={viewedWeek} />
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Résumé Financier (Semaine {viewedWeek})</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <FinancialSummary viewedWeek={viewedWeek} />
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Ventes de la Semaine (Semaine {viewedWeek})</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <WeeklySalesChart viewedWeek={viewedWeek} />
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Performance des Employés</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <EmployeePerformance viewedWeek={viewedWeek} />
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Relevé des Transactions</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TransactionLog viewedWeek={viewedWeek} />
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Gestion des Dépenses</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <ExpenseManager viewedWeek={viewedWeek} />
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Annonces, Paramètres & Employés</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}><DeliveryStatusManager /></Grid>
-            <Grid item xs={12} md={6}><GeneralSettings /></Grid>
-            <Grid item xs={12}><ResetTokenManager /></Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
-      
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Gestion des Produits</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <ProductManager />
-        </AccordionDetails>
-      </Accordion>
+      <Typography variant="h4" component="h1" gutterBottom>Panneau Administrateur</Typography>
+      <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion & Solde</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={7}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid><Grid item xs={12} md={5}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Résumé Financier (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><FinancialSummary viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Ventes de la Semaine (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><WeeklySalesChart viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Dépenses</Typography></AccordionSummary><AccordionDetails><ExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
     </Container>
   );
 }
