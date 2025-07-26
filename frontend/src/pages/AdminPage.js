@@ -6,7 +6,8 @@ import { useNotification } from '../context/NotificationContext';
 import {
   Container, Box, Paper, Typography, Grid, Button, TextField, Select, MenuItem,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, IconButton,
-  Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions
+  Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
+  Accordion, AccordionSummary, AccordionDetails // Assurez-vous que ces éléments sont bien là
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
