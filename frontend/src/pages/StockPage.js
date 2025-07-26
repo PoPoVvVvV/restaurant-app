@@ -72,13 +72,26 @@ const IngredientManager = () => {
       </Box>
       <TableContainer>
         <Table size="small">
-          <TableHead><TableRow><TableCell>Ingrédient</TableCell><TableCell>Unité</TableCell><TableCell align="right">Stock</TableCell><TableCell align="center">Mettre à jour</TableCell></TableRow></TableHead>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold' }}>Ingrédient</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Unité</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Mettre à jour</TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
             {ingredients.map(ing => (
               <TableRow key={ing._id}>
                 <TableCell>{ing.name}</TableCell>
                 <TableCell>{ing.unit}</TableCell>
                 <TableCell align="right">{ing.stock}</TableCell>
+                <TableCell align="center">
+                  {ing.stock <= 500 && (
+                    <span title="Stock bas">⚠️</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                     <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
@@ -159,7 +172,7 @@ function StockPage() {
     try {
       await api.put(`/products/restock/${productId}`, { newStock });
       showNotification(`${product.name} mis à jour !`, 'success');
-      // No need to manually update state, socket event will trigger refetch
+      // Le refetch est maintenant géré par l'événement socket
     } catch (err) {
       showNotification("Erreur lors de la mise à jour du stock.", 'error');
     }
