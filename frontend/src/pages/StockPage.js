@@ -50,9 +50,26 @@ const IngredientManager = () => {
     }
   };
 
+  const handleSync = async () => {
+    if (window.confirm("Voulez-vous vraiment ajouter tous les ingrédients des recettes à cet inventaire ? Les ingrédients existants ne seront pas modifiés.")) {
+      try {
+        const { data } = await api.post('/ingredients/sync-from-recipes');
+        showNotification(data.message, 'success');
+        // Le refetch sera géré par l'événement socket
+      } catch (err) {
+        showNotification("Erreur lors de la synchronisation.", "error");
+      }
+    }
+  };
+
   return (
     <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
-      <Typography variant="h5" gutterBottom>Inventaire des Matières Premières</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5">Inventaire des Matières Premières</Typography>
+        <Button variant="outlined" onClick={handleSync}>
+          Synchroniser depuis les Recettes
+        </Button>
+      </Box>
       <TableContainer>
         <Table size="small">
           <TableHead><TableRow><TableCell>Ingrédient</TableCell><TableCell>Unité</TableCell><TableCell align="right">Stock</TableCell><TableCell align="center">Mettre à jour</TableCell></TableRow></TableHead>
