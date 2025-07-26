@@ -6,9 +6,11 @@ import { useNotification } from '../context/NotificationContext';
 // Imports depuis Material-UI
 import {
   Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle
+  CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle,
+  Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // Composant pour les matières premières
 const IngredientManager = () => {
@@ -63,22 +65,22 @@ const IngredientManager = () => {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
+    <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5">Inventaire des Matières Premières</Typography>
-        <Button variant="outlined" onClick={handleSync}>
+        <Typography variant="h6">Inventaire des Matières Premières</Typography>
+        <Button variant="outlined" size="small" onClick={handleSync}>
           Synchroniser depuis les Recettes
         </Button>
       </Box>
-      <TableContainer>
+      <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Ingrédient</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Unité</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Mettre à jour</TableCell>
+              <TableCell>Ingrédient</TableCell>
+              <TableCell>Unité</TableCell>
+              <TableCell align="right">Stock</TableCell>
+              <TableCell align="center">Statut</TableCell>
+              <TableCell align="center">Mettre à jour</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -95,7 +97,7 @@ const IngredientManager = () => {
                 <TableCell>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                     <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
-                    <Button variant="contained" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
+                    <Button variant="contained" size="small" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -103,7 +105,7 @@ const IngredientManager = () => {
           </TableBody>
         </Table>
       </TableContainer>
-    </Paper>
+    </Box>
   );
 };
 
@@ -172,7 +174,6 @@ function StockPage() {
     try {
       await api.put(`/products/restock/${productId}`, { newStock });
       showNotification(`${product.name} mis à jour !`, 'success');
-      // Le refetch est maintenant géré par l'événement socket
     } catch (err) {
       showNotification("Erreur lors de la mise à jour du stock.", 'error');
     }
@@ -194,54 +195,69 @@ function StockPage() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" component="h1">
-          Gestion des Stocks Produits Finis
+          Gestion des Stocks
         </Typography>
         <Paper elevation={2} sx={{ p: 2 }}>
           <Typography variant="h6">
-            Valeur Totale : ${totalStockValue.toFixed(2)}
+            Valeur Totale Produits : ${totalStockValue.toFixed(2)}
           </Typography>
         </Paper>
       </Box>
 
-      <TableContainer component={Paper} elevation={3}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Produit</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Catégorie</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock Actuel</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Modifier le Stock</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product._id} hover>
-                <TableCell component="th" scope="row">{product.name}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell align="center">
-                  {product.stock <= LOW_STOCK_THRESHOLD ? (<Chip label="Stock bas" color="error" size="small"/>) : (<Chip label="OK" color="success" size="small" />)}
-                </TableCell>
-                <TableCell align="right" sx={{ fontSize: '1rem' }}>{product.stock}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                    <TextField
-                      type="number" size="small" value={product.editedStock}
-                      onChange={(e) => handleStockChange(product._id, e.target.value)}
-                      sx={{ width: '100px' }} inputProps={{ min: 0 }}
-                    />
-                    <Button variant="contained" size="small" onClick={() => handleSaveStock(product._id)} startIcon={<CheckCircleIcon />}>
-                      Valider
-                    </Button>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <IngredientManager />
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h5">Stocks Produits Finis</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <TableContainer component={Paper} elevation={3}>
+                <Table>
+                <TableHead>
+                    <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Produit</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Catégorie</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock Actuel</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Modifier le Stock</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {products.map((product) => (
+                    <TableRow key={product._id} hover>
+                        <TableCell component="th" scope="row">{product.name}</TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell align="center">
+                        {product.stock <= LOW_STOCK_THRESHOLD ? (<Chip label="Stock bas" color="error" size="small"/>) : (<Chip label="OK" color="success" size="small" />)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontSize: '1rem' }}>{product.stock}</TableCell>
+                        <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            <TextField
+                            type="number" size="small" value={product.editedStock}
+                            onChange={(e) => handleStockChange(product._id, e.target.value)}
+                            sx={{ width: '100px' }} inputProps={{ min: 0 }}
+                            />
+                            <Button variant="contained" size="small" onClick={() => handleSaveStock(product._id)} startIcon={<CheckCircleIcon />}>
+                            Valider
+                            </Button>
+                        </Box>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </TableContainer>
+        </AccordionDetails>
+      </Accordion>
+      
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h5">Inventaire des Matières Premières</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <IngredientManager />
+        </AccordionDetails>
+      </Accordion>
+      
     </Container>
   );
 }
