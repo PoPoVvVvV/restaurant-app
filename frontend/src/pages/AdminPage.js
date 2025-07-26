@@ -10,6 +10,7 @@ import {
   Accordion, AccordionSummary, AccordionDetails // Assurez-vous que ces éléments sont bien là
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
