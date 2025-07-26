@@ -302,6 +302,7 @@ const ProductManager = () => {
 function AdminPage() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [viewedWeek, setViewedWeek] = useState(1);
+
   useEffect(() => {
     api.get('/settings/currentWeekId').then(res => {
       const week = res.data.value || 1;
@@ -315,18 +316,89 @@ function AdminPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Panneau Administrateur
       </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><FinancialSummary viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><WeeklySalesChart viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><EmployeePerformance viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><DeliveryStatusManager /></Grid>
-        <Grid item xs={12}><GeneralSettings /></Grid>
-        <Grid item xs={12}><TransactionLog viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><ExpenseManager viewedWeek={viewedWeek} /></Grid>
-        <Grid item xs={12}><ProductManager /></Grid>
-      </Grid>
+      
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Gestion de la Semaine & Solde</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={7}>
+              <WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} />
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <AccountBalanceManager viewedWeek={viewedWeek} />
+            </Grid>
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Résumé Financier (Semaine {viewedWeek})</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <FinancialSummary viewedWeek={viewedWeek} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Ventes de la Semaine (Semaine {viewedWeek})</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <WeeklySalesChart viewedWeek={viewedWeek} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Performance des Employés</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <EmployeePerformance viewedWeek={viewedWeek} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Relevé des Transactions</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <TransactionLog viewedWeek={viewedWeek} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Gestion des Dépenses</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <ExpenseManager viewedWeek={viewedWeek} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Annonces, Paramètres & Employés</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}><DeliveryStatusManager /></Grid>
+            <Grid item xs={12} md={6}><GeneralSettings /></Grid>
+            <Grid item xs={12}><ResetTokenManager /></Grid>
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+      
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Gestion des Produits</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <ProductManager />
+        </AccordionDetails>
+      </Accordion>
     </Container>
   );
 }
