@@ -5,24 +5,77 @@ import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
-  Container,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Box,
-  Chip,
-  TextField,
-  Button,
-  Alert,
-  AlertTitle
+  Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
+// Composant pour les matières premières
+const IngredientManager = () => {
+  const [ingredients, setIngredients] = useState([]);
+  const { showNotification } = useNotification();
+  
+  const fetchIngredients = useCallback(async () => {
+    try {
+        const { data } = await api.get('/ingredients');
+        setIngredients(data.map(ing => ({ ...ing, editedStock: ing.stock })));
+    } catch (err) {
+        showNotification("Impossible de charger les matières premières.", "error");
+    }
+  }, []);
+  
+  useEffect(() => { 
+      fetchIngredients();
+
+      const handleDataUpdate = (data) => {
+        if (data.type === 'INGREDIENTS_UPDATED') {
+            fetchIngredients();
+        }
+      };
+      socket.on('data-updated', handleDataUpdate);
+      return () => { socket.off('data-updated', handleDataUpdate); };
+  }, [fetchIngredients]);
+
+  const handleStockChange = (id, value) => {
+    setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: value } : i));
+  };
+
+  const handleSaveStock = async (id, newStock) => {
+    try {
+        await api.put(`/ingredients/${id}/stock`, { stock: newStock });
+        fetchIngredients();
+        showNotification("Stock de l'ingrédient mis à jour.", "success");
+    } catch (err) {
+        showNotification("Erreur lors de la mise à jour.", "error");
+    }
+  };
+
+  return (
+    <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
+      <Typography variant="h5" gutterBottom>Inventaire des Matières Premières</Typography>
+      <TableContainer>
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Ingrédient</TableCell><TableCell>Unité</TableCell><TableCell align="right">Stock</TableCell><TableCell align="center">Mettre à jour</TableCell></TableRow></TableHead>
+          <TableBody>
+            {ingredients.map(ing => (
+              <TableRow key={ing._id}>
+                <TableCell>{ing.name}</TableCell>
+                <TableCell>{ing.unit}</TableCell>
+                <TableCell align="right">{ing.stock}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                    <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
+                    <Button variant="contained" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
+  );
+};
 
 function StockPage() {
   const [products, setProducts] = useState([]);
@@ -60,15 +113,12 @@ function StockPage() {
 
   useEffect(() => {
     fetchData();
-
     const handleDataUpdate = (data) => {
       if (data.type === 'PRODUCTS_UPDATED' || data.type === 'TRANSACTIONS_UPDATED' || data.type === 'SETTINGS_UPDATED') {
         fetchData();
       }
     };
-    
     socket.on('data-updated', handleDataUpdate);
-
     return () => {
       socket.off('data-updated', handleDataUpdate);
     };
@@ -85,20 +135,14 @@ function StockPage() {
   const handleSaveStock = async (productId) => {
     const product = products.find(p => p._id === productId);
     const newStock = product.editedStock;
-
     if (isNaN(parseInt(newStock, 10)) || parseInt(newStock, 10) < 0) {
         showNotification("Veuillez entrer une valeur de stock valide.", "error");
         return;
     }
-
     try {
       await api.put(`/products/restock/${productId}`, { newStock });
-      setProducts(prevProducts =>
-        prevProducts.map(p =>
-          p._id === productId ? { ...p, stock: parseInt(newStock, 10) } : p
-        )
-      );
       showNotification(`${product.name} mis à jour !`, 'success');
+      // No need to manually update state, socket event will trigger refetch
     } catch (err) {
       showNotification("Erreur lors de la mise à jour du stock.", 'error');
     }
@@ -120,11 +164,11 @@ function StockPage() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" component="h1">
-          Gestion des Stocks
+          Gestion des Stocks Produits Finis
         </Typography>
         <Paper elevation={2} sx={{ p: 2 }}>
           <Typography variant="h6">
-            Valeur Totale du Stock : ${totalStockValue.toFixed(2)}
+            Valeur Totale : ${totalStockValue.toFixed(2)}
           </Typography>
         </Paper>
       </Box>
@@ -152,19 +196,11 @@ function StockPage() {
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                     <TextField
-                      type="number"
-                      size="small"
-                      value={product.editedStock}
+                      type="number" size="small" value={product.editedStock}
                       onChange={(e) => handleStockChange(product._id, e.target.value)}
-                      sx={{ width: '100px' }}
-                      inputProps={{ min: 0 }}
+                      sx={{ width: '100px' }} inputProps={{ min: 0 }}
                     />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleSaveStock(product._id)}
-                      startIcon={<CheckCircleIcon />}
-                    >
+                    <Button variant="contained" size="small" onClick={() => handleSaveStock(product._id)} startIcon={<CheckCircleIcon />}>
                       Valider
                     </Button>
                   </Box>
@@ -174,6 +210,8 @@ function StockPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <IngredientManager />
     </Container>
   );
 }
