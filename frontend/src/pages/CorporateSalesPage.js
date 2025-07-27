@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
@@ -21,37 +20,28 @@ function CorporateSalesPage() {
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [productsRes, usersRes] = await Promise.all([
-        api.get('/products'),
-        api.get('/users')
-      ]);
-      setProducts(productsRes.data.filter(p => p.stock > 0));
-      setUsers(usersRes.data.filter(u => u.isActive));
-    } catch (err) {
-      setError("Impossible de charger les données.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchData();
-    const handleDataUpdate = (data) => {
-      if (data.type === 'PRODUCTS_UPDATED' || data.type === 'USERS_UPDATED') {
-        fetchData();
+    const fetchData = async () => {
+      try {
+        const [productsRes, usersRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/users')
+        ]);
+        setProducts(productsRes.data.filter(p => p.stock > 0));
+        setUsers(usersRes.data.filter(u => u.isActive)); // On garde tous les utilisateurs actifs
+      } catch (err) {
+        setError("Impossible de charger les données.");
+      } finally {
+        setLoading(false);
       }
     };
-    socket.on('data-updated', handleDataUpdate);
-    return () => {
-      socket.off('data-updated', handleDataUpdate);
-    };
-  }, [fetchData]);
+    fetchData();
+  }, []);
 
   const productsByCategory = React.useMemo(() => {
     const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
-    products.forEach(product => {
+    const sortedProducts = [...products].sort((a, b) => a.price - b.price);
+    sortedProducts.forEach(product => {
       if (grouped[product.category]) grouped[product.category].push(product);
     });
     return grouped;
@@ -84,7 +74,7 @@ function CorporateSalesPage() {
       setCart(prevCart => prevCart.filter(item => item._id !== productId));
       return;
     }
-    if (quantity > productInCatalog.stock) {
+    if (quantity > productInCatalog.stock && !isCorporateSale) { // No stock check for corporate sales
       showNotification(`Stock max : ${productInCatalog.stock}`, "warning");
       setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
@@ -117,7 +107,6 @@ function CorporateSalesPage() {
   return (
     <Box sx={{ width: '100%', p: 2 }}>
       <Grid container spacing={2}>
-        {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
           {loading && !products.length ? <CircularProgress /> :
             Object.entries(productsByCategory).map(([category, items]) => (
@@ -131,7 +120,6 @@ function CorporateSalesPage() {
                           <CardActionArea onClick={() => addToCart(product)} sx={{ height: '100%' }}>
                             <CardContent>
                               <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>{product.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">Stock: {product.stock}</Typography>
                               <Typography variant="h6" color="primary" sx={{ mt: 1 }}>${getPrice(product).toFixed(2)}</Typography>
                               {product.corporatePrice && product.corporatePrice > 0 && <Typography variant="caption" sx={{ textDecoration: 'line-through' }} color="text.secondary">${product.price.toFixed(2)}</Typography>}
                             </CardContent>
@@ -145,7 +133,6 @@ function CorporateSalesPage() {
             ))}
         </Grid>
 
-        {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Vente Entreprise</Typography>

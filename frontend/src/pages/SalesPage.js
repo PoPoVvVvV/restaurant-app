@@ -30,7 +30,7 @@ function SalesPage() {
   }, []);
 
   useEffect(() => {
-    fetchProducts(); // Appel initial
+    fetchProducts();
 
     const handleDataUpdate = (data) => {
       if (data.type === 'PRODUCTS_UPDATED' || data.type === 'TRANSACTIONS_UPDATED') {
@@ -47,28 +47,42 @@ function SalesPage() {
 
   const productsByCategory = useMemo(() => {
     const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
-    products.forEach(product => {
-      if (grouped[product.category]) grouped[product.category].push(product);
+    
+    const sortedProducts = [...products].sort((a, b) => a.price - b.price);
+
+    sortedProducts.forEach(product => {
+      if (grouped[product.category]) {
+        grouped[product.category].push(product);
+      }
     });
     return grouped;
   }, [products]);
   
   const freeMenus = useMemo(() => {
-    return cart.filter(item => item.category === 'Menus').map(item => ({ name: item.name, freeCount: Math.floor(item.quantity / 5) })).filter(item => item.freeCount > 0);
+    return cart
+      .filter(item => item.category === 'Menus')
+      .map(item => ({
+        name: item.name,
+        freeCount: Math.floor(item.quantity / 5),
+      }))
+      .filter(item => item.freeCount > 0);
   }, [cart]);
 
   const addToCart = (product) => {
     const itemInCart = cart.find(item => item._id === product._id);
     if (itemInCart && itemInCart.quantity >= product.stock) {
-      showNotification("Stock maximum atteint.", "warning");
+      showNotification("Stock maximum atteint pour ce produit.", "warning");
       return;
     }
     setCart(prevCart => {
       const existingProduct = prevCart.find(item => item._id === product._id);
       if (existingProduct) {
-        return prevCart.map(item => item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prevCart.map(item =>
+          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      } else {
+        return [...prevCart, { ...product, quantity: 1 }];
       }
-      return [...prevCart, { ...product, quantity: 1 }];
     });
   };
 
@@ -80,7 +94,7 @@ function SalesPage() {
       return;
     }
     if (quantity > productInCatalog.stock) {
-      showNotification(`Stock max : ${productInCatalog.stock}`, "warning");
+      showNotification(`Stock maximum pour ${productInCatalog.name} : ${productInCatalog.stock}`, "warning");
       setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
     }
@@ -96,7 +110,7 @@ function SalesPage() {
       setCart([]);
       fetchProducts();
     } catch (err) {
-      showNotification(err.response?.data?.message || "Erreur.", 'error');
+      showNotification(err.response?.data?.message || "Une erreur est survenue.", 'error');
     } finally {
       setLoading(false);
     }
@@ -108,9 +122,11 @@ function SalesPage() {
   return (
     <Box sx={{ width: '100%', p: 2 }}>
       <Grid container spacing={2}>
+        {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
           {loading && <CircularProgress />}
           {error && <Typography color="error">{error}</Typography>}
+          
           {Object.entries(productsByCategory).map(([category, items]) => (
             items.length > 0 && (
               <Box key={category} sx={{ mb: 3 }}>
@@ -135,17 +151,26 @@ function SalesPage() {
           ))}
         </Grid>
 
+        {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Commande en cours</Typography>
+
             {freeMenus.length > 0 && (
               <Alert severity="success" sx={{ mb: 2 }}>
-                <AlertTitle>Promotion</AlertTitle>
+                <AlertTitle>Promotion 5 achetés = 1 offert</AlertTitle>
                 Vous devez offrir :
-                {freeMenus.map(menu => (<strong key={menu.name} style={{ display: 'block' }}>{menu.freeCount} x {menu.name}</strong>))}
+                {freeMenus.map(menu => (
+                  <strong key={menu.name} style={{ display: 'block' }}>
+                    {menu.freeCount} x {menu.name}
+                  </strong>
+                ))}
               </Alert>
             )}
-            {cart.length === 0 ? <Typography>La commande est vide.</Typography> : (
+
+            {cart.length === 0 ? (
+              <Typography>La commande est vide.</Typography>
+            ) : (
               <>
                 <List sx={{ maxHeight: '55vh', overflow: 'auto' }}>
                   {cart.map(item => (
