@@ -1,18 +1,24 @@
 import React, { createContext, useState, useMemo, useContext } from 'react';
 
-// Création du contexte qui exposera le mode et la fonction pour le changer
+// Création du contexte
 const ThemeModeContext = createContext({
   toggleTheme: () => {},
   mode: 'light',
 });
 
 export const ThemeModeProvider = ({ children }) => {
-  const [mode, setMode] = useState('light');
+  // On lit le thème depuis le localStorage, avec 'light' comme valeur par défaut
+  const [mode, setMode] = useState(localStorage.getItem('themeMode') || 'light');
 
   const themeModeAPI = useMemo(
     () => ({
       toggleTheme: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+        setMode((prevMode) => {
+          const newMode = prevMode === 'light' ? 'dark' : 'light';
+          // On sauvegarde le nouveau choix dans le localStorage
+          localStorage.setItem('themeMode', newMode);
+          return newMode;
+        });
       },
       mode,
     }),
@@ -26,7 +32,7 @@ export const ThemeModeProvider = ({ children }) => {
   );
 };
 
-// Hook personnalisé pour accéder facilement au contexte
+// Hook personnalisé
 export const useThemeMode = () => {
   return useContext(ThemeModeContext);
 };
