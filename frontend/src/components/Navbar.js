@@ -1,16 +1,35 @@
 import React, { useContext } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 
-const NavButton = ({ to, icon, text }) => (
-  <Button color="inherit" component={RouterLink} to={to} startIcon={<span>{icon}</span>}>
-    {text}
-  </Button>
-);
+const NavButton = ({ to, icon, text }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+
+  return (
+    <Button 
+      color="inherit" 
+      component={RouterLink} 
+      to={to} 
+      startIcon={<span>{icon}</span>}
+      sx={{
+        // Applique un style si le bouton est actif
+        backgroundColor: isActive ? 'success.dark' : 'transparent',
+        '&:hover': {
+          backgroundColor: isActive ? 'success.main' : 'rgba(255, 255, 255, 0.08)',
+        },
+        borderRadius: 2,
+        mx: 0.5
+      }}
+    >
+      {text}
+    </Button>
+  );
+};
 
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -29,15 +48,7 @@ function Navbar() {
           Delight
         </Typography>
 
-        {/* CONTENEUR DES LIENS CENTRÉS */}
-        <Box 
-          sx={{ 
-            flexGrow: 1, 
-            display: { xs: 'none', md: 'flex' }, 
-            justifyContent: 'center', // Centre les éléments horizontalement
-            alignItems: 'center'
-          }}
-        >
+        <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             {user && (
                  <>
                     <NavButton to="/ventes" icon="🛍️" text="Ventes" />
