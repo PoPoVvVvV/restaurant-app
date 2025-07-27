@@ -34,8 +34,8 @@ router.post('/generate-code', [protect, admin], async (req, res) => {
 
 // @route   GET /api/users
 // @desc    Obtenir la liste de tous les utilisateurs
-// @access  Privé/Admin
-router.get('/', [protect, admin], async (req, res) => {
+// @access  Privé (Employés & Admins)
+router.get('/', protect, async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
