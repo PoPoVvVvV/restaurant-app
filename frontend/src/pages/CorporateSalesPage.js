@@ -74,7 +74,7 @@ function CorporateSalesPage() {
       setCart(prevCart => prevCart.filter(item => item._id !== productId));
       return;
     }
-    if (quantity > productInCatalog.stock && !isCorporateSale) { // No stock check for corporate sales
+    if (quantity > productInCatalog.stock) { // No stock check for corporate sales
       showNotification(`Stock max : ${productInCatalog.stock}`, "warning");
       setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
