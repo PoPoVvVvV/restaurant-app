@@ -44,7 +44,7 @@ function ThemedApp() {
             
             {/* Routes Protégées */}
             <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
-            <Route path="/ventes-entreprises" element={<ProtectedRoute adminOnly={true}><CorporateSalesPage /></ProtectedRoute>} />
+            <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
             <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
             <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
             <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
