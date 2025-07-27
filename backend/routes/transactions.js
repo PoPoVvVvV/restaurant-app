@@ -22,25 +22,27 @@ router.post('/', protect, async (req, res) => {
     let totalAmount = 0;
     let totalCost = 0;
     const transactionProducts = [];
+    const isCorporateSale = req.user.role === 'admin' && employeeIds && employeeIds.length > 0;
 
-    // 1. Calculer les totaux et mettre à jour les stocks
+    // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
     for (const item of cart) {
-      const product = await Product.findById(item._id).session(session);
-      if (!product || product.stock < item.quantity) {
-        throw new Error(`Stock insuffisant pour : ${product?.name || 'Produit inconnu'}`);
+      // Pour les ventes entreprises, on ne touche pas au stock
+      if (!isCorporateSale) {
+        const product = await Product.findById(item._id).session(session);
+        if (!product || product.stock < item.quantity) {
+          throw new Error(`Stock insuffisant pour : ${product?.name || 'Produit inconnu'}`);
+        }
+        product.stock -= item.quantity;
+        await product.save({ session });
       }
-      product.stock -= item.quantity;
-      await product.save({ session });
       totalAmount += item.price * item.quantity;
       totalCost += item.cost * item.quantity;
-      transactionProducts.push({ productId: product._id, quantity: item.quantity, priceAtSale: product.price, costAtSale: product.cost, name: product.name });
+      transactionProducts.push({ productId: item._id, quantity: item.quantity, priceAtSale: item.price, costAtSale: item.cost, name: item.name });
     }
     const totalMargin = totalAmount - totalCost;
 
     // 2. Déterminer la liste des employés cibles
-    const targetEmployeeIds = (req.user.role === 'admin' && employeeIds && employeeIds.length > 0)
-      ? employeeIds
-      : [req.user.id];
+    const targetEmployeeIds = isCorporateSale ? employeeIds : [req.user.id];
       
     const employeeCount = targetEmployeeIds.length;
     const dividedAmount = totalAmount / employeeCount;
@@ -61,11 +63,9 @@ router.post('/', protect, async (req, res) => {
     }
     
     await session.commitTransaction();
-
-    // 4. Diffuser la mise à jour en temps réel
     req.io.emit('data-updated', { type: 'TRANSACTIONS_UPDATED' });
 
-    // 5. Notifier Discord
+    // 4. Notifier Discord
     const webhookUrl = process.env.DISCORD_SALES_WEBHOOK_URL;
     if (webhookUrl) {
         const productList = transactionProducts.map(p => `• ${p.quantity} x ${p.name}`).join('\n');
@@ -80,7 +80,7 @@ router.post('/', protect, async (req, res) => {
         axios.post(webhookUrl, { embeds: [embed] }).catch(err => console.error("Erreur Webhook Ventes:", err.message));
     }
 
-    res.status(201).json({ message: `Transaction de ${totalAmount.toFixed(2)}$ répartie entre ${employeeCount} employé(s) !` });
+    res.status(21).json({ message: `Transaction de ${totalAmount.toFixed(2)}$ répartie entre ${employeeCount} employé(s) !` });
 
   } catch (error) {
     await session.abortTransaction();
