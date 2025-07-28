@@ -82,7 +82,7 @@ function MaComptabilitePage() {
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Grade</Typography><Typography variant="h4" color="primary">{user?.grade || 'N/A'}</Typography></Paper></Grid>
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">CA Semaine</Typography><Typography variant="h4">${totalCA.toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Marge Semaine</Typography><Typography variant="h4">${totalMargin.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Salaire Estimée</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Salaire Estimé</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
 
         {/* Graphique des ventes */}
         <Grid item xs={12} md={8}>
@@ -125,7 +125,7 @@ function MaComptabilitePage() {
                     <AccordionDetails sx={{ backgroundColor: 'action.hover' }}>
                     <Typography variant="subtitle2">Détail des produits vendus :</Typography>
                     <List dense>
-                        {t.products.map((p, index) => (<ListItem key={index}><ListItemText primary={`${p.quantity} x ${p.name || 'Produit'}`} secondary={`Vendu à ${p.priceAtSale.toFixed(2)}$ / unité`} /></ListItem>))}
+                        {t.products.map((p, index) => (<ListItem key={index}><ListItemText primary={`${p.quantity} x ${p.name || 'Produit'}`} secondary={`Catégorie: ${p.category || 'N/A'} - Vendu à ${p.priceAtSale.toFixed(2)}$ / unité`} /></ListItem>))}
                     </List>
                     </AccordionDetails>
                 </Accordion>
