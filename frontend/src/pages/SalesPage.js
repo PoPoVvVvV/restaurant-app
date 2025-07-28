@@ -31,15 +31,12 @@ function SalesPage() {
 
   useEffect(() => {
     fetchProducts();
-
     const handleDataUpdate = (data) => {
       if (data.type === 'PRODUCTS_UPDATED' || data.type === 'TRANSACTIONS_UPDATED') {
         fetchProducts();
       }
     };
-    
     socket.on('data-updated', handleDataUpdate);
-
     return () => {
       socket.off('data-updated', handleDataUpdate);
     };
@@ -47,9 +44,7 @@ function SalesPage() {
 
   const productsByCategory = useMemo(() => {
     const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
-    
     const sortedProducts = [...products].sort((a, b) => a.price - b.price);
-
     sortedProducts.forEach(product => {
       if (grouped[product.category]) {
         grouped[product.category].push(product);
@@ -122,7 +117,6 @@ function SalesPage() {
   return (
     <Box sx={{ width: '100%', p: 2 }}>
       <Grid container spacing={2}>
-        {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
           {loading && <CircularProgress />}
           {error && <Typography color="error">{error}</Typography>}
@@ -151,7 +145,6 @@ function SalesPage() {
           ))}
         </Grid>
 
-        {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Commande en cours</Typography>

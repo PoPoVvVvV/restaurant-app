@@ -80,7 +80,7 @@ router.post('/', protect, async (req, res) => {
         axios.post(webhookUrl, { embeds: [embed] }).catch(err => console.error("Erreur Webhook Ventes:", err.message));
     }
 
-    res.status(21).json({ message: `Transaction de ${totalAmount.toFixed(2)}$ répartie entre ${employeeCount} employé(s) !` });
+    res.status(201).json({ message: `Transaction de ${totalAmount.toFixed(2)}$ répartie entre ${employeeCount} employé(s) !` });
 
   } catch (error) {
     await session.abortTransaction();
