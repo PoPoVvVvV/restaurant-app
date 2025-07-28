@@ -31,12 +31,15 @@ function SalesPage() {
 
   useEffect(() => {
     fetchProducts();
+
     const handleDataUpdate = (data) => {
       if (data.type === 'PRODUCTS_UPDATED' || data.type === 'TRANSACTIONS_UPDATED') {
         fetchProducts();
       }
     };
+    
     socket.on('data-updated', handleDataUpdate);
+
     return () => {
       socket.off('data-updated', handleDataUpdate);
     };
@@ -117,6 +120,7 @@ function SalesPage() {
   return (
     <Box sx={{ width: '100%', p: 2 }}>
       <Grid container spacing={2}>
+        {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
           {loading && <CircularProgress />}
           {error && <Typography color="error">{error}</Typography>}
@@ -145,6 +149,7 @@ function SalesPage() {
           ))}
         </Grid>
 
+        {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
             <Typography variant="h5" gutterBottom>Commande en cours</Typography>
@@ -171,7 +176,24 @@ function SalesPage() {
                       <ListItemText primary={item.name} />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
-                        <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateCartQuantity(item._id, e.target.value)} sx={{ width: '65px' }} inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}} />
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateCartQuantity(item._id, e.target.value)}
+                          sx={{
+                            width: `${(item.quantity.toString().length * 10) + 30}px`,
+                            minWidth: '50px',
+                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                              '-webkit-appearance': 'none',
+                              margin: 0,
+                            },
+                            '& input[type=number]': {
+                              '-moz-appearance': 'textfield',
+                            },
+                          }}
+                          inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}}
+                        />
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
                       </Box>
                     </ListItem>

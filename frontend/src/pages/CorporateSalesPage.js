@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../services/api';
+import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
@@ -20,29 +21,41 @@ function CorporateSalesPage() {
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsRes, usersRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/users')
-        ]);
-        setProducts(productsRes.data.filter(p => p.stock > 0));
-        setUsers(usersRes.data.filter(u => u.isActive)); // On garde tous les utilisateurs actifs
-      } catch (err) {
-        setError("Impossible de charger les données.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const [productsRes, usersRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/users')
+      ]);
+      setProducts(productsRes.data);
+      setUsers(usersRes.data.filter(u => u.isActive));
+    } catch (err) {
+      setError("Impossible de charger les données.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const productsByCategory = React.useMemo(() => {
+  useEffect(() => {
+    fetchData();
+    const handleDataUpdate = (data) => {
+      if (data.type === 'PRODUCTS_UPDATED' || data.type === 'USERS_UPDATED') {
+        fetchData();
+      }
+    };
+    socket.on('data-updated', handleDataUpdate);
+    return () => {
+      socket.off('data-updated', handleDataUpdate);
+    };
+  }, [fetchData]);
+
+  const productsByCategory = useMemo(() => {
     const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
-    const sortedProducts = [...products].sort((a, b) => a.price - b.price);
+    const sortedProducts = [...products].sort((a, b) => getPrice(a) - getPrice(b));
     sortedProducts.forEach(product => {
-      if (grouped[product.category]) grouped[product.category].push(product);
+      if (grouped[product.category]) {
+        grouped[product.category].push(product);
+      }
     });
     return grouped;
   }, [products]);
@@ -52,11 +65,6 @@ function CorporateSalesPage() {
   };
 
   const addToCart = (product) => {
-    const itemInCart = cart.find(item => item._id === product._id);
-    if (itemInCart && itemInCart.quantity >= product.stock) {
-        showNotification("Stock maximum atteint.", "warning");
-        return;
-    };
     setCart(prevCart => {
       const existingProduct = prevCart.find(item => item._id === product._id);
       if (existingProduct) {
@@ -68,15 +76,9 @@ function CorporateSalesPage() {
   };
 
   const updateCartQuantity = (productId, newQuantity) => {
-    const productInCatalog = products.find(p => p._id === productId);
     const quantity = parseInt(newQuantity, 10);
     if (isNaN(quantity) || quantity < 1) {
       setCart(prevCart => prevCart.filter(item => item._id !== productId));
-      return;
-    }
-    if (quantity > productInCatalog.stock) { // No stock check for corporate sales
-      showNotification(`Stock max : ${productInCatalog.stock}`, "warning");
-      setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: productInCatalog.stock } : item));
       return;
     }
     setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: quantity } : item));
@@ -157,7 +159,6 @@ function CorporateSalesPage() {
                 ))}
               </Select>
             </FormControl>
-
             {cart.length === 0 ? <Typography>La commande est vide.</Typography> : (
               <>
                 <List sx={{ maxHeight: '50vh', overflow: 'auto' }}>
@@ -166,7 +167,16 @@ function CorporateSalesPage() {
                       <ListItemText primary={item.name} />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
-                        <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateCartQuantity(item._id, e.target.value)} sx={{ width: '50px' }} inputProps={{ style: { textAlign: 'center' }}} />
+                        <TextField
+                          size="small" type="number" value={item.quantity}
+                          onChange={(e) => updateCartQuantity(item._id, e.target.value)}
+                          sx={{
+                            width: `${(item.quantity.toString().length * 10) + 30}px`, minWidth: '50px',
+                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { '-webkit-appearance': 'none', margin: 0 },
+                            '& input[type=number]': { '-moz-appearance': 'textfield' },
+                          }}
+                          inputProps={{ style: { textAlign: 'center' }}}
+                        />
                         <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
                       </Box>
                     </ListItem>
