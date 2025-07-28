@@ -82,7 +82,7 @@ function MaComptabilitePage() {
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Grade</Typography><Typography variant="h4" color="primary">{user?.grade || 'N/A'}</Typography></Paper></Grid>
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">CA Semaine</Typography><Typography variant="h4">${totalCA.toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Marge Semaine</Typography><Typography variant="h4">${totalMargin.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Prime Estimée</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={3}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Salaire Estimé</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
 
         {/* Graphique des ventes */}
         <Grid item xs={12} md={8}>
