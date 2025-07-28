@@ -26,7 +26,6 @@ router.post('/', protect, async (req, res) => {
 
     // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
     for (const item of cart) {
-      // Pour les ventes entreprises, on ne touche pas au stock
       if (!isCorporateSale) {
         const product = await Product.findById(item._id).session(session);
         if (!product || product.stock < item.quantity) {
@@ -37,7 +36,7 @@ router.post('/', protect, async (req, res) => {
       }
       totalAmount += item.price * item.quantity;
       totalCost += item.cost * item.quantity;
-      transactionProducts.push({ productId: item._id, quantity: item.quantity, priceAtSale: item.price, costAtSale: item.cost, name: item.name });
+      transactionProducts.push({ productId: item._id, quantity: item.quantity, priceAtSale: item.price, costAtSale: item.cost, name: item.name, category: item.category });
     }
     const totalMargin = totalAmount - totalCost;
 
