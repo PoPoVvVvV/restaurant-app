@@ -7,11 +7,11 @@ import {
   Container, Box, Paper, Typography, Grid, Button, TextField, Select, MenuItem,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, IconButton,
   Switch, FormControlLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemText
+  Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // --- SOUS-COMPOSANTS DE LA PAGE ADMIN ---
 
@@ -25,7 +25,7 @@ const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
                 showNotification(data.message, 'success');
                 setTimeout(() => window.location.reload(), 1500);
             } catch (err) {
-                showNotification("Erreur.", "error");
+                showNotification("Erreur lors du changement de semaine.", "error");
             }
         }
     };
@@ -53,7 +53,10 @@ const AccountBalanceManager = ({ viewedWeek }) => {
                 setBalance(bal);
                 setCurrentBalance(bal);
            })
-           .catch(() => { setBalance(0); setCurrentBalance(0); });
+           .catch(() => {
+                setBalance(0);
+                setCurrentBalance(0);
+           });
     };
 
     useEffect(fetchBalance, [viewedWeek]);
@@ -64,7 +67,7 @@ const AccountBalanceManager = ({ viewedWeek }) => {
             showNotification('Solde mis à jour !', 'success');
             fetchBalance();
         } catch (err) {
-            showNotification("Erreur.", "error");
+            showNotification("Erreur lors de la mise à jour.", "error");
         }
     };
 
@@ -84,25 +87,39 @@ const AccountBalanceManager = ({ viewedWeek }) => {
 const WeeklySalesChart = ({ viewedWeek }) => {
   const [chartData, setChartData] = useState([]);
   const [employees, setEmployees] = useState([]);
+
   useEffect(() => {
     api.get(`/reports/weekly-sales-summary?week=${viewedWeek}`)
        .then(res => {
          setChartData(res.data.chartData);
          setEmployees(res.data.employees);
-       });
+       })
+       .catch(err => console.error(err));
   }, [viewedWeek]);
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
+
   return (
     <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
       <Typography variant="h5" gutterBottom>Ventes de la Semaine par Employé</Typography>
       <ResponsiveContainer width="100%" height="90%">
-        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
           <Legend />
-          {employees.map((employeeName, index) => ( <Bar key={employeeName} dataKey={employeeName} stackId="a" fill={COLORS[index % COLORS.length]} /> ))}
+          {employees.map((employeeName, index) => (
+            <Bar
+              key={employeeName}
+              dataKey={employeeName}
+              stackId="a"
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     </Paper>
@@ -114,9 +131,11 @@ const FinancialSummary = ({ viewedWeek }) => {
   const [summary, setSummary] = useState(null);
   useEffect(() => {
     setSummary(null);
-    api.get(`/reports/financial-summary?week=${viewedWeek}`).then(res => setSummary(res.data));
+    api.get(`/reports/financial-summary?week=${viewedWeek}`).then(res => setSummary(res.data)).catch(err => console.error(err));
   }, [viewedWeek]);
+
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
+  
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Grid container spacing={2}>
@@ -129,7 +148,9 @@ const FinancialSummary = ({ viewedWeek }) => {
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: (summary.netMargin || 0) > 0 ? 'success.light' : 'error.light' }}><Typography>Marge Nette</Typography><Typography variant="h5">${(summary.netMargin || 0).toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
       </Grid>
-      <Grid container spacing={2} sx={{ mt: 1 }}><Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid></Grid>
+      <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+      </Grid>
     </Paper>
   );
 };
@@ -137,20 +158,11 @@ const FinancialSummary = ({ viewedWeek }) => {
 // 5. Performance des Employés
 const EmployeePerformance = ({ viewedWeek }) => {
   const [report, setReport] = useState([]);
-  useEffect(() => {
-    api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)).catch(err => console.error(err));
-  }, [viewedWeek]);
-  
+  useEffect(() => { api.get(`/reports/employee-performance?week=${viewedWeek}`).then(res => setReport(res.data)); }, [viewedWeek]);
   return (
-    <Paper elevation={3} sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>Performance des Employés (Semaine {viewedWeek})</Typography>
-      <TableContainer>
-        <Table size="small">
-          <TableHead><TableRow><TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Chiffre d'Affaires</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Marge Générée</TableCell><TableCell align="right" sx={{ fontWeight: 'bold' }}>Salaire Estimé</TableCell></TableRow></TableHead>
-          <TableBody>{report.map(data => (<TableRow key={data.employeeId}><TableCell>{data.employeeName}</TableCell><TableCell align="right">${data.totalRevenue.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'success.main' }}>${data.totalMargin.toFixed(2)}</TableCell><TableCell align="right" sx={{ color: 'primary.main', fontWeight: 'bold' }}>${data.estimatedBonus.toFixed(2)}</TableCell></TableRow>))}</TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small"><TableHead><TableRow><TableCell>Employé</TableCell><TableCell align="right">CA</TableCell><TableCell align="right">Marge</TableCell><TableCell align="right">Prime</TableCell></TableRow></TableHead><TableBody>{report.map(data => (<TableRow key={data.employeeId}><TableCell>{data.employeeName}</TableCell><TableCell align="right">${data.totalRevenue.toFixed(2)}</TableCell><TableCell align="right">${data.totalMargin.toFixed(2)}</TableCell><TableCell align="right">${data.estimatedBonus.toFixed(2)}</TableCell></TableRow>))}</TableBody></Table>
+    </TableContainer>
   );
 };
 
@@ -160,9 +172,9 @@ const GeneralSettings = () => {
     const [bonusPercentage, setBonusPercentage] = useState(0);
     const [newCode, setNewCode] = useState('');
     const [users, setUsers] = useState([]);
-    const fetchUsers = async () => { api.get('/users').then(res => setUsers(res.data)).catch(err => console.error(err)); };
+    const fetchUsers = async () => { api.get('/users').then(res => setUsers(res.data)); };
     useEffect(() => {
-        api.get('/settings/bonusPercentage').then(res => setBonusPercentage(res.data.value * 100)).catch(() => {});
+        api.get('/settings/bonusPercentage').then(res => setBonusPercentage(res.data.value * 100));
         fetchUsers();
     }, []);
     const handleSaveBonus = async () => { await api.post('/settings', { key: 'bonusPercentage', value: parseFloat(bonusPercentage) / 100 }); showNotification('Prime enregistrée !', 'success'); };
@@ -171,7 +183,6 @@ const GeneralSettings = () => {
     const handleGradeChange = async (userId, newGrade) => { try { await api.put(`/users/${userId}/grade`, { grade: newGrade }); setUsers(users.map(u => u._id === userId ? { ...u, grade: newGrade } : u)); showNotification("Grade mis à jour !", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Paramètres & Employés</Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
             <TableContainer component={Paper} variant="outlined">
@@ -188,13 +199,14 @@ const GeneralSettings = () => {
 const TransactionLog = ({ viewedWeek }) => {
   const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
-  useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)).catch(err => console.error(err)); }, [viewedWeek]);
-  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible de générer l'export CSV.", 'error'); } };
+  useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)); }, [viewedWeek]);
+  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible d'exporter.", 'error'); } };
+  const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/transactions/${id}`); showNotification("Transaction supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
   return (
-    <Paper elevation={3} sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h5">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
-      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Employé</TableCell><TableCell align="right">Montant</TableCell><TableCell align="right">Marge</TableCell></TableRow></TableHead><TableBody>{transactions.map(t => (<TableRow key={t._id}><TableCell>{new Date(t.createdAt).toLocaleString('fr-FR')}</TableCell><TableCell>{t.employeeId?.username || 'N/A'}</TableCell><TableCell align="right">${t.totalAmount.toFixed(2)}</TableCell><TableCell align="right">${t.margin.toFixed(2)}</TableCell></TableRow>))}</TableBody></Table></TableContainer>
-    </Paper>
+    <TableContainer component={Paper} variant="outlined">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}><Typography variant="h6">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
+      <Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Employé</TableCell><TableCell align="right">Montant</TableCell><TableCell align="right">Marge</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{transactions.map(t => (<TableRow key={t._id}><TableCell>{new Date(t.createdAt).toLocaleString('fr-FR')}</TableCell><TableCell>{t.employeeId?.username || 'N/A'}</TableCell><TableCell align="right">${t.totalAmount.toFixed(2)}</TableCell><TableCell align="right">${t.margin.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(t._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table>
+    </TableContainer>
   );
 };
 
@@ -203,16 +215,15 @@ const ExpenseManager = ({ viewedWeek }) => {
     const { showNotification } = useNotification();
     const [expenses, setExpenses] = useState([]);
     const [formData, setFormData] = useState({ amount: '', category: 'Matières Premières', description: '' });
-    const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)).catch(err => console.error(err)); };
+    const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)); };
     useEffect(fetchExpenses, [viewedWeek]);
-    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur lors de l'ajout.", "error"); } };
+    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
     const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); showNotification("Dépense supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
     return (
-        <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Gestion des Dépenses</Typography>
-            <Box component="form" onSubmit={onSubmit} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
-            <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Catégorie</TableCell><TableCell>Description</TableCell><TableCell align="right">Montant</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{expenses.map(exp => (<TableRow key={exp._id}><TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell align="right" sx={{ color: 'error.main' }}>-${exp.amount.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(exp._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table></TableContainer>
-        </Paper>
+        <TableContainer component={Paper} variant="outlined">
+            <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', gap: 2 }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
+            <Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Catégorie</TableCell><TableCell>Description</TableCell><TableCell align="right">Montant</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{expenses.map(exp => (<TableRow key={exp._id}><TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell align="right" sx={{ color: 'error.main' }}>-${exp.amount.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(exp._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table>
+        </TableContainer>
     );
 };
 
@@ -258,7 +269,6 @@ const ProductManager = () => {
     </Paper>
   );
 };
-
 // 10. Annonce de Livraison
 const DeliveryStatusManager = () => {
     const { showNotification } = useNotification();
@@ -317,6 +327,7 @@ function AdminPage() {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>Panneau Administrateur</Typography>
+      
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion & Solde</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={7}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid><Grid item xs={12} md={5}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Résumé Financier (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><FinancialSummary viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Ventes de la Semaine (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><WeeklySalesChart viewedWeek={viewedWeek} /></AccordionDetails></Accordion>

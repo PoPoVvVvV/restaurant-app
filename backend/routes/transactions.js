@@ -90,6 +90,26 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/transactions/:id
+// @desc    Supprimer une transaction (Admin)
+// @access  Privé/Admin
+router.delete('/:id', [protect, admin], async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction non trouvée' });
+    }
+    await transaction.deleteOne();
+    
+    req.io.emit('data-updated', { type: 'TRANSACTIONS_UPDATED' });
+    
+    res.json({ message: 'Transaction supprimée' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+
 // @route   GET /api/transactions/me
 // @desc    Obtenir l'historique de l'employé pour la semaine en cours
 // @access  Privé (Employé)
