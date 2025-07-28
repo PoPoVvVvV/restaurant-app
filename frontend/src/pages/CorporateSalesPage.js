@@ -147,11 +147,11 @@ function CorporateSalesPage() {
                 onChange={e => setSelectedEmployees(e.target.value)}
                 input={<OutlinedInput label="Vendu par" />}
                 renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                            <Chip key={value} label={users.find(u => u._id === value)?.username} />
-                        ))}
-                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {selected.map((value) => (
+                        <Chip key={value} label={users.find(u => u._id === value)?.username} size="small" />
+                    ))}
+                </Box>
                 )}
               >
                 {users.map(user => (
