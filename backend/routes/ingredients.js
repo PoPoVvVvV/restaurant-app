@@ -52,6 +52,24 @@ router.put('/:id/stock', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/ingredients/:id
+// @desc    Supprimer une matière première
+// @access  Privé/Admin
+router.delete('/:id', [protect, admin], async (req, res) => {
+  try {
+    const ingredient = await Ingredient.findById(req.params.id);
+    if (!ingredient) {
+      return res.status(404).json({ message: 'Ingrédient non trouvé' });
+    }
+    await ingredient.deleteOne();
+    
+    req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });
+    res.json({ message: 'Ingrédient supprimé' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   POST /api/ingredients/sync-from-recipes
 // @desc    Synchroniser les ingrédients depuis toutes les recettes
 // @access  Privé/Admin

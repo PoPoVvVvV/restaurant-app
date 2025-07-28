@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import api from '../services/api';
 import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
+import AuthContext from '../context/AuthContext';
 
 // Imports depuis Material-UI
 import {
   Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle,
-  Accordion, AccordionSummary, AccordionDetails
+  Accordion, AccordionSummary, AccordionDetails, IconButton
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // Composant pour les matières premières
 const IngredientManager = () => {
+  const { user } = useContext(AuthContext);
   const [ingredients, setIngredients] = useState([]);
   const { showNotification } = useNotification();
   
@@ -57,9 +60,19 @@ const IngredientManager = () => {
       try {
         const { data } = await api.post('/ingredients/sync-from-recipes');
         showNotification(data.message, 'success');
-        // Le refetch sera géré par l'événement socket
       } catch (err) {
         showNotification("Erreur lors de la synchronisation.", "error");
+      }
+    }
+  };
+  
+  const handleDelete = async (id) => {
+    if (window.confirm("Voulez-vous vraiment supprimer cette matière première ?")) {
+      try {
+        await api.delete(`/ingredients/${id}`);
+        showNotification("Ingrédient supprimé.", "info");
+      } catch (err) {
+        showNotification("Erreur lors de la suppression.", "error");
       }
     }
   };
@@ -68,9 +81,11 @@ const IngredientManager = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Inventaire des Matières Premières</Typography>
-        <Button variant="outlined" size="small" onClick={handleSync}>
-          Synchroniser depuis les Recettes
-        </Button>
+        {user?.role === 'admin' &&
+            <Button variant="outlined" size="small" onClick={handleSync}>
+                Synchroniser depuis les Recettes
+            </Button>
+        }
       </Box>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
@@ -81,6 +96,7 @@ const IngredientManager = () => {
               <TableCell align="right">Stock</TableCell>
               <TableCell align="center">Statut</TableCell>
               <TableCell align="center">Mettre à jour</TableCell>
+              {user?.role === 'admin' && <TableCell align="center">Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -89,17 +105,20 @@ const IngredientManager = () => {
                 <TableCell>{ing.name}</TableCell>
                 <TableCell>{ing.unit}</TableCell>
                 <TableCell align="right">{ing.stock}</TableCell>
-                <TableCell align="center">
-                  {ing.stock <= 500 && (
-                    <span title="Stock bas">⚠️</span>
-                  )}
-                </TableCell>
+                <TableCell align="center">{ing.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                     <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
                     <Button variant="contained" size="small" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
                   </Box>
                 </TableCell>
+                {user?.role === 'admin' && (
+                  <TableCell align="center">
+                    <IconButton onClick={() => handleDelete(ing._id)} color="error" size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
