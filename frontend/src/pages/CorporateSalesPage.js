@@ -36,6 +36,10 @@ function CorporateSalesPage() {
     }
   }, []);
 
+  const getPrice = (product) => {
+    return (product.corporatePrice && product.corporatePrice > 0) ? product.corporatePrice : product.price;
+  };
+
   useEffect(() => {
     fetchData();
     const handleDataUpdate = (data) => {
@@ -59,10 +63,6 @@ function CorporateSalesPage() {
     });
     return grouped;
   }, [products]);
-  
-  const getPrice = (product) => {
-    return (product.corporatePrice && product.corporatePrice > 0) ? product.corporatePrice : product.price;
-  };
 
   const addToCart = (product) => {
     setCart(prevCart => {
