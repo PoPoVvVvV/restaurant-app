@@ -85,24 +85,30 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
       const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
       weekIdToFetch = weekSetting?.value || 1;
     }
+
     const performanceData = await Transaction.aggregate([
       { $match: { weekId: weekIdToFetch } },
       { $group: { _id: '$employeeId', totalRevenue: { $sum: '$totalAmount' }, totalMargin: { $sum: '$margin' } } },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
-      { $project: { _id: 0, employeeId: '$_id', employeeName: { $arrayElemAt: ['$employeeInfo.username', 0] }, totalRevenue: '$totalRevenue', totalMargin: '$totalMargin' } },
+      { $unwind: '$employeeInfo' }, // Pour transformer le tableau en objet
+      { 
+        $project: {
+          _id: 0,
+          employeeId: '$_id',
+          employeeName: '$employeeInfo.username',
+          grade: '$employeeInfo.grade', // On récupère le grade directement
+          totalRevenue: '$totalRevenue',
+          totalMargin: '$totalMargin'
+        }
+      },
     ]);
-    
-    const usersWithGrade = await User.find({ _id: { $in: performanceData.map(p => p.employeeId) } }).select('grade');
-    const userGrades = new Map(usersWithGrade.map(u => [u._id.toString(), u.grade]));
 
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
 
     const finalReport = performanceData.map(data => {
-      const grade = userGrades.get(data.employeeId.toString());
       let estimatedBonus;
-
-      if (grade === 'Patron' || grade === 'Co-Patronne') {
+      if (data.grade === 'Patron' || data.grade === 'Co-Patronne') {
         estimatedBonus = 20000;
       } else {
         estimatedBonus = data.totalMargin * bonusPercentage;
