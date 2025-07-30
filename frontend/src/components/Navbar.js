@@ -59,6 +59,8 @@ function Navbar() {
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <NavButton to="/recettes" icon="📖" text="Recettes" />
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <NavButton to="/absences" icon="📅" text="Absences" /> {/* AJOUTER */}
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <NavButton to="/comptabilite" icon="📊" text="Ma Compta" />
                     {user.role === 'admin' && (
                         <>

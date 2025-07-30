@@ -15,6 +15,7 @@ import settingRoutes from './routes/settings.js';
 import userRoutes from './routes/users.js';
 import recipeRoutes from './routes/recipes.js';
 import ingredientRoutes from './routes/ingredients.js';
+import absenceRoutes from './routes/absences.js';
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/ingredients', ingredientRoutes);
+app.use('/api/absences', absenceRoutes);
 
 app.get('/', (req, res) => {
   res.send('API du restaurant en cours d\'exécution...');

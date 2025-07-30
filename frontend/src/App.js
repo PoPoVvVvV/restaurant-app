@@ -18,6 +18,7 @@ import MaComptabilitePage from './pages/MaComptabilitePage';
 import AdminPage from './pages/AdminPage';
 import RecipePage from './pages/RecipePage';
 import CorporateSalesPage from './pages/CorporateSalesPage';
+import AbsencePage from './pages/AbsencePage'; // Importer la page des absences
 
 function ThemedApp() {
   const { mode } = useThemeMode();
@@ -47,6 +48,7 @@ function ThemedApp() {
             <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
             <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
             <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
+            <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} /> {/* AJOUTER */}
             <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
             
