@@ -17,13 +17,14 @@ const NavButton = ({ to, icon, text }) => {
       to={to} 
       startIcon={<span>{icon}</span>}
       sx={{
-        // Applique un style si le bouton est actif
         backgroundColor: isActive ? 'success.dark' : 'transparent',
         '&:hover': {
           backgroundColor: isActive ? 'success.main' : 'rgba(255, 255, 255, 0.08)',
         },
         borderRadius: 2,
-        mx: 0.5
+        mx: 0.5,
+        fontSize: { xs: '0.65rem', md: '0.875rem' },
+        px: { xs: 1, md: 2 }
       }}
     >
       {text}
@@ -59,7 +60,7 @@ function Navbar() {
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <NavButton to="/recettes" icon="📖" text="Recettes" />
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-                    <NavButton to="/absences" icon="📅" text="Absences" /> {/* AJOUTER */}
+                    <NavButton to="/absences" icon="📅" text="Absences" />
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <NavButton to="/comptabilite" icon="📊" text="Ma Compta" />
                     {user.role === 'admin' && (
@@ -74,7 +75,7 @@ function Navbar() {
 
         {user ? (
           <>
-            <Typography sx={{ mr: 2 }}>{user.username}</Typography>
+            <Typography sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>{user.username}</Typography>
             <Button color="inherit" onClick={onLogout}>Déconnexion</Button>
           </>
         ) : (
