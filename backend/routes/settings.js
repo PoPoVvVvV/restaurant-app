@@ -4,6 +4,7 @@ import { protect, admin } from '../middleware/auth.js';
 import Setting from '../models/Setting.js';
 import Transaction from '../models/Transaction.js';
 import Expense from '../models/Expense.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -31,6 +32,9 @@ router.get('/:key', protect, async (req, res) => {
     if (!setting) {
       if (req.params.key === 'currentWeekId') {
         return res.json({ key: 'currentWeekId', value: 1 });
+      }
+      if (req.params.key.startsWith('accountBalance_week_')) {
+          return res.json({ key: req.params.key, value: 0 });
       }
       return res.status(404).json({ message: 'Paramètre non trouvé.' });
     }
@@ -86,7 +90,7 @@ router.post('/new-week', [protect, admin], async (req, res) => {
       let setting = await Setting.findOne({ key: 'currentWeekId' });
       const weekToClose = setting?.value || 1;
 
-      // 1. Calculer le résumé de la semaine à clôturer
+      // Calcul du résumé de la semaine
       const salesData = await Transaction.aggregate([ { $match: { weekId: weekToClose } }, { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' }, totalCostOfGoods: { $sum: '$totalCost' } } } ]);
       const expenseData = await Expense.aggregate([ { $match: { weekId: weekToClose } }, { $group: { _id: null, totalExpenses: { $sum: '$amount' } } } ]);
       const summary = {
@@ -96,12 +100,12 @@ router.post('/new-week', [protect, admin], async (req, res) => {
       };
       summary.netMargin = summary.totalRevenue - summary.totalCostOfGoods - summary.totalExpenses;
 
-      // 2. Envoyer le résumé sur Discord
+      // Envoi sur Discord
       const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
       if (webhookUrl) {
           const embed = {
               title: `Résumé Financier - Semaine ${weekToClose}`,
-              color: summary.netMargin > 0 ? 5763719 : 15548997, // Vert ou Rouge
+              color: summary.netMargin > 0 ? 5763719 : 15548997,
               fields: [
                   { name: "Chiffre d'Affaires", value: `$${summary.totalRevenue.toFixed(2)}`, inline: true },
                   { name: "Coût Marchandises", value: `-$${summary.totalCostOfGoods.toFixed(2)}`, inline: true },
@@ -113,15 +117,28 @@ router.post('/new-week', [protect, admin], async (req, res) => {
           axios.post(webhookUrl, { embeds: [embed] }).catch(err => console.error("Erreur Webhook Discord:", err.message));
       }
 
-      // 3. Passer à la semaine suivante
+      // Ajout des salaires fixes comme dépense pour la nouvelle semaine
+      const nextWeekId = (setting?.value || 0) + 1;
+      const highLevelStaff = await User.find({ grade: { $in: ['Patron', 'Co-Patronne'] } });
+      for (const staff of highLevelStaff) {
+        const salaryExpense = new Expense({
+          weekId: nextWeekId,
+          amount: 20000,
+          category: 'Salaires',
+          description: `Salaire fixe pour ${staff.username} (Grade: ${staff.grade})`,
+          addedBy: req.user.id
+        });
+        await salaryExpense.save();
+      }
+      
+      // Passage à la semaine suivante
       if (!setting) {
         setting = new Setting({ key: 'currentWeekId', value: 1 });
       }
-      setting.value = (setting.value || 0) + 1;
+      setting.value = nextWeekId;
       await setting.save();
       
-      res.json({ message: `Semaine ${setting.value} commencée ! Le rapport de la semaine ${weekToClose} a été envoyé.`, newWeekId: setting.value });
-
+      res.json({ message: `Semaine ${setting.value} commencée !`, newWeekId: setting.value });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Erreur du serveur' });

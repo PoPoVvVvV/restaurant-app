@@ -91,9 +91,25 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
       { $project: { _id: 0, employeeId: '$_id', employeeName: { $arrayElemAt: ['$employeeInfo.username', 0] }, totalRevenue: '$totalRevenue', totalMargin: '$totalMargin' } },
     ]);
+    
+    const usersWithGrade = await User.find({ _id: { $in: performanceData.map(p => p.employeeId) } }).select('grade');
+    const userGrades = new Map(usersWithGrade.map(u => [u._id.toString(), u.grade]));
+
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
-    const finalReport = performanceData.map(data => ({ ...data, estimatedBonus: data.totalMargin * bonusPercentage }));
+
+    const finalReport = performanceData.map(data => {
+      const grade = userGrades.get(data.employeeId.toString());
+      let estimatedBonus;
+
+      if (grade === 'Patron' || grade === 'Co-Patronne') {
+        estimatedBonus = 20000;
+      } else {
+        estimatedBonus = data.totalMargin * bonusPercentage;
+      }
+      return { ...data, estimatedBonus };
+    });
+
     res.json(finalReport);
   } catch (error) {
     console.error(error);
