@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 
@@ -53,10 +53,7 @@ const AccountBalanceManager = ({ viewedWeek }) => {
                 setBalance(bal);
                 setCurrentBalance(bal);
            })
-           .catch(() => {
-                setBalance(0);
-                setCurrentBalance(0);
-           });
+           .catch(() => { setBalance(0); setCurrentBalance(0); });
     };
 
     useEffect(fetchBalance, [viewedWeek]);
@@ -200,13 +197,35 @@ const TransactionLog = ({ viewedWeek }) => {
   const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
   useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)); }, [viewedWeek]);
-  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible d'exporter.", 'error'); } };
+  
+  const transactionsByDay = useMemo(() => {
+    const grouped = {};
+    transactions.forEach(t => {
+      const date = new Date(t.createdAt).toLocaleDateString('fr-FR');
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push(t);
+    });
+    return grouped;
+  }, [transactions]);
+
+  const handleExport = async () => { /* ... */ };
   const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/transactions/${id}`); showNotification("Transaction supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
+  
   return (
-    <TableContainer component={Paper} variant="outlined">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}><Typography variant="h6">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
-      <Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Employé</TableCell><TableCell align="right">Montant</TableCell><TableCell align="right">Marge</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{transactions.map(t => (<TableRow key={t._id}><TableCell>{new Date(t.createdAt).toLocaleString('fr-FR')}</TableCell><TableCell>{t.employeeId?.username || 'N/A'}</TableCell><TableCell align="right">${t.totalAmount.toFixed(2)}</TableCell><TableCell align="right">${t.margin.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(t._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table>
-    </TableContainer>
+    <Paper elevation={3} sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h5">Relevé des Transactions</Typography><Button variant="outlined" onClick={handleExport}>Exporter en CSV</Button></Box>
+      {Object.entries(transactionsByDay).map(([date, dailyTransactions]) => (
+        <Box key={date} sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ bgcolor: 'action.hover', p: 1 }}>{date}</Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead><TableRow><TableCell>Heure</TableCell><TableCell>Employé</TableCell><TableCell align="right">Montant</TableCell><TableCell align="right">Marge</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
+              <TableBody>{dailyTransactions.map(t => (<TableRow key={t._id}><TableCell>{new Date(t.createdAt).toLocaleTimeString('fr-FR')}</TableCell><TableCell>{t.employeeId?.username || 'N/A'}</TableCell><TableCell align="right">${t.totalAmount.toFixed(2)}</TableCell><TableCell align="right">${t.margin.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(t._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      ))}
+    </Paper>
   );
 };
 
