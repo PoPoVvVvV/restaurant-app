@@ -5,6 +5,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
+import logo from '../assets/Popov.png'; // Assurez-vous que le chemin vers votre logo est correct
 
 const NavButton = ({ to, icon, text }) => {
   const location = useLocation();
@@ -45,6 +46,12 @@ function Navbar() {
   return (
     <AppBar position="static">
       <Toolbar>
+        <Box 
+          component="img"
+          sx={{ height: 40, mr: 2 }}
+          alt="Logo Delight"
+          src={logo}
+        />
         <Typography variant="h6" component="div">
           Delight
         </Typography>
