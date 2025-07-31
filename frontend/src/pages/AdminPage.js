@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 
@@ -208,7 +208,7 @@ const TransactionLog = ({ viewedWeek }) => {
     return grouped;
   }, [transactions]);
 
-  const handleExport = async () => { /* ... */ };
+  const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible d'exporter.", 'error'); } };
   const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/transactions/${id}`); showNotification("Transaction supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
   
   return (
@@ -260,7 +260,6 @@ const ProductManager = () => {
   const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); showNotification("Produit mis à jour.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: '', corporatePrice: '', cost: '', stock: '' }); showNotification("Produit ajouté.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); showNotification("Produit supprimé.", "info"); } catch (err) { showNotification("Erreur.", "error"); } } };
-
   return (
     <TableContainer component={Paper} variant="outlined">
       <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}><TextField size="small" name="name" value={formData.name} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Nom produit" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem></Select><TextField size="small" type="number" name="price" value={formData.price} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Prix ($)" /><TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Prix Ent. ($)" /><TextField size="small" type="number" name="cost" value={formData.cost} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Coût ($)" /><TextField size="small" type="number" name="stock" value={formData.stock} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Stock" /><Button type="submit" variant="contained">Ajouter</Button></Box>

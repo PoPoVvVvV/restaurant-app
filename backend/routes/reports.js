@@ -4,6 +4,7 @@ import { protect, admin } from '../middleware/auth.js';
 import Transaction from '../models/Transaction.js';
 import Expense from '../models/Expense.js';
 import Setting from '../models/Setting.js';
+import User from '../models/User.js';
 import { Parser } from 'json2csv';
 
 const router = express.Router();
@@ -45,9 +46,27 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
     const startingBalance = prevWeekBalanceSetting?.value || 0;
     
     const salesData = await Transaction.aggregate([ { $match: { weekId: weekIdToFetch } }, { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' }, totalCostOfGoods: { $sum: '$totalCost' } } } ]);
-    const expenseData = await Expense.aggregate([ { $match: { weekId: weekIdToFetch } }, { $group: { _id: null, totalExpenses: { $sum: '$amount' } } } ]);
+    
+    const expenseData = await Expense.aggregate([
+      { $match: { weekId: weekIdToFetch } },
+      { $group: { _id: '$category', total: { $sum: '$amount' } } }
+    ]);
+
+    const expensesByCategory = {};
+    expenseData.forEach(item => {
+      expensesByCategory[item._id] = item.total;
+    });
+
     const deductibleCategories = ["Matières Premières", "Frais Véhicule", "Frais Avocat"];
-    const deductibleExpenseData = await Expense.aggregate([ { $match: { weekId: weekIdToFetch, category: { $in: deductibleCategories } } }, { $group: { _id: null, totalDeductible: { $sum: '$amount' } } } ]);
+    let totalExpenses = 0;
+    let taxDeductible = 0;
+    for (const category in expensesByCategory) {
+        totalExpenses += expensesByCategory[category];
+        if (deductibleCategories.includes(category)) {
+            taxDeductible += expensesByCategory[category];
+        }
+    }
+
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
 
@@ -55,8 +74,9 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
       startingBalance,
       totalRevenue: salesData[0]?.totalRevenue || 0,
       totalCostOfGoods: salesData[0]?.totalCostOfGoods || 0,
-      totalExpenses: expenseData[0]?.totalExpenses || 0,
-      taxDeductible: deductibleExpenseData[0]?.totalDeductible || 0,
+      totalExpenses,
+      taxDeductible,
+      expensesBreakdown: expensesByCategory
     };
     
     summary.grossMargin = summary.totalRevenue - summary.totalCostOfGoods;
@@ -85,24 +105,23 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
       const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
       weekIdToFetch = weekSetting?.value || 1;
     }
-
     const performanceData = await Transaction.aggregate([
       { $match: { weekId: weekIdToFetch } },
       { $group: { _id: '$employeeId', totalRevenue: { $sum: '$totalAmount' }, totalMargin: { $sum: '$margin' } } },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
-      { $unwind: '$employeeInfo' }, // Pour transformer le tableau en objet
+      { $unwind: '$employeeInfo' },
       { 
         $project: {
           _id: 0,
           employeeId: '$_id',
           employeeName: '$employeeInfo.username',
-          grade: '$employeeInfo.grade', // On récupère le grade directement
+          grade: '$employeeInfo.grade',
           totalRevenue: '$totalRevenue',
           totalMargin: '$totalMargin'
         }
       },
     ]);
-
+    
     const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
     const bonusPercentage = bonusSetting?.value || 0;
 
