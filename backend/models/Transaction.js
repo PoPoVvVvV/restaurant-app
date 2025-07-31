@@ -17,14 +17,38 @@ const TransactionSchema = new mongoose.Schema({
         ref: 'Product',
         required: true,
       },
-      quantity: { type: Number, required: true },
-      priceAtSale: { type: Number, required: true },
-      costAtSale: { type: Number, required: true },
+      quantity: {
+        type: Number,
+        required: true,
+      },
+      priceAtSale: {
+        type: Number,
+        required: true,
+      },
+      costAtSale: {
+        type: Number,
+        required: true,
+      },
+      name: {
+        type: String
+      },
+      category: {
+        type: String
+      },
     },
   ],
-  totalAmount: { type: Number, required: true }, // CA de la transaction
-  totalCost: { type: Number, required: true },   // Coût total des produits vendus
-  margin: { type: Number, required: true },      // Marge brute
+  totalAmount: {
+    type: Number,
+    required: true,
+  },
+  totalCost: {
+    type: Number,
+    required: true,
+  },
+  margin: {
+    type: Number,
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
