@@ -19,6 +19,11 @@ const AbsenceSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  status: {
+    type: String,
+    enum: ['En attente', 'Validée', 'Refusée'],
+    default: 'En attente',
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -35,4 +35,24 @@ router.get('/', [protect, admin], async (req, res) => {
     }
 });
 
+// @route   PUT /api/absences/:id/status
+// @desc    Valider ou refuser une absence
+// @access  Privé/Admin
+router.put('/:id/status', [protect, admin], async (req, res) => {
+  try {
+    const { status } = req.body;
+    const absence = await Absence.findById(req.params.id);
+
+    if (!absence) {
+      return res.status(404).json({ message: 'Absence non trouvée.' });
+    }
+
+    absence.status = status; // 'Validée' ou 'Refusée'
+    await absence.save();
+    res.json({ message: `Absence mise à jour.` });
+  } catch (error) {
+    res.status(400).json({ message: 'Erreur lors de la mise à jour.' });
+  }
+});
+
 export default router;
