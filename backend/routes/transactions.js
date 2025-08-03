@@ -22,7 +22,7 @@ router.post('/', protect, async (req, res) => {
     let totalAmount = 0;
     let totalCost = 0;
     const transactionProducts = [];
-    const isCorporateSale = req.user.role === 'admin' && employeeIds && employeeIds.length > 0;
+    const isCorporateSale = employeeIds && employeeIds.length > 0;
 
     // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
     for (const item of cart) {
