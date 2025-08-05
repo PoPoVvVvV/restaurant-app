@@ -5,6 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ArchiveIcon from '@mui/icons-material/Archive';
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
@@ -53,6 +54,16 @@ function AbsencePage() {
     }
   };
 
+  const handleArchive = async (id) => {
+    try {
+      await api.put(`/absences/${id}/archive`);
+      fetchAbsences();
+      showNotification("Absence archivée.", "info");
+    } catch (err) {
+      showNotification("Erreur lors de l'archivage.", "error");
+    }
+  };
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>Gestion des Absences</Typography>
@@ -88,11 +99,15 @@ function AbsencePage() {
                                     />
                                 </TableCell>
                                 <TableCell align="center">
-                                  {abs.status === 'En attente' && (
+                                  {abs.status === 'En attente' ? (
                                     <>
                                       <IconButton color="success" onClick={() => handleStatusUpdate(abs._id, 'Validée')}><CheckCircleIcon /></IconButton>
                                       <IconButton color="error" onClick={() => handleStatusUpdate(abs._id, 'Refusée')}><CancelIcon /></IconButton>
                                     </>
+                                  ) : (
+                                    <IconButton onClick={() => handleArchive(abs._id)} color="primary" size="small">
+                                      <ArchiveIcon />
+                                    </IconButton>
                                   )}
                                 </TableCell>
                             </TableRow>

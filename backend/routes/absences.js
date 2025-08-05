@@ -24,11 +24,11 @@ router.post('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/absences
-// @desc    Voir toutes les absences (pour les Admins)
+// @desc    Voir toutes les absences non archivées (Admins)
 // @access  Privé/Admin
 router.get('/', [protect, admin], async (req, res) => {
     try {
-        const absences = await Absence.find().populate('employeeId', 'username').sort({ startDate: -1 });
+        const absences = await Absence.find({ isArchived: false }).populate('employeeId', 'username').sort({ startDate: -1 });
         res.json(absences);
     } catch (error) {
         res.status(500).json({ message: 'Erreur du serveur.' });
@@ -54,5 +54,23 @@ router.put('/:id/status', [protect, admin], async (req, res) => {
     res.status(400).json({ message: 'Erreur lors de la mise à jour.' });
   }
 });
+
+// @route   PUT /api/absences/:id/archive
+// @desc    Archiver une absence
+// @access  Privé/Admin
+router.put('/:id/archive', [protect, admin], async (req, res) => {
+  try {
+    const absence = await Absence.findById(req.params.id);
+    if (!absence) {
+      return res.status(404).json({ message: 'Absence non trouvée.' });
+    }
+    absence.isArchived = true;
+    await absence.save();
+    res.json({ message: `Absence archivée.` });
+  } catch (error) {
+    res.status(400).json({ message: 'Erreur lors de l\'archivage.' });
+  }
+});
+
 
 export default router;
