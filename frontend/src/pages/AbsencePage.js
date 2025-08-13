@@ -5,7 +5,6 @@ import { useNotification } from '../context/NotificationContext';
 import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import ArchiveIcon from '@mui/icons-material/Archive';
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
@@ -13,22 +12,21 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
-  // On retire la condition 'admin' pour que tout le monde puisse charger les données
   const fetchAbsences = useCallback(async () => {
-    try {
-      const { data } = await api.get('/absences');
-      setAbsences(data);
-    } catch (err) {
-      showNotification("Impossible de charger l'historique des absences.", "error");
+    // On ne lance la requête que si l'utilisateur est bien un admin
+    if (user && user.role === 'admin') {
+      try {
+        const { data } = await api.get('/absences');
+        setAbsences(data);
+      } catch (err) {
+        showNotification("Impossible de charger l'historique des absences.", "error");
+      }
     }
-  }, [showNotification]);
+  }, [user, showNotification]);
 
   useEffect(() => {
-    // On charge les données dès que l'utilisateur est connu
-    if (user) {
-      fetchAbsences();
-    }
-  }, [user, fetchAbsences]);
+    fetchAbsences();
+  }, [fetchAbsences]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,7 +38,7 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
-      fetchAbsences(); // Rafraîchit la liste pour tout le monde
+      fetchAbsences();
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }
@@ -53,16 +51,6 @@ function AbsencePage() {
       showNotification("Statut de l'absence mis à jour.", "success");
     } catch (err) {
       showNotification("Erreur lors de la mise à jour.", "error");
-    }
-  };
-
-  const handleArchive = async (id) => {
-    try {
-      await api.put(`/absences/${id}/archive`);
-      fetchAbsences();
-      showNotification("Absence archivée.", "info");
-    } catch (err) {
-      showNotification("Erreur lors de l'archivage.", "error");
     }
   };
 
@@ -80,55 +68,41 @@ function AbsencePage() {
         <Button type="submit" variant="contained">Déclarer</Button>
       </Paper>
 
-      {/* On retire la condition 'admin' pour que tout le monde voie le tableau */}
-      <Paper elevation={3} sx={{ p: 2 }}>
-          <Typography variant="h6">Historique des Absences</Typography>
-          <TableContainer>
-              <Table size="small">
-                  <TableHead>
-                      <TableRow>
-                          <TableCell>Employé</TableCell>
-                          <TableCell>Du</TableCell>
-                          <TableCell>Au</TableCell>
-                          <TableCell>Motif</TableCell>
-                          <TableCell>Statut</TableCell>
-                          {user && user.role === 'admin' && <TableCell align="center">Actions</TableCell>}
-                      </TableRow>
-                  </TableHead>
-                  <TableBody>
-                      {absences.map(abs => (
-                          <TableRow key={abs._id}>
-                              <TableCell>{abs.employeeId?.username || 'N/A'}</TableCell>
-                              <TableCell>{new Date(abs.startDate).toLocaleDateString('fr-FR')}</TableCell>
-                              <TableCell>{new Date(abs.endDate).toLocaleDateString('fr-FR')}</TableCell>
-                              <TableCell>{abs.reason}</TableCell>
-                              <TableCell>
-                                  <Chip 
-                                      label={abs.status} 
-                                      color={abs.status === 'Validée' ? 'success' : abs.status === 'Refusée' ? 'error' : 'warning'} 
-                                      size="small"
-                                  />
-                              </TableCell>
-                              {user && user.role === 'admin' &&
+      {user && user.role === 'admin' && (
+        <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6">Historique des Absences</Typography>
+            <TableContainer>
+                <Table size="small">
+                    <TableHead><TableRow><TableCell>Employé</TableCell><TableCell>Du</TableCell><TableCell>Au</TableCell><TableCell>Motif</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
+                    <TableBody>
+                        {absences.map(abs => (
+                            <TableRow key={abs._id}>
+                                <TableCell>{abs.employeeId?.username || 'N/A'}</TableCell>
+                                <TableCell>{new Date(abs.startDate).toLocaleDateString('fr-FR')}</TableCell>
+                                <TableCell>{new Date(abs.endDate).toLocaleDateString('fr-FR')}</TableCell>
+                                <TableCell>{abs.reason}</TableCell>
+                                <TableCell>
+                                    <Chip 
+                                        label={abs.status} 
+                                        color={abs.status === 'Validée' ? 'success' : abs.status === 'Refusée' ? 'error' : 'warning'} 
+                                        size="small"
+                                    />
+                                </TableCell>
                                 <TableCell align="center">
-                                  {abs.status === 'En attente' ? (
+                                  {abs.status === 'En attente' && (
                                     <>
                                       <IconButton color="success" onClick={() => handleStatusUpdate(abs._id, 'Validée')}><CheckCircleIcon /></IconButton>
                                       <IconButton color="error" onClick={() => handleStatusUpdate(abs._id, 'Refusée')}><CancelIcon /></IconButton>
                                     </>
-                                  ) : (
-                                    <IconButton onClick={() => handleArchive(abs._id)} color="primary" size="small">
-                                      <ArchiveIcon />
-                                    </IconButton>
                                   )}
                                 </TableCell>
-                              }
-                          </TableRow>
-                      ))}
-                  </TableBody>
-              </Table>
-          </TableContainer>
-      </Paper>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Paper>
+      )}
     </Container>
   );
 }
