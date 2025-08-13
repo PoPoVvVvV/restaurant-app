@@ -44,12 +44,16 @@ function AbsencePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // On récupère la nouvelle absence depuis la réponse de l'API
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
+      
+      // On ajoute manuellement la nouvelle absence à la liste existante
       if (user && user.role === 'admin') {
-        fetchAbsences();
+        setAbsences(prevAbsences => [data.absence, ...prevAbsences]);
       }
+
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }

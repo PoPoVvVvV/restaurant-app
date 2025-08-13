@@ -17,7 +17,12 @@ router.post('/', protect, async (req, res) => {
       reason,
     });
     await newAbsence.save();
-    res.status(201).json({ message: 'Absence déclarée avec succès.' });
+
+    // On peuple manuellement les informations de l'employé pour le retour
+    const populatedAbsence = await Absence.findById(newAbsence._id).populate('employeeId', 'username');
+    
+    // On renvoie l'objet complet de l'absence
+    res.status(201).json({ message: 'Absence déclarée avec succès.', absence: populatedAbsence });
   } catch (error) {
     res.status(400).json({ message: 'Erreur lors de la déclaration.' });
   }
