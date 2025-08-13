@@ -13,9 +13,8 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
-  // On utilise useCallback pour mémoriser la fonction et éviter des re-render inutiles
+  // On retire la condition 'admin' pour que tout le monde puisse charger les données
   const fetchAbsences = useCallback(async () => {
-    // La condition est maintenant à l'intérieur de useEffect
     try {
       const { data } = await api.get('/absences');
       setAbsences(data);
@@ -24,9 +23,9 @@ function AbsencePage() {
     }
   }, [showNotification]);
 
-  // Le useEffect dépend maintenant directement de "user"
   useEffect(() => {
-    if (user && user.role === 'admin') {
+    // On charge les données dès que l'utilisateur est connu
+    if (user) {
       fetchAbsences();
     }
   }, [user, fetchAbsences]);
@@ -41,9 +40,7 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
-      if (user && user.role === 'admin') {
-        fetchAbsences();
-      }
+      fetchAbsences(); // Rafraîchit la liste pour tout le monde
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }
@@ -83,26 +80,36 @@ function AbsencePage() {
         <Button type="submit" variant="contained">Déclarer</Button>
       </Paper>
 
-      {user && user.role === 'admin' && (
-        <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6">Historique des Absences</Typography>
-            <TableContainer>
-                <Table size="small">
-                    <TableHead><TableRow><TableCell>Employé</TableCell><TableCell>Du</TableCell><TableCell>Au</TableCell><TableCell>Motif</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
-                    <TableBody>
-                        {absences.map(abs => (
-                            <TableRow key={abs._id}>
-                                <TableCell>{abs.employeeId?.username || 'N/A'}</TableCell>
-                                <TableCell>{new Date(abs.startDate).toLocaleDateString('fr-FR')}</TableCell>
-                                <TableCell>{new Date(abs.endDate).toLocaleDateString('fr-FR')}</TableCell>
-                                <TableCell>{abs.reason}</TableCell>
-                                <TableCell>
-                                    <Chip 
-                                        label={abs.status} 
-                                        color={abs.status === 'Validée' ? 'success' : abs.status === 'Refusée' ? 'error' : 'warning'} 
-                                        size="small"
-                                    />
-                                </TableCell>
+      {/* On retire la condition 'admin' pour que tout le monde voie le tableau */}
+      <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6">Historique des Absences</Typography>
+          <TableContainer>
+              <Table size="small">
+                  <TableHead>
+                      <TableRow>
+                          <TableCell>Employé</TableCell>
+                          <TableCell>Du</TableCell>
+                          <TableCell>Au</TableCell>
+                          <TableCell>Motif</TableCell>
+                          <TableCell>Statut</TableCell>
+                          {user && user.role === 'admin' && <TableCell align="center">Actions</TableCell>}
+                      </TableRow>
+                  </TableHead>
+                  <TableBody>
+                      {absences.map(abs => (
+                          <TableRow key={abs._id}>
+                              <TableCell>{abs.employeeId?.username || 'N/A'}</TableCell>
+                              <TableCell>{new Date(abs.startDate).toLocaleDateString('fr-FR')}</TableCell>
+                              <TableCell>{new Date(abs.endDate).toLocaleDateString('fr-FR')}</TableCell>
+                              <TableCell>{abs.reason}</TableCell>
+                              <TableCell>
+                                  <Chip 
+                                      label={abs.status} 
+                                      color={abs.status === 'Validée' ? 'success' : abs.status === 'Refusée' ? 'error' : 'warning'} 
+                                      size="small"
+                                  />
+                              </TableCell>
+                              {user && user.role === 'admin' &&
                                 <TableCell align="center">
                                   {abs.status === 'En attente' ? (
                                     <>
@@ -115,13 +122,13 @@ function AbsencePage() {
                                     </IconButton>
                                   )}
                                 </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Paper>
-      )}
+                              }
+                          </TableRow>
+                      ))}
+                  </TableBody>
+              </Table>
+          </TableContainer>
+      </Paper>
     </Container>
   );
 }
