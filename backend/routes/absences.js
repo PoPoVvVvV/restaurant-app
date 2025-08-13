@@ -26,7 +26,7 @@ router.post('/', protect, async (req, res) => {
 // @route   GET /api/absences
 // @desc    Voir toutes les absences non archivées (Admins)
 // @access  Privé/Admin
-router.get('/', [protect, admin], async (req, res) => {
+router.get('/', protect, async (req, res) => {
     try {
         const absences = await Absence.find({ isArchived: false }).populate('employeeId', 'username').sort({ startDate: -1 });
         res.json(absences);
