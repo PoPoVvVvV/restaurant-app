@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
@@ -13,8 +13,9 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
-  const fetchAbsences = async () => {
-    if (user.role === 'admin') {
+  const fetchAbsences = useCallback(async () => {
+    // On ne lance la requête que si l'utilisateur est bien un admin
+    if (user && user.role === 'admin') {
       try {
         const { data } = await api.get('/absences');
         setAbsences(data);
@@ -22,11 +23,11 @@ function AbsencePage() {
         showNotification("Impossible de charger l'historique des absences.", "error");
       }
     }
-  };
+  }, [user, showNotification]);
 
   useEffect(() => {
     fetchAbsences();
-  }, [user]);
+  }, [fetchAbsences]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -78,7 +79,7 @@ function AbsencePage() {
         <Button type="submit" variant="contained">Déclarer</Button>
       </Paper>
 
-      {user.role === 'admin' && (
+      {user && user.role === 'admin' && (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6">Historique des Absences</Typography>
             <TableContainer>
