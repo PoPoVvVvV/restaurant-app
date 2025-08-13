@@ -18,10 +18,7 @@ router.post('/', protect, async (req, res) => {
     });
     await newAbsence.save();
 
-    // On peuple manuellement les informations de l'employé pour le retour
     const populatedAbsence = await Absence.findById(newAbsence._id).populate('employeeId', 'username');
-    
-    // On renvoie l'objet complet de l'absence
     res.status(201).json({ message: 'Absence déclarée avec succès.', absence: populatedAbsence });
   } catch (error) {
     res.status(400).json({ message: 'Erreur lors de la déclaration.' });
@@ -29,8 +26,8 @@ router.post('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/absences
-// @desc    Voir toutes les absences non archivées (Admins)
-// @access  Privé/Admin
+// @desc    Voir toutes les absences non archivées (Accessible à tous les employés)
+// @access  Privé
 router.get('/', protect, async (req, res) => {
     try {
         const absences = await Absence.find({ isArchived: false }).populate('employeeId', 'username').sort({ startDate: -1 });
@@ -52,7 +49,7 @@ router.put('/:id/status', [protect, admin], async (req, res) => {
       return res.status(404).json({ message: 'Absence non trouvée.' });
     }
 
-    absence.status = status; // 'Validée' ou 'Refusée'
+    absence.status = status;
     await absence.save();
     res.json({ message: `Absence mise à jour.` });
   } catch (error) {
@@ -60,5 +57,21 @@ router.put('/:id/status', [protect, admin], async (req, res) => {
   }
 });
 
+// @route   PUT /api/absences/:id/archive
+// @desc    Archiver une absence
+// @access  Privé/Admin
+router.put('/:id/archive', [protect, admin], async (req, res) => {
+  try {
+    const absence = await Absence.findById(req.params.id);
+    if (!absence) {
+      return res.status(404).json({ message: 'Absence non trouvée.' });
+    }
+    absence.isArchived = true;
+    await absence.save();
+    res.json({ message: `Absence archivée.` });
+  } catch (error) {
+    res.status(400).json({ message: 'Erreur lors de l\'archivage.' });
+  }
+});
 
 export default router;
