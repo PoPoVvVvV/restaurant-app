@@ -5,6 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ArchiveIcon from '@mui/icons-material/Archive';
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
@@ -12,20 +13,23 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
+  // On utilise useCallback pour mémoriser la fonction et éviter des re-render inutiles
   const fetchAbsences = useCallback(async () => {
-    if (user && user.role === 'admin') {
-      try {
-        const { data } = await api.get('/absences');
-        setAbsences(data);
-      } catch (err) {
-        showNotification("Impossible de charger l'historique des absences.", "error");
-      }
+    // La condition est maintenant à l'intérieur de useEffect
+    try {
+      const { data } = await api.get('/absences');
+      setAbsences(data);
+    } catch (err) {
+      showNotification("Impossible de charger l'historique des absences.", "error");
     }
-  }, [user, showNotification]);
+  }, [showNotification]);
 
+  // Le useEffect dépend maintenant directement de "user"
   useEffect(() => {
-    fetchAbsences();
-  }, [fetchAbsences]);
+    if (user && user.role === 'admin') {
+      fetchAbsences();
+    }
+  }, [user, fetchAbsences]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,7 +41,9 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
-      fetchAbsences();
+      if (user && user.role === 'admin') {
+        fetchAbsences();
+      }
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }
@@ -50,6 +56,16 @@ function AbsencePage() {
       showNotification("Statut de l'absence mis à jour.", "success");
     } catch (err) {
       showNotification("Erreur lors de la mise à jour.", "error");
+    }
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await api.put(`/absences/${id}/archive`);
+      fetchAbsences();
+      showNotification("Absence archivée.", "info");
+    } catch (err) {
+      showNotification("Erreur lors de l'archivage.", "error");
     }
   };
 
@@ -88,11 +104,15 @@ function AbsencePage() {
                                     />
                                 </TableCell>
                                 <TableCell align="center">
-                                  {abs.status === 'En attente' && (
+                                  {abs.status === 'En attente' ? (
                                     <>
                                       <IconButton color="success" onClick={() => handleStatusUpdate(abs._id, 'Validée')}><CheckCircleIcon /></IconButton>
                                       <IconButton color="error" onClick={() => handleStatusUpdate(abs._id, 'Refusée')}><CancelIcon /></IconButton>
                                     </>
+                                  ) : (
+                                    <IconButton onClick={() => handleArchive(abs._id)} color="primary" size="small">
+                                      <ArchiveIcon />
+                                    </IconButton>
                                   )}
                                 </TableCell>
                             </TableRow>
