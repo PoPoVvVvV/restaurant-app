@@ -55,22 +55,5 @@ router.put('/:id/status', [protect, admin], async (req, res) => {
   }
 });
 
-// @route   PUT /api/absences/:id/archive
-// @desc    Archiver une absence
-// @access  Privé/Admin
-router.put('/:id/archive', [protect, admin], async (req, res) => {
-  try {
-    const absence = await Absence.findById(req.params.id);
-    if (!absence) {
-      return res.status(404).json({ message: 'Absence non trouvée.' });
-    }
-    absence.isArchived = true;
-    await absence.save();
-    res.json({ message: `Absence archivée.` });
-  } catch (error) {
-    res.status(400).json({ message: 'Erreur lors de l\'archivage.' });
-  }
-});
-
 
 export default router;
