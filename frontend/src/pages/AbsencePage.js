@@ -6,7 +6,6 @@ import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody,
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ArchiveIcon from '@mui/icons-material/Archive';
-import { useCallback } from 'react'; // Assurez-vous que useCallback est importé
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
