@@ -14,7 +14,6 @@ function AbsencePage() {
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
   const fetchAbsences = useCallback(async () => {
-    // On ne lance la requête que si l'utilisateur est bien un admin
     if (user && user.role === 'admin') {
       try {
         const { data } = await api.get('/absences');
