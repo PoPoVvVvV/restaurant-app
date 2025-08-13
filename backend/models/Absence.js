@@ -24,6 +24,10 @@ const AbsenceSchema = new mongoose.Schema({
     enum: ['En attente', 'Validée', 'Refusée'],
     default: 'En attente',
   },
+  isArchived: { // VÉRIFIEZ CETTE PARTIE
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
