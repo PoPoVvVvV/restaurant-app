@@ -5,6 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ArchiveIcon from '@mui/icons-material/Archive';
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
@@ -12,21 +13,29 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
+  // --- DÉBUT DU DÉBOGAGE ---
+  console.log("1. L'objet 'user' du contexte est :", user);
+  // --- FIN DU DÉBOGAGE ---
+
   const fetchAbsences = useCallback(async () => {
-    // On ne lance la requête que si l'utilisateur est bien un admin
-    if (user && user.role === 'admin') {
-      try {
-        const { data } = await api.get('/absences');
-        setAbsences(data);
-      } catch (err) {
-        showNotification("Impossible de charger l'historique des absences.", "error");
-      }
+    try {
+      console.log("3. Appel de l'API pour récupérer les absences...");
+      const { data } = await api.get('/absences');
+      console.log("4. Données reçues du serveur :", data);
+      setAbsences(data);
+    } catch (err) {
+      showNotification("Impossible de charger l'historique des absences.", "error");
     }
-  }, [user, showNotification]);
+  }, [showNotification]);
 
   useEffect(() => {
-    fetchAbsences();
-  }, [fetchAbsences]);
+    if (user && user.role === 'admin') {
+      console.log("2. L'utilisateur est un admin, déclenchement de fetchAbsences.");
+      fetchAbsences();
+    } else {
+      console.log("2. Condition non remplie (utilisateur non admin ou non défini).");
+    }
+  }, [user, fetchAbsences]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,7 +47,9 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
-      fetchAbsences(); // Assurez-vous que cet appel est présent
+      if (user && user.role === 'admin') {
+        fetchAbsences();
+      }
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }
@@ -51,6 +62,16 @@ function AbsencePage() {
       showNotification("Statut de l'absence mis à jour.", "success");
     } catch (err) {
       showNotification("Erreur lors de la mise à jour.", "error");
+    }
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await api.put(`/absences/${id}/archive`);
+      fetchAbsences();
+      showNotification("Absence archivée.", "info");
+    } catch (err) {
+      showNotification("Erreur lors de l'archivage.", "error");
     }
   };
 
@@ -89,11 +110,15 @@ function AbsencePage() {
                                     />
                                 </TableCell>
                                 <TableCell align="center">
-                                  {abs.status === 'En attente' && (
+                                  {abs.status === 'En attente' ? (
                                     <>
                                       <IconButton color="success" onClick={() => handleStatusUpdate(abs._id, 'Validée')}><CheckCircleIcon /></IconButton>
                                       <IconButton color="error" onClick={() => handleStatusUpdate(abs._id, 'Refusée')}><CancelIcon /></IconButton>
                                     </>
+                                  ) : (
+                                    <IconButton onClick={() => handleArchive(abs._id)} color="primary" size="small">
+                                      <ArchiveIcon />
+                                    </IconButton>
                                   )}
                                 </TableCell>
                             </TableRow>
