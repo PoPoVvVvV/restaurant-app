@@ -38,7 +38,7 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
-      fetchAbsences();
+      fetchAbsences(); // Assurez-vous que cet appel est présent
     } catch (err) {
       showNotification('Erreur lors de la déclaration.', 'error');
     }
