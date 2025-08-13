@@ -13,13 +13,7 @@ function AbsencePage() {
   const [absences, setAbsences] = useState([]);
   const [formData, setFormData] = useState({ startDate: '', endDate: '', reason: '' });
 
-  // --- DÉBUT DU DÉBOGAGE ---
-  console.log("1. L'objet 'user' du contexte est :", user);
-  // --- FIN DU DÉBOGAGE ---
-
-  // On enveloppe la fonction dans useCallback pour qu'elle ne soit pas recréée à chaque rendu
   const fetchAbsences = useCallback(async () => {
-    // On ne lance la requête QUE si l'utilisateur est bien un admin
     if (user && user.role === 'admin') {
       try {
         const { data } = await api.get('/absences');
@@ -28,16 +22,11 @@ function AbsencePage() {
         showNotification("Impossible de charger l'historique des absences.", "error");
       }
     }
-  }, [user, showNotification]); // La fonction ne changera que si 'user' change
+  }, [user, showNotification]);
 
   useEffect(() => {
-    if (user && user.role === 'admin') {
-      console.log("2. L'utilisateur est un admin, déclenchement de fetchAbsences.");
-      fetchAbsences();
-    } else {
-      console.log("2. Condition non remplie (utilisateur non admin ou non défini).");
-    }
-  }, [user, fetchAbsences]);
+    fetchAbsences();
+  }, [fetchAbsences]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,14 +35,13 @@ function AbsencePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // On récupère la nouvelle absence depuis la réponse de l'API
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
       
-      // On ajoute manuellement la nouvelle absence à la liste existante
+      // On redemande la liste complète au serveur pour être sûr d'avoir la dernière version
       if (user && user.role === 'admin') {
-        setAbsences(prevAbsences => [data.absence, ...prevAbsences]);
+        fetchAbsences();
       }
 
     } catch (err) {
@@ -64,7 +52,7 @@ function AbsencePage() {
   const handleStatusUpdate = async (id, newStatus) => {
     try {
       await api.put(`/absences/${id}/status`, { status: newStatus });
-      fetchAbsences();
+      fetchAbsences(); // On rafraîchit la liste
       showNotification("Statut de l'absence mis à jour.", "success");
     } catch (err) {
       showNotification("Erreur lors de la mise à jour.", "error");
@@ -74,7 +62,7 @@ function AbsencePage() {
   const handleArchive = async (id) => {
     try {
       await api.put(`/absences/${id}/archive`);
-      fetchAbsences();
+      fetchAbsences(); // On rafraîchit la liste
       showNotification("Absence archivée.", "info");
     } catch (err) {
       showNotification("Erreur lors de l'archivage.", "error");
