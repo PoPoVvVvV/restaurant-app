@@ -38,6 +38,7 @@ function AbsencePage() {
       const { data } = await api.post('/absences', formData);
       showNotification(data.message, 'success');
       setFormData({ startDate: '', endDate: '', reason: '' });
+      fetchAbsences();
       
       // On redemande la liste complète au serveur pour être sûr d'avoir la dernière version
       if (user && user.role === 'admin') {
