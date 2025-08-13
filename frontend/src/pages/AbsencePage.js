@@ -6,6 +6,7 @@ import { Container, Paper, Typography, TextField, Button, Box, Table, TableBody,
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ArchiveIcon from '@mui/icons-material/Archive';
+import { useCallback } from 'react'; // Assurez-vous que useCallback est importé
 
 function AbsencePage() {
   const { user } = useContext(AuthContext);
@@ -17,16 +18,18 @@ function AbsencePage() {
   console.log("1. L'objet 'user' du contexte est :", user);
   // --- FIN DU DÉBOGAGE ---
 
+  // On enveloppe la fonction dans useCallback pour qu'elle ne soit pas recréée à chaque rendu
   const fetchAbsences = useCallback(async () => {
-    try {
-      console.log("3. Appel de l'API pour récupérer les absences...");
-      const { data } = await api.get('/absences');
-      console.log("4. Données reçues du serveur :", data);
-      setAbsences(data);
-    } catch (err) {
-      showNotification("Impossible de charger l'historique des absences.", "error");
+    // On ne lance la requête QUE si l'utilisateur est bien un admin
+    if (user && user.role === 'admin') {
+      try {
+        const { data } = await api.get('/absences');
+        setAbsences(data);
+      } catch (err) {
+        showNotification("Impossible de charger l'historique des absences.", "error");
+      }
     }
-  }, [showNotification]);
+  }, [user, showNotification]); // La fonction ne changera que si 'user' change
 
   useEffect(() => {
     if (user && user.role === 'admin') {
