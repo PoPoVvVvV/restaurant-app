@@ -95,9 +95,13 @@ function MaComptabilitePage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value, name) => [`$${value.toFixed(2)}`, name]}
+                  labelFormatter={(label) => `Jour: ${label}`}
+                />
                 <Legend />
-                <Bar dataKey="Ventes" fill="#8884d8" />
+                <Bar dataKey="Ventes Particuliers" fill="#8884d8" name="Ventes Particuliers" />
+                <Bar dataKey="Ventes Entreprises" fill="#82ca9d" name="Ventes Entreprises" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>

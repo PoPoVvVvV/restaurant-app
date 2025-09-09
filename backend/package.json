@@ -1,26 +1,46 @@
 {
-  "name": "backend",
+  "name": "restaurant-backend",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required\"",
+    "lint": "echo \"No linter configured\"",
+    "health": "curl -f http://localhost:$PORT/health || exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "restaurant",
+    "api",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
+  "author": "Restaurant App",
+  "license": "MIT",
+  "description": "API backend pour l'application de gestion de restaurant",
   "dependencies": {
     "axios": "^1.10.0",
-    "axioss": "^0.0.1-security",
     "bcryptjs": "^3.0.2",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
-    "express": "^5.1.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.4",
+    "morgan": "^1.10.0",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
   }
 }
