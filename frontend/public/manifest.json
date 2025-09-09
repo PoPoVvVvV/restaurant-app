@@ -1,7 +1,6 @@
 {
-  "short_name": "Restaurant App",
-  "name": "Application de Gestion de Restaurant",
-  "description": "Application complète pour la gestion d'un restaurant : ventes, stocks, recettes, comptabilité",
+  "short_name": "React App",
+  "name": "Create React App Sample",
   "icons": [
     {
       "src": "favicon.ico",
@@ -11,23 +10,16 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "sizes": "512x512"
     }
   ],
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#1976d2",
-  "background_color": "#ffffff",
-  "categories": ["business", "productivity", "food"],
-  "lang": "fr",
-  "scope": "/",
-  "prefer_related_applications": false
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
 }

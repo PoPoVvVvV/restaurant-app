@@ -143,62 +143,20 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
 });
 
 // @route   GET /api/reports/daily-sales/me
-// @desc    Obtenir les ventes journalières de l'employé pour la semaine en cours (séparées par type)
+// @desc    Obtenir les ventes journalières de l'employé pour la semaine en cours
 // @access  Privé (Employé)
 router.get('/daily-sales/me', protect, async (req, res) => {
   try {
     const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
     const currentWeekId = weekSetting?.value || 1;
-    
-    // Récupérer les ventes par jour et par type
     const dailySales = await Transaction.aggregate([
       { $match: { employeeId: new mongoose.Types.ObjectId(req.user.id), weekId: currentWeekId } },
-      { 
-        $project: { 
-          dayOfWeek: { $dayOfWeek: '$createdAt' }, 
-          totalAmount: '$totalAmount',
-          transactionType: '$transactionType'
-        } 
-      },
-      { 
-        $group: { 
-          _id: { day: '$dayOfWeek', type: '$transactionType' }, 
-          totalSales: { $sum: '$totalAmount' } 
-        } 
-      },
-      { $sort: { '_id.day': 1 } }
+      { $project: { dayOfWeek: { $dayOfWeek: '$createdAt' }, totalAmount: '$totalAmount' } },
+      { $group: { _id: '$dayOfWeek', totalSales: { $sum: '$totalAmount' } } },
+      { $sort: { _id: 1 } }
     ]);
-    
     const days = ["", "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-    
-    // Créer un objet pour organiser les données par jour
-    const salesByDay = {};
-    
-    // Initialiser tous les jours de la semaine
-    for (let i = 1; i <= 7; i++) {
-      salesByDay[i] = {
-        name: days[i],
-        'Ventes Particuliers': 0,
-        'Ventes Entreprises': 0
-      };
-    }
-    
-    // Remplir avec les données réelles
-    dailySales.forEach(sale => {
-      const day = sale._id.day;
-      const type = sale._id.type;
-      const amount = sale.totalSales;
-      
-      if (type === 'corporate') {
-        salesByDay[day]['Ventes Entreprises'] = amount;
-      } else {
-        salesByDay[day]['Ventes Particuliers'] = amount;
-      }
-    });
-    
-    // Convertir en tableau
-    const formattedData = Object.values(salesByDay);
-    
+    const formattedData = dailySales.map(d => ({ name: days[d._id], Ventes: d.totalSales }));
     res.json(formattedData);
   } catch (error) {
     console.error(error);
