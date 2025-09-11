@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/auth.js';
 import Product from '../models/Product.js';
+import webhookService from '../services/webhookService.js';
 
 const router = express.Router();
 
@@ -95,8 +96,16 @@ router.put('/restock/:id', protect, async (req, res) => {
     if (isNaN(stockValue) || stockValue < 0) {
         return res.status(400).json({ message: 'La valeur du stock est invalide.' });
     }
+    
+    // Sauvegarder l'ancien stock pour la notification
+    const oldStock = product.stock;
     product.stock = stockValue;
     await product.save();
+
+    // Envoyer notification webhook si le stock a changé
+    if (oldStock !== stockValue) {
+      await webhookService.notifyProductStockUpdate(product, oldStock, stockValue, req.user);
+    }
 
     // Notifier tous les clients que les produits ont changé
     req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });

@@ -292,7 +292,91 @@ const DeliveryStatusManager = () => {
     );
 };
 
-// 11. Demandes de Réinitialisation de Mot de Passe
+// 11. Configuration Webhook
+const WebhookConfigManager = () => {
+    const { showNotification } = useNotification();
+    const [config, setConfig] = useState({ enabled: false, url: '' });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchConfig();
+    }, []);
+
+    const fetchConfig = async () => {
+        try {
+            const { data } = await api.get('/settings/webhook-config');
+            setConfig(data);
+        } catch (err) {
+            console.error('Erreur lors du chargement de la configuration webhook:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            await api.post('/settings/webhook-config', config);
+            showNotification('Configuration webhook mise à jour !', 'success');
+        } catch (err) {
+            showNotification('Erreur lors de la mise à jour.', 'error');
+        }
+    };
+
+    const handleTest = async () => {
+        try {
+            // Envoyer une notification de test
+            await api.post('/settings/webhook-test');
+            showNotification('Notification de test envoyée !', 'success');
+        } catch (err) {
+            showNotification('Erreur lors de l\'envoi du test.', 'error');
+        }
+    };
+
+    if (loading) {
+        return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
+    }
+
+    return (
+        <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+            <Typography variant="h6" gutterBottom>Configuration des Notifications Webhook</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={config.enabled}
+                            onChange={e => setConfig({ ...config, enabled: e.target.checked })}
+                        />
+                    }
+                    label="Activer les notifications webhook"
+                />
+                <TextField
+                    size="small"
+                    label="URL du webhook"
+                    value={config.url}
+                    onChange={e => setConfig({ ...config, url: e.target.value })}
+                    placeholder="https://hooks.slack.com/services/..."
+                    fullWidth
+                    disabled={!config.enabled}
+                />
+                <Typography variant="body2" color="text.secondary">
+                    Les notifications seront envoyées lors des modifications de stock des produits et ingrédients.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button variant="contained" onClick={handleSave}>
+                        Enregistrer
+                    </Button>
+                    {config.enabled && config.url && (
+                        <Button variant="outlined" onClick={handleTest}>
+                            Tester la connexion
+                        </Button>
+                    )}
+                </Box>
+            </Box>
+        </Paper>
+    );
+};
+
+// 12. Demandes de Réinitialisation de Mot de Passe
 const ResetTokenManager = () => {
     const [tokens, setTokens] = useState([]);
     useEffect(() => {
@@ -338,7 +422,7 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Dépenses</Typography></AccordionSummary><AccordionDetails><ExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
     </Container>
   );

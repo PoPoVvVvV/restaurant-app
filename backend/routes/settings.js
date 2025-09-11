@@ -145,6 +145,79 @@ router.post('/new-week', [protect, admin], async (req, res) => {
     }
 });
 
+// @route   GET /api/settings/webhook-config
+// @desc    Obtenir la configuration webhook
+// @access  Privé/Admin
+router.get('/webhook-config', [protect, admin], async (req, res) => {
+  try {
+    const webhookEnabled = await Setting.findOne({ key: 'webhookEnabled' });
+    const webhookUrl = await Setting.findOne({ key: 'webhookUrl' });
+    
+    res.json({
+      enabled: webhookEnabled?.value || false,
+      url: webhookUrl?.value || ''
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   POST /api/settings/webhook-config
+// @desc    Mettre à jour la configuration webhook
+// @access  Privé/Admin
+router.post('/webhook-config', [protect, admin], async (req, res) => {
+  const { enabled, url } = req.body;
+  try {
+    // Valider l'URL si elle est fournie
+    if (url && !isValidUrl(url)) {
+      return res.status(400).json({ message: 'URL webhook invalide.' });
+    }
+
+    await Setting.findOneAndUpdate(
+      { key: 'webhookEnabled' },
+      { value: Boolean(enabled) },
+      { new: true, upsert: true }
+    );
+
+    if (url) {
+      await Setting.findOneAndUpdate(
+        { key: 'webhookUrl' },
+        { value: url },
+        { new: true, upsert: true }
+      );
+    }
+
+    res.json({ message: 'Configuration webhook mise à jour.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   POST /api/settings/webhook-test
+// @desc    Tester la configuration webhook
+// @access  Privé/Admin
+router.post('/webhook-test', [protect, admin], async (req, res) => {
+  try {
+    const webhookService = (await import('../services/webhookService.js')).default;
+    
+    // Envoyer une notification de test
+    await webhookService.sendStockUpdateNotification({
+      type: 'test',
+      action: 'test_notification',
+      itemName: 'Test de notification',
+      oldStock: 0,
+      newStock: 1,
+      user: req.user.username || req.user.email || 'Administrateur',
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({ message: 'Notification de test envoyée avec succès.' });
+  } catch (error) {
+    console.error('Erreur lors du test webhook:', error);
+    res.status(500).json({ message: 'Erreur lors de l\'envoi du test webhook.' });
+  }
+});
+
 // @route   POST /api/settings
 // @desc    Créer ou mettre à jour un paramètre générique (ex: bonusPercentage)
 // @access  Privé/Admin
@@ -161,5 +234,15 @@ router.post('/', [protect, admin], async (req, res) => {
     res.status(500).json({ message: 'Erreur du serveur' });
   }
 });
+
+// Fonction utilitaire pour valider une URL
+function isValidUrl(string) {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 export default router;

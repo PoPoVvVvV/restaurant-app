@@ -2,6 +2,7 @@ import express from 'express';
 import { protect, admin } from '../middleware/auth.js';
 import Ingredient from '../models/Ingredient.js';
 import Recipe from '../models/Recipe.js';
+import webhookService from '../services/webhookService.js';
 
 const router = express.Router();
 
@@ -42,8 +43,16 @@ router.put('/:id/stock', protect, async (req, res) => {
     if (!ingredient) {
       return res.status(404).json({ message: 'Ingrédient non trouvé.' });
     }
+    
+    // Sauvegarder l'ancien stock pour la notification
+    const oldStock = ingredient.stock;
     ingredient.stock = req.body.stock;
     await ingredient.save();
+
+    // Envoyer notification webhook si le stock a changé
+    if (oldStock !== req.body.stock) {
+      await webhookService.notifyIngredientStockUpdate(ingredient, oldStock, req.body.stock, req.user);
+    }
 
     req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });
     res.json(ingredient);
