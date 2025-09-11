@@ -52,20 +52,75 @@ class WebhookService {
     }
 
     try {
-      const payload = {
-        type: 'stock_update',
-        action: data.action,
-        item: {
-          type: data.type,
-          name: data.itemName,
-          oldStock: data.oldStock,
-          newStock: data.newStock,
-          difference: data.newStock - data.oldStock
-        },
-        user: data.user,
-        timestamp: data.timestamp || new Date().toISOString(),
-        message: `Stock de ${data.itemName} modifié de ${data.oldStock} à ${data.newStock} par ${data.user}`
-      };
+      // Détecter si c'est un webhook Discord
+      const isDiscordWebhook = config.url.includes('discord.com/api/webhooks');
+      
+      let payload;
+      if (isDiscordWebhook) {
+        // Format spécifique pour Discord
+        const difference = data.newStock - data.oldStock;
+        const differenceText = difference > 0 ? `+${difference}` : difference.toString();
+        const color = difference > 0 ? 0x00ff00 : difference < 0 ? 0xff0000 : 0xffff00;
+        
+        payload = {
+          embeds: [{
+            title: `📦 Modification de Stock - ${data.itemName}`,
+            color: color,
+            fields: [
+              {
+                name: "Type d'item",
+                value: data.type === 'product' ? '🛍️ Produit' : '🥘 Ingrédient',
+                inline: true
+              },
+              {
+                name: "Stock précédent",
+                value: data.oldStock.toString(),
+                inline: true
+              },
+              {
+                name: "Nouveau stock",
+                value: data.newStock.toString(),
+                inline: true
+              },
+              {
+                name: "Différence",
+                value: differenceText,
+                inline: true
+              },
+              {
+                name: "Modifié par",
+                value: data.user,
+                inline: true
+              },
+              {
+                name: "Heure",
+                value: new Date(data.timestamp || new Date()).toLocaleString('fr-FR'),
+                inline: true
+              }
+            ],
+            footer: {
+              text: "Restaurant App - Gestion des Stocks"
+            },
+            timestamp: data.timestamp || new Date().toISOString()
+          }]
+        };
+      } else {
+        // Format générique pour autres webhooks
+        payload = {
+          type: 'stock_update',
+          action: data.action,
+          item: {
+            type: data.type,
+            name: data.itemName,
+            oldStock: data.oldStock,
+            newStock: data.newStock,
+            difference: data.newStock - data.oldStock
+          },
+          user: data.user,
+          timestamp: data.timestamp || new Date().toISOString(),
+          message: `Stock de ${data.itemName} modifié de ${data.oldStock} à ${data.newStock} par ${data.user}`
+        };
+      }
 
       const response = await axios.post(config.url, payload, {
         headers: {
@@ -78,6 +133,9 @@ class WebhookService {
       console.log('Webhook envoyé avec succès:', response.status);
     } catch (error) {
       console.error('Erreur lors de l\'envoi du webhook:', error.message);
+      if (error.response) {
+        console.error('Réponse d\'erreur:', error.response.status, error.response.data);
+      }
       // Ne pas faire échouer la requête principale si le webhook échoue
     }
   }
