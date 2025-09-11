@@ -117,17 +117,17 @@ function MaComptabilitePage() {
         <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Ventes Total</Typography><Typography variant="h4">{nombreDeVentes}</Typography></Paper></Grid>
         <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">CA Total</Typography><Typography variant="h4">${totalCA.toFixed(2)}</Typography></Paper></Grid>
         <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Marge Total</Typography><Typography variant="h4">${totalMargin.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}><Typography variant="h6">Salaire Estimé</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.main', color: 'success.contrastText' }}><Typography variant="h6">Salaire Estimé</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
         
         {/* Cartes de KPIs - Ventes Particuliers */}
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}><Typography variant="h6">Ventes Particuliers</Typography><Typography variant="h4">{nombreDeVentesParticuliers}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}><Typography variant="h6">CA Particuliers</Typography><Typography variant="h4">${totalCAParticuliers.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}><Typography variant="h6">Marge Particuliers</Typography><Typography variant="h4">${totalMarginParticuliers.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">Ventes Particuliers</Typography><Typography variant="h4">{nombreDeVentesParticuliers}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">CA Particuliers</Typography><Typography variant="h4">${totalCAParticuliers.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">Marge Particuliers</Typography><Typography variant="h4">${totalMarginParticuliers.toFixed(2)}</Typography></Paper></Grid>
         
         {/* Cartes de KPIs - Ventes Entreprises */}
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light', color: 'white' }}><Typography variant="h6">Ventes Entreprises</Typography><Typography variant="h4">{nombreDeVentesEntreprises}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light', color: 'white' }}><Typography variant="h6">CA Entreprises</Typography><Typography variant="h4">${totalCAEntreprises.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light', color: 'white' }}><Typography variant="h6">Marge Entreprises</Typography><Typography variant="h4">${totalMarginEntreprises.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">Ventes Entreprises</Typography><Typography variant="h4">{nombreDeVentesEntreprises}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">CA Entreprises</Typography><Typography variant="h4">${totalCAEntreprises.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">Marge Entreprises</Typography><Typography variant="h4">${totalMarginEntreprises.toFixed(2)}</Typography></Paper></Grid>
 
         {/* Graphique des ventes */}
         <Grid item xs={12} md={8}>
@@ -140,8 +140,8 @@ function MaComptabilitePage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="VentesParticuliers" fill="#1976d2" name="Ventes Particuliers" />
-                <Bar dataKey="VentesEntreprises" fill="#9c27b0" name="Ventes Entreprises" />
+                <Bar dataKey="VentesParticuliers" fill="#2196f3" name="Ventes Particuliers" />
+                <Bar dataKey="VentesEntreprises" fill="#e91e63" name="Ventes Entreprises" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -172,8 +172,8 @@ function MaComptabilitePage() {
                 <Typography variant="body2">Moyenne par vente: <strong>${nombreDeVentesEntreprises > 0 ? (totalCAEntreprises / nombreDeVentesEntreprises).toFixed(2) : '0.00'}</strong></Typography>
               </Grid>
             </Grid>
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Typography variant="body2">
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.primary">
                 <strong>Répartition:</strong> {nombreDeVentes > 0 ? ((nombreDeVentesParticuliers / nombreDeVentes) * 100).toFixed(1) : '0'}% particuliers, 
                 {nombreDeVentes > 0 ? ((nombreDeVentesEntreprises / nombreDeVentes) * 100).toFixed(1) : '0'}% entreprises
               </Typography>
@@ -195,7 +195,17 @@ function MaComptabilitePage() {
                     <Grid container justifyContent="space-between" alignItems="center">
                         <Grid item xs={12} sm={6}>
                           <Typography>{new Date(t.createdAt).toLocaleString('fr-FR')}</Typography>
-                          <Typography variant="caption" color={t.saleType === 'entreprise' ? 'secondary' : 'primary'}>
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: t.saleType === 'entreprise' ? 'secondary.main' : 'primary.main',
+                              fontWeight: 'bold',
+                              px: 1,
+                              py: 0.5,
+                              bgcolor: t.saleType === 'entreprise' ? 'secondary.light' : 'primary.light',
+                              borderRadius: 1
+                            }}
+                          >
                             {t.saleType === 'entreprise' ? '🏢 Vente Entreprise' : '👤 Vente Particulier'}
                           </Typography>
                         </Grid>
