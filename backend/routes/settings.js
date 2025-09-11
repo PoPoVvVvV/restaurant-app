@@ -200,6 +200,18 @@ router.post('/webhook-test', [protect, admin], async (req, res) => {
   try {
     const webhookService = (await import('../services/webhookService.js')).default;
     
+    // Vérifier la configuration webhook
+    const config = await webhookService.getWebhookConfig();
+    console.log('Configuration webhook pour test:', config);
+    
+    if (!config.enabled) {
+      return res.status(400).json({ message: 'Webhook désactivé. Activez-le d\'abord.' });
+    }
+    
+    if (!config.url) {
+      return res.status(400).json({ message: 'URL webhook non configurée.' });
+    }
+
     // Envoyer une notification de test
     await webhookService.sendStockUpdateNotification({
       type: 'test',
@@ -211,10 +223,18 @@ router.post('/webhook-test', [protect, admin], async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    res.json({ message: 'Notification de test envoyée avec succès.' });
+    console.log('Test webhook envoyé avec succès vers:', config.url);
+    res.json({ 
+      message: 'Notification de test envoyée avec succès.',
+      webhookUrl: config.url,
+      enabled: config.enabled
+    });
   } catch (error) {
     console.error('Erreur lors du test webhook:', error);
-    res.status(500).json({ message: 'Erreur lors de l\'envoi du test webhook.' });
+    res.status(500).json({ 
+      message: 'Erreur lors de l\'envoi du test webhook.',
+      error: error.message
+    });
   }
 });
 

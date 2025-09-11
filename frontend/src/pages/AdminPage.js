@@ -324,11 +324,17 @@ const WebhookConfigManager = () => {
 
     const handleTest = async () => {
         try {
-            // Envoyer une notification de test
-            await api.post('/settings/webhook-test');
-            showNotification('Notification de test envoyée !', 'success');
+            // D'abord sauvegarder la configuration actuelle
+            await api.post('/settings/webhook-config', config);
+            
+            // Puis envoyer une notification de test
+            const response = await api.post('/settings/webhook-test');
+            console.log('Réponse test webhook:', response.data);
+            showNotification(`Notification de test envoyée ! URL: ${response.data.webhookUrl}`, 'success');
         } catch (err) {
-            showNotification('Erreur lors de l\'envoi du test.', 'error');
+            console.error('Erreur test webhook:', err);
+            const errorMessage = err.response?.data?.message || 'Erreur lors de l\'envoi du test.';
+            showNotification(errorMessage, 'error');
         }
     };
 

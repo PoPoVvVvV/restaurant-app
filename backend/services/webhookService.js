@@ -44,8 +44,10 @@ class WebhookService {
   async sendStockUpdateNotification(data) {
     const config = await this.getWebhookConfig();
     
+    console.log('Tentative d\'envoi webhook:', { config, data });
+    
     if (!config.enabled || !config.url) {
-      console.log('Webhook désactivé ou URL non configurée');
+      console.log('Webhook désactivé ou URL non configurée:', { enabled: config.enabled, url: config.url });
       return;
     }
 
