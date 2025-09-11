@@ -49,6 +49,12 @@ const TransactionSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  saleType: {
+    type: String,
+    enum: ['particulier', 'entreprise'],
+    default: 'particulier',
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

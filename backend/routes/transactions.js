@@ -56,7 +56,8 @@ router.post('/', protect, async (req, res) => {
         products: transactionProducts,
         totalAmount: dividedAmount,
         totalCost: dividedCost,
-        margin: dividedMargin
+        margin: dividedMargin,
+        saleType: isCorporateSale ? 'entreprise' : 'particulier'
       });
       await newTransaction.save({ session });
     }
