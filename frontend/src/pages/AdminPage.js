@@ -132,8 +132,8 @@ const MenuSalesChart = ({ viewedWeek }) => {
     api.get(`/reports/menu-sales?week=${viewedWeek}`)
        .then(res => {
          setMenuData(res.data);
-         // Calculer le total de menus vendus
-         const total = res.data.reduce((sum, menu) => sum + menu.count, 0);
+         // Calculer le total de quantités de menus vendus
+         const total = res.data.reduce((sum, menu) => sum + menu.quantity, 0);
          setTotalMenusSold(total);
        })
        .catch(err => console.error(err));
@@ -175,7 +175,7 @@ const MenuSalesChart = ({ viewedWeek }) => {
           <Tooltip 
             formatter={(value, name) => {
               if (name === 'count') return [`${value} fois`, 'Nombre de ventes'];
-              if (name === 'quantity') return [`${value} unités`, 'Quantité totale'];
+              if (name === 'quantity') return [`${value} unités`, 'Quantité vendue'];
               if (name === 'revenue') return [`$${Number(value).toFixed(2)}`, 'Chiffre d\'affaires'];
               if (name === 'margin') return [`$${Number(value).toFixed(2)}`, 'Marge'];
               return [value, name];
@@ -184,9 +184,9 @@ const MenuSalesChart = ({ viewedWeek }) => {
           />
           <Legend />
           <Bar 
-            dataKey="count" 
+            dataKey="quantity" 
             fill={COLORS[0]} 
-            name="Nombre de ventes"
+            name="Quantité vendue"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

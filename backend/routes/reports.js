@@ -259,7 +259,7 @@ router.get('/menu-sales', [protect, admin], async (req, res) => {
           margin: { $subtract: ['$totalRevenue', '$totalCost'] }
         }
       },
-      { $sort: { count: -1 } } // Trier par nombre de ventes
+      { $sort: { quantity: -1 } } // Trier par quantité vendue
     ]);
 
     res.json(menuSales);
