@@ -328,9 +328,22 @@ const FinancialSummary = ({ viewedWeek }) => {
       {/* Troisième ligne - Solde */}
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
-            <Typography>Solde Compte en Direct</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography>
+          <Paper sx={{ 
+            p: 2, 
+            textAlign: 'center', 
+            bgcolor: 'grey.900',
+            color: 'white'
+          }}>
+            <Typography sx={{ color: 'white' }}>Solde Compte en Direct</Typography>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 'bold',
+                color: 'white'
+              }}
+            >
+              ${(summary.liveBalance || 0).toFixed(2)}
+            </Typography>
           </Paper>
         </Grid>
       </Grid>
