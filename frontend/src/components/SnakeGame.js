@@ -71,13 +71,19 @@ const SnakeGame = ({ open, onClose }) => {
   const [gameSpeed, setGameSpeed] = useState(150);
 
   // Générer une position aléatoire pour la nourriture
-  const generateFood = useCallback(() => {
+  const generateFood = useCallback((currentSnake = [{ x: 200, y: 200 }]) => {
     const maxX = Math.floor(400 / 20) - 1;
     const maxY = Math.floor(400 / 20) - 1;
-    return {
-      x: Math.floor(Math.random() * maxX) * 20,
-      y: Math.floor(Math.random() * maxY) * 20,
-    };
+    
+    let newFood;
+    do {
+      newFood = {
+        x: Math.floor(Math.random() * maxX) * 20,
+        y: Math.floor(Math.random() * maxY) * 20,
+      };
+    } while (currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+    
+    return newFood;
   }, []);
 
   // Vérifier les collisions
@@ -92,7 +98,7 @@ const SnakeGame = ({ open, onClose }) => {
 
   // Mouvement du serpent
   const moveSnake = useCallback(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || (direction.x === 0 && direction.y === 0)) return;
 
     setSnake(prevSnake => {
       const newSnake = [...prevSnake];
@@ -112,7 +118,7 @@ const SnakeGame = ({ open, onClose }) => {
       // Vérifier si le serpent mange la nourriture
       if (head.x === food.x && head.y === food.y) {
         setScore(prev => prev + 10);
-        setFood(generateFood());
+        setFood(generateFood(newSnake));
         
         // Augmenter la vitesse progressivement
         setGameSpeed(prev => Math.max(80, prev - 2));
@@ -165,22 +171,24 @@ const SnakeGame = ({ open, onClose }) => {
 
   // Démarrer le jeu
   const startGame = () => {
+    const initialSnake = [{ x: 200, y: 200 }];
     setGameState('playing');
-    setSnake([{ x: 200, y: 200 }]);
-    setDirection({ x: 0, y: 0 });
+    setSnake(initialSnake);
+    setDirection({ x: 20, y: 0 }); // Commencer en se déplaçant vers la droite
     setScore(0);
     setGameSpeed(150);
-    setFood(generateFood());
+    setFood(generateFood(initialSnake));
   };
 
   // Redémarrer le jeu
   const restartGame = () => {
+    const initialSnake = [{ x: 200, y: 200 }];
     setGameState('ready');
-    setSnake([{ x: 200, y: 200 }]);
-    setDirection({ x: 0, y: 0 });
+    setSnake(initialSnake);
+    setDirection({ x: 0, y: 0 }); // Direction neutre pour l'état ready
     setScore(0);
     setGameSpeed(150);
-    setFood(generateFood());
+    setFood(generateFood(initialSnake));
   };
 
   // Rendu du serpent
