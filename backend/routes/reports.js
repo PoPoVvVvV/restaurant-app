@@ -221,6 +221,52 @@ router.get('/weekly-sales-summary', [protect, admin], async (req, res) => {
   }
 });
 
+// @route   GET /api/reports/menu-sales
+// @desc    Obtenir les ventes par menu pour une semaine donnée
+// @access  Privé/Admin
+router.get('/menu-sales', [protect, admin], async (req, res) => {
+  try {
+    let weekIdToFetch;
+    if (req.query.week && !isNaN(parseInt(req.query.week, 10))) {
+      weekIdToFetch = parseInt(req.query.week, 10);
+    } else {
+      const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
+      weekIdToFetch = weekSetting?.value || 1;
+    }
+
+    // Agrégation pour obtenir les ventes par menu
+    const menuSales = await Transaction.aggregate([
+      { $match: { weekId: weekIdToFetch } },
+      { $unwind: '$products' },
+      { $match: { 'products.category': 'Menus' } },
+      {
+        $group: {
+          _id: '$products.name',
+          totalQuantity: { $sum: '$products.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.priceAtSale'] } },
+          totalCost: { $sum: { $multiply: ['$products.quantity', '$products.costAtSale'] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          menuName: '$_id',
+          quantity: '$totalQuantity',
+          revenue: '$totalRevenue',
+          cost: '$totalCost',
+          margin: { $subtract: ['$totalRevenue', '$totalCost'] }
+        }
+      },
+      { $sort: { quantity: -1 } }
+    ]);
+
+    res.json(menuSales);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   GET /api/reports/transactions/export
 // @desc    Exporter les transactions de la semaine en cours en CSV
 // @access  Privé/Admin

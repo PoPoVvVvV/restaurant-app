@@ -123,6 +123,59 @@ const WeeklySalesChart = ({ viewedWeek }) => {
   );
 };
 
+// 3.1. Graphique des Ventes par Menu
+const MenuSalesChart = ({ viewedWeek }) => {
+  const [menuData, setMenuData] = useState([]);
+
+  useEffect(() => {
+    api.get(`/reports/menu-sales?week=${viewedWeek}`)
+       .then(res => {
+         setMenuData(res.data);
+       })
+       .catch(err => console.error(err));
+  }, [viewedWeek]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560', '#00D4AA', '#FF6B6B'];
+
+  return (
+    <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
+      <Typography variant="h5" gutterBottom>Menus les Plus Vendus (Semaine {viewedWeek})</Typography>
+      <ResponsiveContainer width="100%" height="90%">
+        <BarChart
+          data={menuData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="menuName" 
+            angle={-45}
+            textAnchor="end"
+            height={80}
+            interval={0}
+          />
+          <YAxis />
+          <Tooltip 
+            formatter={(value, name) => {
+              if (name === 'quantity') return [`${value} unités`, 'Quantité vendue'];
+              if (name === 'revenue') return [`$${Number(value).toFixed(2)}`, 'Chiffre d\'affaires'];
+              if (name === 'margin') return [`$${Number(value).toFixed(2)}`, 'Marge'];
+              return [value, name];
+            }}
+            labelFormatter={(label) => `Menu: ${label}`}
+          />
+          <Legend />
+          <Bar 
+            dataKey="quantity" 
+            fill={COLORS[0]} 
+            name="Quantité vendue"
+            radius={[4, 4, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </Paper>
+  );
+};
+
 // 4. Résumé Financier
 const FinancialSummary = ({ viewedWeek }) => {
   const [summary, setSummary] = useState(null);
@@ -425,6 +478,7 @@ function AdminPage() {
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion & Solde</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={7}><WeekManager onWeekChange={setViewedWeek} currentWeek={currentWeek} viewedWeek={viewedWeek} /></Grid><Grid item xs={12} md={5}><AccountBalanceManager viewedWeek={viewedWeek} /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Résumé Financier (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><FinancialSummary viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Ventes de la Semaine (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><WeeklySalesChart viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Menus les Plus Vendus (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><MenuSalesChart viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Dépenses</Typography></AccordionSummary><AccordionDetails><ExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
