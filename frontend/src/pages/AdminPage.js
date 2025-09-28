@@ -220,7 +220,7 @@ const FinancialSummary = ({ viewedWeek }) => {
 
   // Calculer le déductible d'impôt (sans les primes)
   const totalBonus = summary.totalBonus || 0;
-  const deductibleImpots = matieresPremieres + fraisNourriture + fraisAvocat + location + donVerse;
+  const deductibleImpots = matieresPremieres + fraisVehicule + fraisNourriture + fraisAvocat + location + donVerse;
 
   // Calculer l'impôt à payer
   const totalRevenus = (summary.totalRevenue || 0) + totalAutresEntrees + dons;
