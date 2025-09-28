@@ -234,9 +234,9 @@ router.get('/menu-sales', [protect, admin], async (req, res) => {
       weekIdToFetch = weekSetting?.value || 1;
     }
 
-    // Agrégation pour compter le nombre total de menus vendus par type
+    // Agrégation pour compter le nombre total de menus vendus par type (ventes particulières uniquement)
     const menuSales = await Transaction.aggregate([
-      { $match: { weekId: weekIdToFetch } },
+      { $match: { weekId: weekIdToFetch, saleType: 'particulier' } },
       { $unwind: '$products' },
       { $match: { 'products.category': 'Menus' } },
       {
