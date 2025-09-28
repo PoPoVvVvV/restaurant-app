@@ -238,6 +238,36 @@ router.post('/webhook-test', [protect, admin], async (req, res) => {
   }
 });
 
+// @route   POST /api/settings/easter-egg-discovered
+// @desc    Notifier la découverte d'un easter-egg
+// @access  Privé
+router.post('/easter-egg-discovered', protect, async (req, res) => {
+  try {
+    const webhookService = (await import('../services/webhookService.js')).default;
+    const { easterEggType, sequence } = req.body;
+
+    // Envoyer la notification webhook
+    await webhookService.notifyEasterEggDiscovery(
+      req.user,
+      easterEggType || 'Snake Game',
+      sequence || 'Logo → Ventes → Ma Compta → Recettes → Stocks → Ma Compta'
+    );
+
+    console.log('Notification easter-egg envoyée pour:', req.user.username);
+    res.json({ 
+      message: 'Easter-egg découvert et notification envoyée !',
+      user: req.user.username,
+      easterEggType: easterEggType || 'Snake Game'
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de la notification easter-egg:', error);
+    res.status(500).json({ 
+      message: 'Erreur lors de l\'envoi de la notification.',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/settings
 // @desc    Créer ou mettre à jour un paramètre générique (ex: bonusPercentage)
 // @access  Privé/Admin

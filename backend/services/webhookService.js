@@ -169,6 +169,98 @@ class WebhookService {
       timestamp: new Date().toISOString()
     });
   }
+
+  /**
+   * Envoie une notification webhook pour la découverte d'un easter-egg
+   * @param {Object} data - Données de l'easter-egg
+   * @param {string} data.user - Utilisateur qui a découvert l'easter-egg
+   * @param {string} data.easterEggType - Type d'easter-egg découvert
+   * @param {string} data.sequence - Séquence de clics utilisée
+   * @param {Date} data.timestamp - Timestamp de la découverte
+   */
+  async sendEasterEggNotification(data) {
+    const config = await this.getWebhookConfig();
+    
+    console.log('Tentative d\'envoi webhook easter-egg:', { config, data });
+    
+    if (!config.enabled || !config.url) {
+      console.log('Webhook désactivé ou URL non configurée:', { enabled: config.enabled, url: config.url });
+      return;
+    }
+
+    try {
+      // Détecter si c'est un webhook Discord
+      const isDiscordWebhook = config.url.includes('discord.com/api/webhooks');
+      
+      let payload;
+      if (isDiscordWebhook) {
+        // Format spécifique pour Discord
+        payload = {
+          embeds: [{
+            title: `🎉 Easter-Egg Découvert !`,
+            description: `**${data.user}** a découvert un easter-egg secret !`,
+            color: 0x00ff00, // Vert pour la réussite
+            fields: [
+              {
+                name: "👤 Découvreur",
+                value: data.user,
+                inline: true
+              },
+              {
+                name: "⏰ Découvert le",
+                value: new Date(data.timestamp || new Date()).toLocaleString('fr-FR'),
+                inline: true
+              }
+            ],
+            footer: {
+              text: "Restaurant App - Easter-Egg System"
+            },
+            timestamp: data.timestamp || new Date().toISOString(),
+            thumbnail: {
+              url: "https://cdn.discordapp.com/emojis/🐍.png"
+            }
+          }]
+        };
+      } else {
+        // Format générique pour autres webhooks
+        payload = {
+          type: 'easter_egg_discovered',
+          action: 'easter_egg_unlocked',
+          user: data.user,
+          timestamp: data.timestamp || new Date().toISOString(),
+          message: `${data.user} a découvert un easter-egg secret !`
+        };
+      }
+
+      const response = await axios.post(config.url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Restaurant-App-Webhook/1.0'
+        },
+        timeout: 5000 // 5 secondes de timeout
+      });
+
+      console.log('Webhook easter-egg envoyé avec succès:', response.status);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du webhook easter-egg:', error.message);
+      if (error.response) {
+        console.error('Réponse d\'erreur:', error.response.status, error.response.data);
+      }
+      // Ne pas faire échouer la requête principale si le webhook échoue
+    }
+  }
+
+  /**
+   * Envoie une notification pour la découverte d'un easter-egg
+   */
+  async notifyEasterEggDiscovery(user, easterEggType = 'Snake Game', sequence = 'Logo → Ventes → Ma Compta → Recettes → Stocks → Ma Compta') {
+    await this.sendEasterEggNotification({
+      user: user.username || user.email || 'Utilisateur inconnu',
+      easterEggType,
+      sequence,
+      timestamp: new Date().toISOString()
+    });
+  }
 }
 
 export default new WebhookService();

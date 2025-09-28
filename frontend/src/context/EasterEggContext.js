@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import api from '../services/api';
 
 const EasterEggContext = createContext();
 
@@ -63,7 +64,16 @@ export const EasterEggProvider = ({ children }) => {
   }, [isEasterEggUnlocked]);
 
   // Effet visuel et sonore pour le déblocage
-  const triggerEasterEggEffect = useCallback(() => {
+  const triggerEasterEggEffect = useCallback(async () => {
+    // Envoyer la notification webhook
+    try {
+      await api.post('/settings/easter-egg-discovered', {});
+      console.log('Notification webhook easter-egg envoyée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la notification webhook:', error);
+      // Ne pas empêcher l'easter-egg de fonctionner si le webhook échoue
+    }
+
     // Effet de confettis ou animation
     const colors = ['#00ff00', '#ff0000', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
     const confettiCount = 50;
