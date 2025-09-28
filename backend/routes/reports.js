@@ -128,9 +128,12 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
     const finalReport = performanceData.map(data => {
       let estimatedBonus;
       if (data.grade === 'Patron' || data.grade === 'Co-Patronne') {
+        // Patron et Co-Patronne reçoivent exactement 20 000$ (plafonné)
         estimatedBonus = 20000;
       } else {
-        estimatedBonus = data.totalMargin * bonusPercentage;
+        // Autres employés : prime basée sur le pourcentage de marge, plafonnée à 19 000$
+        const calculatedBonus = data.totalMargin * bonusPercentage;
+        estimatedBonus = Math.min(calculatedBonus, 19000);
       }
       return { ...data, estimatedBonus };
     });
