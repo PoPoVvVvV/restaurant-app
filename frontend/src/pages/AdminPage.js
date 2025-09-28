@@ -205,20 +205,140 @@ const FinancialSummary = ({ viewedWeek }) => {
 
   if (!summary) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
   
+  // Calculer les dépenses par catégorie
+  const matieresPremieres = summary.expensesBreakdown?.['Matières Premières'] || 0;
+  const fraisVehicule = summary.expensesBreakdown?.['Frais Véhicule'] || 0;
+  const fraisAvocat = summary.expensesBreakdown?.['Frais Avocat'] || 0;
+  const fraisNourriture = summary.expensesBreakdown?.['Frais Nourriture'] || 0;
+  const donVerse = summary.expensesBreakdown?.['Don versé'] || 0;
+  const location = summary.expensesBreakdown?.['Location'] || 0;
+
+  // Calculer les autres entrées (Prestation Extérieur + Dons)
+  const prestationExterieur = summary.expensesBreakdown?.['Prestation Extérieur'] || 0;
+  const dons = summary.expensesBreakdown?.['Dons'] || 0;
+  const totalAutresEntrees = prestationExterieur + dons;
+
+  // Calculer le déductible d'impôt
+  const totalBonus = summary.totalBonus || 0;
+  const deductibleImpots = totalBonus + matieresPremieres + fraisNourriture + fraisAvocat + location + donVerse;
+
+  // Calculer l'impôt à payer
+  const totalRevenus = (summary.totalRevenue || 0) + totalAutresEntrees + dons;
+  const totalDeductible = matieresPremieres + fraisVehicule + fraisAvocat + fraisNourriture + donVerse + location + totalBonus;
+  const resultatImposable = totalRevenus - totalDeductible;
+
+  // Calculer l'impôt selon les tranches
+  let impotAPayer = 0;
+  if (totalRevenus > 10000) {
+    if (totalRevenus <= 50000) {
+      impotAPayer = resultatImposable * 0.10;
+    } else if (totalRevenus <= 100000) {
+      impotAPayer = resultatImposable * 0.19;
+    } else if (totalRevenus <= 250000) {
+      impotAPayer = resultatImposable * 0.28;
+    } else if (totalRevenus <= 500000) {
+      impotAPayer = resultatImposable * 0.36;
+    } else {
+      impotAPayer = resultatImposable * 0.46;
+    }
+  }
+  // S'assurer que l'impôt n'est pas négatif
+  impotAPayer = Math.max(0, impotAPayer);
+
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Chiffre d'Affaires</Typography><Typography variant="h5">${(summary.totalRevenue || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Coût Marchandises</Typography><Typography variant="h5" color="warning.main">-${(summary.totalCostOfGoods || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Autres Dépenses</Typography><Typography variant="h5" color="error.main">-${(summary.totalExpenses || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Total Primes</Typography><Typography variant="h5" color="primary.main">${(summary.totalBonus || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Déductible d'impôt</Typography><Typography variant="h5" color="info.main">${(summary.taxDeductible || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={4} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Impôt à Payer</Typography><Typography variant="h5" color="error.main">-${(summary.taxPayable || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: (summary.netMargin || 0) > 0 ? 'success.light' : 'error.light' }}><Typography>Marge Nette</Typography><Typography variant="h5">${(summary.netMargin || 0).toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={6} md={1.5}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography>Restant Sem. Préc.</Typography><Typography variant="h5" color="secondary.main">${(summary.startingBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+      {/* Première ligne - Revenus et calculs fiscaux */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Chiffre d'Affaires</Typography>
+            <Typography variant="h5">${(summary.totalRevenue || 0).toFixed(2)}</Typography>
+            <Typography variant="caption" color="text.secondary">Entreprise & Particulier</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Autres Entrées</Typography>
+            <Typography variant="h5" color="success.main">+${totalAutresEntrees.toFixed(2)}</Typography>
+            <Typography variant="caption" color="text.secondary">Prestation Extérieur & Dons</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Total Primes</Typography>
+            <Typography variant="h5" color="primary.main">${(summary.totalBonus || 0).toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Déductible d'impôt</Typography>
+            <Typography variant="h5" color="info.main">${deductibleImpots.toFixed(2)}</Typography>
+            <Typography variant="caption" color="text.secondary">Primes + Dépenses déductibles</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Impôt à payer</Typography>
+            <Typography variant="h5" color="error.main">-${impotAPayer.toFixed(2)}</Typography>
+            <Typography variant="caption" color="text.secondary">Calcul progressif</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: (summary.netMargin || 0) > 0 ? 'success.light' : 'error.light' }}>
+            <Typography>Marge Nette</Typography>
+            <Typography variant="h5">${(summary.netMargin || 0).toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
       </Grid>
-      <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}><Typography>Solde Compte en Direct (Estimé)</Typography><Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography></Paper></Grid>
+
+      {/* Deuxième ligne - Dépenses détaillées */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Matières Premières</Typography>
+            <Typography variant="h6" color="warning.main">-${matieresPremieres.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Frais Véhicule</Typography>
+            <Typography variant="h6" color="warning.main">-${fraisVehicule.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Frais Avocat</Typography>
+            <Typography variant="h6" color="warning.main">-${fraisAvocat.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Frais Nourriture</Typography>
+            <Typography variant="h6" color="warning.main">-${fraisNourriture.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Don Versé</Typography>
+            <Typography variant="h6" color="warning.main">-${donVerse.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Location</Typography>
+            <Typography variant="h6" color="warning.main">-${location.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Troisième ligne - Solde */}
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
+            <Typography>Solde Compte en Direct</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>${(summary.liveBalance || 0).toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
       </Grid>
     </Paper>
   );
@@ -301,19 +421,169 @@ const TransactionLog = ({ viewedWeek }) => {
   );
 };
 
-// 8. Gestion des Dépenses
-const ExpenseManager = ({ viewedWeek }) => {
+// 8. Gestion des Entrées / Sorties
+const IncomeExpenseManager = ({ viewedWeek }) => {
     const { showNotification } = useNotification();
     const [expenses, setExpenses] = useState([]);
-    const [formData, setFormData] = useState({ amount: '', category: 'Matières Premières', description: '' });
-    const fetchExpenses = () => { api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)); };
+    const [formData, setFormData] = useState({ 
+        amount: '', 
+        type: 'Sorties', 
+        category: 'Matières Premières', 
+        description: '' 
+    });
+
+    const fetchExpenses = () => { 
+        api.get(`/expenses?week=${viewedWeek}`).then(res => setExpenses(res.data)); 
+    };
+    
     useEffect(fetchExpenses, [viewedWeek]);
-    const onSubmit = async e => { e.preventDefault(); try { await api.post('/expenses', { ...formData, amount: parseFloat(formData.amount) }); fetchExpenses(); setFormData({ amount: '', category: 'Matières Premières', description: '' }); showNotification("Dépense ajoutée.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
-    const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/expenses/${id}`); fetchExpenses(); showNotification("Dépense supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
+
+    // Catégories selon le type sélectionné
+    const getCategories = (type) => {
+        if (type === 'Entrées') {
+            return [
+                { value: 'Prestation Extérieur', label: 'Prestation Extérieur' },
+                { value: 'Dons', label: 'Dons' }
+            ];
+        } else {
+            return [
+                { value: 'Matières Premières', label: 'Matières Premières' },
+                { value: 'Frais Véhicule', label: 'Frais Véhicule' },
+                { value: 'Frais Nourriture', label: 'Frais Nourriture' },
+                { value: 'Frais Avocat', label: 'Frais Avocat' },
+                { value: 'Don versé', label: 'Don versé' },
+                { value: 'Location', label: 'Location' }
+            ];
+        }
+    };
+
+    const handleTypeChange = (newType) => {
+        const categories = getCategories(newType);
+        setFormData({
+            ...formData,
+            type: newType,
+            category: categories[0].value
+        });
+    };
+
+    const onSubmit = async e => { 
+        e.preventDefault(); 
+        try { 
+            await api.post('/expenses', { 
+                ...formData, 
+                amount: parseFloat(formData.amount),
+                type: formData.type
+            }); 
+            fetchExpenses(); 
+            setFormData({ 
+                amount: '', 
+                type: 'Sorties', 
+                category: 'Matières Premières', 
+                description: '' 
+            }); 
+            showNotification(`${formData.type === 'Entrées' ? 'Entrée' : 'Sortie'} ajoutée.`, "success"); 
+        } catch (err) { 
+            showNotification("Erreur.", "error"); 
+        } 
+    };
+
+    const handleDelete = async (id) => { 
+        if(window.confirm('Sûr ?')) { 
+            try { 
+                await api.delete(`/expenses/${id}`); 
+                fetchExpenses(); 
+                showNotification("Entrée/Sortie supprimée.", "info"); 
+            } catch(err) { 
+                showNotification('Erreur.', 'error'); 
+            } 
+        } 
+    };
+
     return (
         <TableContainer component={Paper} variant="outlined">
-            <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', gap: 2 }}><TextField size="small" type="number" name="amount" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} label="Montant ($)" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><MenuItem value="Matières Premières">Matières Premières</MenuItem><MenuItem value="Frais Véhicule">Frais Véhicule</MenuItem><MenuItem value="Frais Avocat">Frais Avocat</MenuItem></Select><TextField size="small" name="description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} label="Description" sx={{ flexGrow: 1 }} /><Button type="submit" variant="contained">Ajouter</Button></Box>
-            <Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Catégorie</TableCell><TableCell>Description</TableCell><TableCell align="right">Montant</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead><TableBody>{expenses.map(exp => (<TableRow key={exp._id}><TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell align="right" sx={{ color: 'error.main' }}>-${exp.amount.toFixed(2)}</TableCell><TableCell align="center"><IconButton onClick={() => handleDelete(exp._id)} color="error" size="small"><DeleteIcon /></IconButton></TableCell></TableRow>))}</TableBody></Table>
+            <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField 
+                    size="small" 
+                    type="number" 
+                    name="amount" 
+                    value={formData.amount} 
+                    onChange={e => setFormData({...formData, amount: e.target.value})} 
+                    label="Montant ($)" 
+                    required 
+                />
+                <Select 
+                    size="small" 
+                    name="type" 
+                    value={formData.type} 
+                    onChange={e => handleTypeChange(e.target.value)}
+                    sx={{ minWidth: 120 }}
+                >
+                    <MenuItem value="Entrées">Entrées</MenuItem>
+                    <MenuItem value="Sorties">Sorties</MenuItem>
+                </Select>
+                <Select 
+                    size="small" 
+                    name="category" 
+                    value={formData.category} 
+                    onChange={e => setFormData({...formData, category: e.target.value})}
+                    sx={{ minWidth: 180 }}
+                >
+                    {getCategories(formData.type).map(cat => (
+                        <MenuItem key={cat.value} value={cat.value}>{cat.label}</MenuItem>
+                    ))}
+                </Select>
+                <TextField 
+                    size="small" 
+                    name="description" 
+                    value={formData.description} 
+                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                    label="Description" 
+                    sx={{ flexGrow: 1, minWidth: 200 }} 
+                />
+                <Button type="submit" variant="contained">Ajouter</Button>
+            </Box>
+            <Table size="small">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Catégorie</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell align="right">Montant</TableCell>
+                        <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {expenses.map(exp => (
+                        <TableRow key={exp._id}>
+                            <TableCell>{new Date(exp.date).toLocaleDateString('fr-FR')}</TableCell>
+                            <TableCell>
+                                <Chip 
+                                    label={exp.type || 'Sorties'} 
+                                    color={exp.type === 'Entrées' ? 'success' : 'error'} 
+                                    size="small" 
+                                />
+                            </TableCell>
+                            <TableCell>{exp.category}</TableCell>
+                            <TableCell>{exp.description}</TableCell>
+                            <TableCell 
+                                align="right" 
+                                sx={{ 
+                                    color: exp.type === 'Entrées' ? 'success.main' : 'error.main',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                {exp.type === 'Entrées' ? '+' : '-'}${exp.amount.toFixed(2)}
+                            </TableCell>
+                            <TableCell align="center">
+                                <IconButton onClick={() => handleDelete(exp._id)} color="error" size="small">
+                                    <DeleteIcon />
+                                </IconButton>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </TableContainer>
     );
 };
@@ -500,7 +770,7 @@ function AdminPage() {
       <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Menus les Plus Vendus (Semaine {viewedWeek})</Typography></AccordionSummary><AccordionDetails><MenuSalesChart viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Dépenses</Typography></AccordionSummary><AccordionDetails><ExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Entrées / Sorties</Typography></AccordionSummary><AccordionDetails><IncomeExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
     </Container>
