@@ -218,9 +218,9 @@ const FinancialSummary = ({ viewedWeek }) => {
   const dons = summary.expensesBreakdown?.['Dons'] || 0;
   const totalAutresEntrees = prestationExterieur + dons;
 
-  // Calculer le déductible d'impôt
+  // Calculer le déductible d'impôt (sans les primes)
   const totalBonus = summary.totalBonus || 0;
-  const deductibleImpots = totalBonus + matieresPremieres + fraisNourriture + fraisAvocat + location + donVerse;
+  const deductibleImpots = matieresPremieres + fraisNourriture + fraisAvocat + location + donVerse;
 
   // Calculer l'impôt à payer
   const totalRevenus = (summary.totalRevenue || 0) + totalAutresEntrees + dons;
@@ -249,28 +249,34 @@ const FinancialSummary = ({ viewedWeek }) => {
     <Paper elevation={3} sx={{ p: 2 }}>
       {/* Première ligne - Revenus et calculs fiscaux */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography>Chiffre d'Affaires</Typography>
             <Typography variant="h5">${(summary.totalRevenue || 0).toFixed(2)}</Typography>
             <Typography variant="caption" color="text.secondary">Entreprise & Particulier</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography>Autres Entrées</Typography>
             <Typography variant="h5" color="success.main">+${totalAutresEntrees.toFixed(2)}</Typography>
             <Typography variant="caption" color="text.secondary">Prestation Extérieur & Dons</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Total Primes</Typography>
+            <Typography variant="h5" color="primary.main">${totalBonus.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography>Déductible d'impôt</Typography>
             <Typography variant="h5" color="info.main">${deductibleImpots.toFixed(2)}</Typography>
-            <Typography variant="caption" color="text.secondary">Primes + Dépenses déductibles</Typography>
+            <Typography variant="caption" color="text.secondary">Dépenses déductibles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography>Impôt à payer</Typography>
             <Typography variant="h5" color="error.main">-${impotAPayer.toFixed(2)}</Typography>
