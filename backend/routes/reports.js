@@ -83,7 +83,27 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
     const benefitForTax = summary.totalRevenue - summary.taxDeductible;
     summary.taxPayable = calculateTax(benefitForTax);
     summary.netMargin = summary.grossMargin - summary.totalExpenses;
-    summary.totalBonus = summary.grossMargin * bonusPercentage;
+    
+    // Calculer le total des primes avec plafonds
+    const performanceData = await Transaction.aggregate([
+      { $match: { weekId: weekIdToFetch } },
+      { $group: { _id: '$employeeId', totalMargin: { $sum: '$margin' } } },
+      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
+      { $unwind: '$employeeInfo' },
+      { $project: { _id: 0, totalMargin: '$totalMargin', grade: '$employeeInfo.grade' } }
+    ]);
+    
+    let totalBonusWithCaps = 0;
+    performanceData.forEach(data => {
+      if (data.grade === 'Patron' || data.grade === 'Co-Patronne') {
+        totalBonusWithCaps += 20000;
+      } else {
+        const calculatedBonus = data.totalMargin * bonusPercentage;
+        totalBonusWithCaps += Math.min(calculatedBonus, 19000);
+      }
+    });
+    
+    summary.totalBonus = totalBonusWithCaps;
     summary.liveBalance = summary.startingBalance + summary.netMargin - summary.taxPayable;
 
     res.json(summary);

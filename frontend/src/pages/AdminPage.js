@@ -218,8 +218,9 @@ const FinancialSummary = ({ viewedWeek }) => {
   const dons = summary.expensesBreakdown?.['Dons'] || 0;
   const totalAutresEntrees = prestationExterieur + dons;
 
-  // Calculer le déductible d'impôt (sans les primes)
+  // Le total des primes est maintenant calculé correctement dans l'API avec les plafonds
   const totalBonus = summary.totalBonus || 0;
+  
   const deductibleImpots = matieresPremieres + fraisVehicule + fraisNourriture + fraisAvocat + location + donVerse;
 
   // Calculer l'impôt à payer
