@@ -126,11 +126,15 @@ const WeeklySalesChart = ({ viewedWeek }) => {
 // 3.1. Graphique des Ventes par Menu
 const MenuSalesChart = ({ viewedWeek }) => {
   const [menuData, setMenuData] = useState([]);
+  const [totalMenusSold, setTotalMenusSold] = useState(0);
 
   useEffect(() => {
     api.get(`/reports/menu-sales?week=${viewedWeek}`)
        .then(res => {
          setMenuData(res.data);
+         // Calculer le total de menus vendus
+         const total = res.data.reduce((sum, menu) => sum + menu.count, 0);
+         setTotalMenusSold(total);
        })
        .catch(err => console.error(err));
   }, [viewedWeek]);
@@ -138,9 +142,23 @@ const MenuSalesChart = ({ viewedWeek }) => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560', '#00D4AA', '#FF6B6B'];
 
   return (
-    <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
-      <Typography variant="h5" gutterBottom>Menus les Plus Vendus (Semaine {viewedWeek})</Typography>
-      <ResponsiveContainer width="100%" height="90%">
+    <Paper elevation={3} sx={{ p: 2, height: '450px' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" gutterBottom>Menus les Plus Vendus (Semaine {viewedWeek})</Typography>
+        <Box sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white', 
+          px: 2, 
+          py: 1, 
+          borderRadius: 2,
+          textAlign: 'center'
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Total: {totalMenusSold} menus vendus
+          </Typography>
+        </Box>
+      </Box>
+      <ResponsiveContainer width="100%" height="85%">
         <BarChart
           data={menuData}
           margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
