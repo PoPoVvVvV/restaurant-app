@@ -234,7 +234,7 @@ router.get('/menu-sales', [protect, admin], async (req, res) => {
       weekIdToFetch = weekSetting?.value || 1;
     }
 
-    // Agrégation pour obtenir les ventes par menu
+    // Agrégation pour compter le nombre total de menus vendus par type
     const menuSales = await Transaction.aggregate([
       { $match: { weekId: weekIdToFetch } },
       { $unwind: '$products' },
@@ -242,6 +242,7 @@ router.get('/menu-sales', [protect, admin], async (req, res) => {
       {
         $group: {
           _id: '$products.name',
+          totalSold: { $sum: 1 }, // Compter le nombre de fois que ce menu a été vendu
           totalQuantity: { $sum: '$products.quantity' },
           totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.priceAtSale'] } },
           totalCost: { $sum: { $multiply: ['$products.quantity', '$products.costAtSale'] } }
@@ -251,13 +252,14 @@ router.get('/menu-sales', [protect, admin], async (req, res) => {
         $project: {
           _id: 0,
           menuName: '$_id',
-          quantity: '$totalQuantity',
+          count: '$totalSold', // Nombre de fois vendu
+          quantity: '$totalQuantity', // Quantité totale
           revenue: '$totalRevenue',
           cost: '$totalCost',
           margin: { $subtract: ['$totalRevenue', '$totalCost'] }
         }
       },
-      { $sort: { quantity: -1 } }
+      { $sort: { count: -1 } } // Trier par nombre de ventes
     ]);
 
     res.json(menuSales);

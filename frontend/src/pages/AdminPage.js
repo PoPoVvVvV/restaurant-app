@@ -156,7 +156,8 @@ const MenuSalesChart = ({ viewedWeek }) => {
           <YAxis />
           <Tooltip 
             formatter={(value, name) => {
-              if (name === 'quantity') return [`${value} unités`, 'Quantité vendue'];
+              if (name === 'count') return [`${value} fois`, 'Nombre de ventes'];
+              if (name === 'quantity') return [`${value} unités`, 'Quantité totale'];
               if (name === 'revenue') return [`$${Number(value).toFixed(2)}`, 'Chiffre d\'affaires'];
               if (name === 'margin') return [`$${Number(value).toFixed(2)}`, 'Marge'];
               return [value, name];
@@ -165,9 +166,9 @@ const MenuSalesChart = ({ viewedWeek }) => {
           />
           <Legend />
           <Bar 
-            dataKey="quantity" 
+            dataKey="count" 
             fill={COLORS[0]} 
-            name="Quantité vendue"
+            name="Nombre de ventes"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>
