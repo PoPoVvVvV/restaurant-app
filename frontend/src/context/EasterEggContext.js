@@ -27,6 +27,40 @@ export const EasterEggProvider = ({ children }) => {
   const [showSnakeGame, setShowSnakeGame] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
 
+  // Fonction pour jouer un son de progression
+  const playProgressSound = useCallback((progress) => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Plus la progression est élevée, plus le son est magique
+      const baseFreq = 220; // Fréquence de base (La grave)
+      const frequency = baseFreq * Math.pow(1.5, progress); // Progression harmonique
+      
+      // Créer une mélodie ascendante
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.2, audioContext.currentTime + 0.1);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.5, audioContext.currentTime + 0.2);
+      
+      // Volume qui augmente avec la progression
+      const volume = 0.1 + (progress * 0.1);
+      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      // Durée qui augmente avec la progression
+      const duration = 0.2 + (progress * 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration);
+    } catch (error) {
+      console.log('Audio non supporté pour le son de progression');
+    }
+  }, []);
+
   // Fonction pour enregistrer un clic
   const recordClick = useCallback((clickType) => {
     const now = Date.now();
@@ -49,7 +83,16 @@ export const EasterEggProvider = ({ children }) => {
     } else {
       checkSequence(currentSequence);
     }
-  }, [clickSequence, lastClickTime]);
+
+    // Jouer un son de progression si c'est un bon clic
+    const currentProgress = Math.min(currentSequence.length, EXPECTED_SEQUENCE.length);
+    const expectedAtThisPosition = EXPECTED_SEQUENCE[currentSequence.length - 1];
+    
+    if (clickType === expectedAtThisPosition) {
+      // C'est un bon clic ! Jouer un son de progression
+      playProgressSound(currentProgress);
+    }
+  }, [clickSequence, lastClickTime, playProgressSound]);
 
   // Vérifier si la séquence correspond
   const checkSequence = useCallback((sequence) => {
@@ -121,26 +164,43 @@ export const EasterEggProvider = ({ children }) => {
       document.head.appendChild(style);
     }
 
-    // Son de déblocage (utilise l'API Web Audio)
+    // Son de déblocage magique (utilise l'API Web Audio)
     try {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Créer une mélodie magique complexe
+      const createMagicalSound = (startTime, frequency, duration) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Mélodie ascendante magique
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.5, startTime + duration * 0.3);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * 2, startTime + duration * 0.6);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * 3, startTime + duration * 0.9);
+        
+        // Enveloppe de volume magique
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, startTime + duration * 0.1);
+        gainNode.gain.linearRampToValueAtTime(0.3, startTime + duration * 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
       
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1);
-      oscillator.frequency.exponentialRampToValueAtTime(1320, audioContext.currentTime + 0.2);
+      // Jouer une séquence de sons magiques
+      createMagicalSound(audioContext.currentTime, 220, 0.3); // Do grave
+      createMagicalSound(audioContext.currentTime + 0.1, 330, 0.3); // Mi
+      createMagicalSound(audioContext.currentTime + 0.2, 440, 0.3); // La
+      createMagicalSound(audioContext.currentTime + 0.3, 660, 0.4); // Mi aigu
+      createMagicalSound(audioContext.currentTime + 0.4, 880, 0.5); // La aigu
       
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
     } catch (error) {
-      console.log('Audio non supporté');
+      console.log('Audio non supporté pour le son magique');
     }
 
     // Afficher le jeu après un court délai
