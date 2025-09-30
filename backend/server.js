@@ -16,6 +16,7 @@ import userRoutes from './routes/users.js';
 import recipeRoutes from './routes/recipes.js';
 import ingredientRoutes from './routes/ingredients.js';
 import absenceRoutes from './routes/absences.js';
+import easterEggScoreRoutes from './routes/easterEggScores.js';
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/absences', absenceRoutes);
+app.use('/api/easter-egg-scores', easterEggScoreRoutes);
 
 app.get('/', (req, res) => {
   res.send('API du restaurant en cours d\'exécution...');

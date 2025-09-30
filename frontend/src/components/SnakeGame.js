@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import api from '../services/api';
 
 // Style rétro pour le jeu
 const GameContainer = styled(Box)(({ theme }) => ({
@@ -69,6 +70,8 @@ const SnakeGame = ({ open, onClose }) => {
   const [direction, setDirection] = useState({ x: 0, y: 0 });
   const [score, setScore] = useState(0);
   const [gameSpeed, setGameSpeed] = useState(150);
+  const [gameStartTime, setGameStartTime] = useState(null);
+  const [gameDuration, setGameDuration] = useState(0);
 
   // Générer une position aléatoire pour la nourriture
   const generateFood = useCallback((currentSnake = [{ x: 200, y: 200 }]) => {
@@ -110,6 +113,10 @@ const SnakeGame = ({ open, onClose }) => {
       // Vérifier les collisions
       if (checkCollision(head, newSnake)) {
         setGameState('gameOver');
+        // Calculer la durée de jeu
+        if (gameStartTime) {
+          setGameDuration(Math.floor((Date.now() - gameStartTime) / 1000));
+        }
         return prevSnake;
       }
 
@@ -178,6 +185,8 @@ const SnakeGame = ({ open, onClose }) => {
     setScore(0);
     setGameSpeed(150);
     setFood(generateFood(initialSnake));
+    setGameStartTime(Date.now());
+    setGameDuration(0);
   };
 
   // Redémarrer le jeu
@@ -189,6 +198,28 @@ const SnakeGame = ({ open, onClose }) => {
     setScore(0);
     setGameSpeed(150);
     setFood(generateFood(initialSnake));
+    setGameStartTime(null);
+    setGameDuration(0);
+  };
+
+  // Enregistrer le score
+  const saveScore = async () => {
+    try {
+      await api.post('/easter-egg-scores', {
+        easterEggType: 'snake-game',
+        score: score,
+        level: Math.floor(score / 10) + 1, // Niveau basé sur le score
+        duration: gameDuration,
+        snakeLength: snake.length,
+        gameData: {
+          finalSpeed: gameSpeed,
+          foodEaten: Math.floor(score / 10)
+        }
+      });
+      console.log('Score enregistré avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement du score:', error);
+    }
   };
 
   // Rendu du serpent
@@ -268,8 +299,14 @@ const SnakeGame = ({ open, onClose }) => {
                 <Typography variant="h4" sx={{ color: '#ff0000', mb: 2 }}>
                   GAME OVER
                 </Typography>
-                <Typography variant="h6" sx={{ color: '#00ff00', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: '#00ff00', mb: 1 }}>
                   Score final: {score}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#00ff00', mb: 1 }}>
+                  Durée: {gameDuration}s
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#00ff00', mb: 2 }}>
+                  Longueur du serpent: {snake.length}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#00ff00' }}>
                   Appuyez sur "Nouvelle Partie" pour rejouer
@@ -295,18 +332,35 @@ const SnakeGame = ({ open, onClose }) => {
             )}
             
             {gameState === 'gameOver' && (
-              <Button 
-                variant="contained" 
-                onClick={restartGame}
-                sx={{ 
-                  backgroundColor: '#00ff00', 
-                  color: '#000',
-                  fontFamily: '"Courier New", monospace',
-                  '&:hover': { backgroundColor: '#00cc00' }
-                }}
-              >
-                NOUVELLE PARTIE
-              </Button>
+              <>
+                <Button 
+                  variant="contained" 
+                  onClick={restartGame}
+                  sx={{ 
+                    backgroundColor: '#00ff00', 
+                    color: '#000',
+                    fontFamily: '"Courier New", monospace',
+                    '&:hover': { backgroundColor: '#00cc00' }
+                  }}
+                >
+                  NOUVELLE PARTIE
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={saveScore}
+                  sx={{ 
+                    borderColor: '#00ff00', 
+                    color: '#00ff00',
+                    fontFamily: '"Courier New", monospace',
+                    '&:hover': { 
+                      backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                      borderColor: '#00cc00'
+                    }
+                  }}
+                >
+                  SAUVEGARDER SCORE
+                </Button>
+              </>
             )}
           </Box>
           

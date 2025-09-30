@@ -23,6 +23,7 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import InfoIcon from '@mui/icons-material/Info';
 import { useEasterEgg } from '../context/EasterEggContext';
 import SnakeGame from '../components/SnakeGame';
+import Leaderboard from '../components/Leaderboard';
 
 // Style rétro pour les cartes d'easter-egg
 const EasterEggCard = styled(Card)(({ theme, unlocked }) => ({
@@ -265,6 +266,11 @@ const EasterEggsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Section Classement */}
+      <Box sx={{ mt: 4 }}>
+        <Leaderboard easterEggType="snake-game" />
+      </Box>
 
       {/* Composant Snake Game */}
       <SnakeGame open={showSnakeGame} onClose={closeSnakeGame} />
