@@ -149,7 +149,16 @@ const SnakeGame = ({ open, onClose }) => {
       } else if (gameState === 'paused') {
         setGameState('playing');
       } else if (gameState === 'ready') {
-        startGame();
+        // Démarrer le jeu directement ici pour éviter la référence circulaire
+        const initialSnake = [{ x: 200, y: 200 }];
+        setGameState('playing');
+        setSnake(initialSnake);
+        setDirection({ x: 20, y: 0 });
+        setScore(0);
+        setGameSpeed(150);
+        setFood(generateFood(initialSnake));
+        setGameStartTime(Date.now());
+        setGameDuration(0);
       }
       return;
     }
@@ -173,7 +182,7 @@ const SnakeGame = ({ open, onClose }) => {
       default:
         break;
     }
-  }, [gameState, direction, startGame]);
+  }, [gameState, direction, generateFood]);
 
   // Effet pour le mouvement du serpent
   useEffect(() => {
