@@ -46,8 +46,8 @@ export const EasterEggProvider = ({ children }) => {
       oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.2, audioContext.currentTime + 0.1);
       oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.5, audioContext.currentTime + 0.2);
       
-      // Volume qui augmente avec la progression
-      const volume = 0.1 + (progress * 0.1);
+      // Volume qui augmente avec la progression (réduit)
+      const volume = 0.03 + (progress * 0.02);
       gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
       
@@ -182,10 +182,10 @@ export const EasterEggProvider = ({ children }) => {
         oscillator.frequency.exponentialRampToValueAtTime(frequency * 2, startTime + duration * 0.6);
         oscillator.frequency.exponentialRampToValueAtTime(frequency * 3, startTime + duration * 0.9);
         
-        // Enveloppe de volume magique
+        // Enveloppe de volume magique (réduit)
         gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(0.2, startTime + duration * 0.1);
-        gainNode.gain.linearRampToValueAtTime(0.3, startTime + duration * 0.5);
+        gainNode.gain.linearRampToValueAtTime(0.05, startTime + duration * 0.1);
+        gainNode.gain.linearRampToValueAtTime(0.08, startTime + duration * 0.5);
         gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
         
         oscillator.start(startTime);
