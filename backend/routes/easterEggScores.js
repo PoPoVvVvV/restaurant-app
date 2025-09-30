@@ -4,35 +4,6 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// @route   GET /api/easter-egg-scores/test
-// @desc    Tester la connexion au modèle
-// @access  Privé
-router.get('/test', protect, async (req, res) => {
-  try {
-    console.log('Test de connexion au modèle EasterEggScore...');
-    
-    // Vérifier que le modèle est disponible
-    if (!EasterEggScore) {
-      return res.status(500).json({ message: 'Modèle EasterEggScore non disponible' });
-    }
-
-    // Tenter de compter les documents existants
-    const count = await EasterEggScore.countDocuments();
-    
-    res.json({
-      message: 'Modèle EasterEggScore fonctionnel',
-      modelAvailable: true,
-      existingScores: count
-    });
-  } catch (error) {
-    console.error('Erreur lors du test du modèle:', error);
-    res.status(500).json({ 
-      message: 'Erreur du modèle',
-      error: error.message
-    });
-  }
-});
-
 // @route   POST /api/easter-egg-scores
 // @desc    Enregistrer un nouveau score
 // @access  Privé
@@ -41,7 +12,9 @@ router.post('/', protect, async (req, res) => {
     const { easterEggType, score, level, duration, snakeLength, gameData } = req.body;
 
     console.log('Données reçues:', { easterEggType, score, level, duration, snakeLength, gameData });
-    console.log('Utilisateur:', { id: req.user._id, username: req.user.username, email: req.user.email });
+    console.log('Utilisateur complet:', req.user);
+    console.log('Utilisateur ID:', req.user.id);
+    console.log('Utilisateur ID type:', typeof req.user.id);
 
     // Validation des données
     if (!easterEggType || score === undefined || level === undefined || duration === undefined || snakeLength === undefined) {
@@ -52,6 +25,12 @@ router.post('/', protect, async (req, res) => {
     if (score < 0 || level < 1 || duration < 0 || snakeLength < 1) {
       console.log('Données invalides:', { score, level, duration, snakeLength });
       return res.status(400).json({ message: 'Données invalides' });
+    }
+
+    // Vérifier que l'utilisateur a un ID valide
+    if (!req.user.id) {
+      console.log('Utilisateur sans ID valide');
+      return res.status(400).json({ message: 'Utilisateur non authentifié correctement' });
     }
 
     // Vérifier que l'utilisateur a un nom d'utilisateur
@@ -68,7 +47,7 @@ router.post('/', protect, async (req, res) => {
 
     // Créer le nouveau score
     const newScore = new EasterEggScore({
-      userId: req.user._id,
+      userId: req.user.id,
       username: req.user.username || req.user.email || 'Utilisateur inconnu',
       easterEggType,
       score,
@@ -136,7 +115,7 @@ router.get('/my-best/:easterEggType', protect, async (req, res) => {
   try {
     const { easterEggType } = req.params;
 
-    const bestScore = await EasterEggScore.getUserBestScore(req.user._id, easterEggType);
+    const bestScore = await EasterEggScore.getUserBestScore(req.user.id, easterEggType);
     
     res.json({
       easterEggType,
@@ -178,7 +157,7 @@ router.get('/my-scores/:easterEggType', protect, async (req, res) => {
     const skip = (page - 1) * limit;
 
     const scores = await EasterEggScore.find({ 
-      userId: req.user._id, 
+      userId: req.user.id, 
       easterEggType 
     })
     .sort({ score: -1, createdAt: -1 })

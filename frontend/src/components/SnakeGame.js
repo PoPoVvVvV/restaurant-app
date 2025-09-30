@@ -222,20 +222,6 @@ const SnakeGame = ({ open, onClose }) => {
     setGameDuration(0);
   };
 
-  // Tester la connexion au modèle
-  const testConnection = async () => {
-    try {
-      const response = await api.get('/easter-egg-scores/test');
-      console.log('Test de connexion réussi:', response.data);
-      alert('Connexion au modèle OK !');
-    } catch (error) {
-      console.error('Erreur lors du test de connexion:', error);
-      if (error.response) {
-        console.error('Détails de l\'erreur:', error.response.data);
-        alert(`Erreur de connexion: ${error.response.data.message}`);
-      }
-    }
-  };
 
   // Enregistrer le score
   const saveScore = async () => {
@@ -393,21 +379,6 @@ const SnakeGame = ({ open, onClose }) => {
                   }}
                 >
                   NOUVELLE PARTIE
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  onClick={testConnection}
-                  sx={{ 
-                    borderColor: '#ffff00', 
-                    color: '#ffff00',
-                    fontFamily: '"Courier New", monospace',
-                    '&:hover': { 
-                      backgroundColor: 'rgba(255, 255, 0, 0.1)',
-                      borderColor: '#cccc00'
-                    }
-                  }}
-                >
-                  TEST CONNEXION
                 </Button>
                 <Button 
                   variant="outlined" 
