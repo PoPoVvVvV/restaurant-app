@@ -61,7 +61,7 @@ const EasterEggsPage = () => {
     {
       id: 'snake-game',
       name: 'Snake Rétro',
-      description: 'Un mini-jeu Snake classique avec un style rétro',
+      description: 'Un Snake classique avec un style rétro',
       icon: '🐍',
       unlocked: isEasterEggUnlocked,
       category: 'Jeux',
