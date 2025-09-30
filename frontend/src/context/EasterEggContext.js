@@ -23,7 +23,10 @@ const EXPECTED_SEQUENCE = [
 
 export const EasterEggProvider = ({ children }) => {
   const [clickSequence, setClickSequence] = useState([]);
-  const [isEasterEggUnlocked, setIsEasterEggUnlocked] = useState(false);
+  const [isEasterEggUnlocked, setIsEasterEggUnlocked] = useState(() => {
+    // Vérifier si l'easter-egg a déjà été débloqué (stocké dans localStorage)
+    return localStorage.getItem('easterEggUnlocked') === 'true';
+  });
   const [showSnakeGame, setShowSnakeGame] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
 
@@ -63,6 +66,11 @@ export const EasterEggProvider = ({ children }) => {
 
   // Fonction pour enregistrer un clic
   const recordClick = useCallback((clickType) => {
+    // Si l'easter-egg est déjà débloqué, ne plus jouer de sons ni détecter de séquence
+    if (isEasterEggUnlocked) {
+      return;
+    }
+
     const now = Date.now();
     
     // Si plus de 10 secondes se sont écoulées, réinitialiser la séquence
@@ -92,7 +100,7 @@ export const EasterEggProvider = ({ children }) => {
       // C'est un bon clic ! Jouer un son de progression
       playProgressSound(currentProgress);
     }
-  }, [clickSequence, lastClickTime, playProgressSound]);
+  }, [clickSequence, lastClickTime, playProgressSound, isEasterEggUnlocked]);
 
   // Vérifier si la séquence correspond
   const checkSequence = useCallback((sequence) => {
@@ -100,6 +108,8 @@ export const EasterEggProvider = ({ children }) => {
       const isMatch = sequence.every((click, index) => click === EXPECTED_SEQUENCE[index]);
       if (isMatch && !isEasterEggUnlocked) {
         setIsEasterEggUnlocked(true);
+        // Sauvegarder dans localStorage pour rendre permanent
+        localStorage.setItem('easterEggUnlocked', 'true');
         // Effet visuel et sonore
         triggerEasterEggEffect();
       }

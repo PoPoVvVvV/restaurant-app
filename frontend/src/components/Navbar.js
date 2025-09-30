@@ -45,7 +45,7 @@ const NavButton = ({ to, icon, text, clickType }) => {
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
   const { mode, toggleTheme } = useThemeMode();
-  const { recordClick, isEasterEggUnlocked, openSnakeGame } = useEasterEgg();
+  const { recordClick, isEasterEggUnlocked } = useEasterEgg();
   const navigate = useNavigate();
 
   const onLogout = () => {
@@ -85,6 +85,12 @@ function Navbar() {
                     <NavButton to="/absences" icon="📅" text="Absences" />
                     <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <NavButton to="/comptabilite" icon="📊" text="Ma Compta" clickType="comptabilite" />
+                    {isEasterEggUnlocked && (
+                        <>
+                        <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                        <NavButton to="/easter-eggs" icon="🎮" text="Easter-Eggs" />
+                        </>
+                    )}
                     {user.role === 'admin' && (
                         <>
                         <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
@@ -98,22 +104,6 @@ function Navbar() {
         {user ? (
           <>
             <Typography sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>{user.username}</Typography>
-            {isEasterEggUnlocked && (
-              <Button 
-                color="inherit" 
-                onClick={openSnakeGame}
-                sx={{ 
-                  mr: 2,
-                  backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                  border: '1px solid #00ff00',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 255, 0, 0.2)',
-                  }
-                }}
-              >
-                🐍 Snake
-              </Button>
-            )}
             <Button color="inherit" onClick={onLogout}>Déconnexion</Button>
           </>
         ) : (
