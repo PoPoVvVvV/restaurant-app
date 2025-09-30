@@ -52,6 +52,9 @@ EasterEggScoreSchema.index({ easterEggType: 1, score: -1 });
 EasterEggScoreSchema.index({ easterEggType: 1, createdAt: -1 });
 EasterEggScoreSchema.index({ userId: 1, easterEggType: 1 });
 
+// Index unique pour s'assurer qu'un utilisateur n'a qu'un seul score par easter-egg
+EasterEggScoreSchema.index({ userId: 1, easterEggType: 1 }, { unique: true });
+
 // Méthode statique pour obtenir le classement
 EasterEggScoreSchema.statics.getLeaderboard = async function(easterEggType, limit = 10) {
   return this.find({ easterEggType })
@@ -61,11 +64,10 @@ EasterEggScoreSchema.statics.getLeaderboard = async function(easterEggType, limi
     .lean();
 };
 
-// Méthode statique pour obtenir le meilleur score d'un utilisateur
+// Méthode statique pour obtenir le score d'un utilisateur (unique par easter-egg)
 EasterEggScoreSchema.statics.getUserBestScore = async function(userId, easterEggType) {
   return this.findOne({ userId, easterEggType })
-    .sort({ score: -1 })
-    .select('score level duration snakeLength createdAt')
+    .select('score level duration snakeLength createdAt updatedAt')
     .lean();
 };
 

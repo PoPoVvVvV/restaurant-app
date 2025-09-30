@@ -246,8 +246,11 @@ const SnakeGame = ({ open, onClose }) => {
       const response = await api.post('/easter-egg-scores', scoreData);
       console.log('Score enregistré avec succès:', response.data);
       
-      // Afficher un message de succès (optionnel)
-      alert(`Score de ${score} points enregistré avec succès !`);
+      // Afficher un message de succès adapté
+      const message = response.data.isUpdate 
+        ? `Score mis à jour ! Nouveau record : ${score} points` 
+        : `Score de ${score} points enregistré avec succès !`;
+      alert(message);
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du score:', error);
       if (error.response) {

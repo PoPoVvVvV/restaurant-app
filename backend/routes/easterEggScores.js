@@ -45,32 +45,55 @@ router.post('/', protect, async (req, res) => {
       return res.status(500).json({ message: 'Modèle de données non disponible' });
     }
 
-    // Créer le nouveau score
-    const newScore = new EasterEggScore({
+    // Vérifier s'il existe déjà un score pour cet utilisateur et cet easter-egg
+    const existingScore = await EasterEggScore.findOne({
       userId: req.user.id,
-      username: req.user.username || req.user.email || 'Utilisateur inconnu',
-      easterEggType,
-      score,
-      level,
-      duration,
-      snakeLength,
-      gameData: gameData || {}
+      easterEggType
     });
 
-    console.log('Tentative de sauvegarde du score:', newScore.toObject());
-    await newScore.save();
+    let newScore;
+    if (existingScore) {
+      // Remplacer le score existant
+      existingScore.score = score;
+      existingScore.level = level;
+      existingScore.duration = duration;
+      existingScore.snakeLength = snakeLength;
+      existingScore.gameData = gameData || {};
+      existingScore.updatedAt = new Date();
+      
+      console.log('Mise à jour du score existant:', existingScore.toObject());
+      await existingScore.save();
+      newScore = existingScore;
+    } else {
+      // Créer un nouveau score
+      newScore = new EasterEggScore({
+        userId: req.user.id,
+        username: req.user.username || req.user.email || 'Utilisateur inconnu',
+        easterEggType,
+        score,
+        level,
+        duration,
+        snakeLength,
+        gameData: gameData || {}
+      });
+
+      console.log('Création d\'un nouveau score:', newScore.toObject());
+      await newScore.save();
+    }
 
     console.log('Score enregistré avec succès:', newScore._id);
 
     res.status(201).json({
-      message: 'Score enregistré avec succès',
+      message: existingScore ? 'Score mis à jour avec succès' : 'Score enregistré avec succès',
+      isUpdate: !!existingScore,
       score: {
         id: newScore._id,
         score: newScore.score,
         level: newScore.level,
         duration: newScore.duration,
         snakeLength: newScore.snakeLength,
-        createdAt: newScore.createdAt
+        createdAt: newScore.createdAt,
+        updatedAt: newScore.updatedAt
       }
     });
   } catch (error) {
@@ -147,42 +170,26 @@ router.get('/stats/:easterEggType', protect, async (req, res) => {
 });
 
 // @route   GET /api/easter-egg-scores/my-scores/:easterEggType
-// @desc    Obtenir tous les scores de l'utilisateur pour un easter-egg
+// @desc    Obtenir le score de l'utilisateur pour un easter-egg (unique)
 // @access  Privé
 router.get('/my-scores/:easterEggType', protect, async (req, res) => {
   try {
     const { easterEggType } = req.params;
-    const limit = parseInt(req.query.limit) || 20;
-    const page = parseInt(req.query.page) || 1;
-    const skip = (page - 1) * limit;
 
-    const scores = await EasterEggScore.find({ 
+    const score = await EasterEggScore.findOne({ 
       userId: req.user.id, 
       easterEggType 
     })
-    .sort({ score: -1, createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .select('score level duration snakeLength createdAt')
+    .select('score level duration snakeLength createdAt updatedAt')
     .lean();
 
-    const total = await EasterEggScore.countDocuments({ 
-      userId: req.user._id, 
-      easterEggType 
-    });
-    
     res.json({
       easterEggType,
-      scores,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      score: score || null,
+      hasScore: !!score
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des scores utilisateur:', error);
+    console.error('Erreur lors de la récupération du score:', error);
     res.status(500).json({ message: 'Erreur du serveur' });
   }
 });
