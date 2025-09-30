@@ -52,20 +52,32 @@ router.post('/', protect, async (req, res) => {
     });
 
     let newScore;
+    let isNewRecord = false;
+    let isScoreRejected = false;
+
     if (existingScore) {
-      // Remplacer le score existant
-      existingScore.score = score;
-      existingScore.level = level;
-      existingScore.duration = duration;
-      existingScore.snakeLength = snakeLength;
-      existingScore.gameData = gameData || {};
-      existingScore.updatedAt = new Date();
-      
-      console.log('Mise à jour du score existant:', existingScore.toObject());
-      await existingScore.save();
-      newScore = existingScore;
+      // Vérifier si le nouveau score est supérieur au score existant
+      if (score > existingScore.score) {
+        // Remplacer le score existant par le nouveau (plus élevé)
+        existingScore.score = score;
+        existingScore.level = level;
+        existingScore.duration = duration;
+        existingScore.snakeLength = snakeLength;
+        existingScore.gameData = gameData || {};
+        existingScore.updatedAt = new Date();
+        
+        console.log('Nouveau record ! Mise à jour du score:', existingScore.toObject());
+        await existingScore.save();
+        newScore = existingScore;
+        isNewRecord = true;
+      } else {
+        // Le nouveau score est inférieur ou égal, ne pas l'enregistrer
+        console.log(`Score rejeté: ${score} <= ${existingScore.score} (score existant)`);
+        isScoreRejected = true;
+        newScore = existingScore; // Retourner le score existant pour l'affichage
+      }
     } else {
-      // Créer un nouveau score
+      // Créer un nouveau score (premier score de l'utilisateur)
       newScore = new EasterEggScore({
         userId: req.user.id,
         username: req.user.username || req.user.email || 'Utilisateur inconnu',
@@ -77,15 +89,32 @@ router.post('/', protect, async (req, res) => {
         gameData: gameData || {}
       });
 
-      console.log('Création d\'un nouveau score:', newScore.toObject());
+      console.log('Premier score enregistré:', newScore.toObject());
       await newScore.save();
+      isNewRecord = true;
     }
 
-    console.log('Score enregistré avec succès:', newScore._id);
+    // Déterminer le message de réponse
+    let responseMessage;
+    let responseStatus = 201;
 
-    res.status(201).json({
-      message: existingScore ? 'Score mis à jour avec succès' : 'Score enregistré avec succès',
-      isUpdate: !!existingScore,
+    if (isScoreRejected) {
+      responseMessage = `Score de ${score} points non enregistré. Votre meilleur score reste ${existingScore.score} points.`;
+      responseStatus = 200; // OK mais pas de création/mise à jour
+    } else if (isNewRecord && existingScore) {
+      responseMessage = `🎉 Nouveau record ! ${score} points (précédent: ${existingScore.score})`;
+    } else if (isNewRecord) {
+      responseMessage = `Premier score enregistré : ${score} points !`;
+    } else {
+      responseMessage = 'Score enregistré avec succès';
+    }
+
+    console.log('Réponse:', { isNewRecord, isScoreRejected, message: responseMessage });
+
+    res.status(responseStatus).json({
+      message: responseMessage,
+      isNewRecord,
+      isScoreRejected,
       score: {
         id: newScore._id,
         score: newScore.score,
@@ -94,7 +123,8 @@ router.post('/', protect, async (req, res) => {
         snakeLength: newScore.snakeLength,
         createdAt: newScore.createdAt,
         updatedAt: newScore.updatedAt
-      }
+      },
+      previousScore: existingScore && isNewRecord ? existingScore.score : null
     });
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement du score:', error);

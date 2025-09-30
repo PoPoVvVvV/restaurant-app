@@ -72,6 +72,7 @@ const SnakeGame = ({ open, onClose }) => {
   const [gameSpeed, setGameSpeed] = useState(150);
   const [gameStartTime, setGameStartTime] = useState(null);
   const [gameDuration, setGameDuration] = useState(0);
+  const [userBestScore, setUserBestScore] = useState(null);
 
   // Générer une position aléatoire pour la nourriture
   const generateFood = useCallback((currentSnake = [{ x: 200, y: 200 }]) => {
@@ -223,6 +224,23 @@ const SnakeGame = ({ open, onClose }) => {
   };
 
 
+  // Charger le meilleur score de l'utilisateur
+  const loadUserBestScore = useCallback(async () => {
+    try {
+      const response = await api.get('/easter-egg-scores/my-best/snake-game');
+      if (response.data.bestScore) {
+        setUserBestScore(response.data.bestScore.score);
+      }
+    } catch (error) {
+      console.log('Aucun score précédent trouvé');
+    }
+  }, []);
+
+  // Charger le meilleur score au montage du composant
+  useEffect(() => {
+    loadUserBestScore();
+  }, [loadUserBestScore]);
+
   // Enregistrer le score
   const saveScore = async () => {
     try {
@@ -244,13 +262,23 @@ const SnakeGame = ({ open, onClose }) => {
       console.log('Envoi des données de score:', scoreData);
 
       const response = await api.post('/easter-egg-scores', scoreData);
-      console.log('Score enregistré avec succès:', response.data);
+      console.log('Réponse du serveur:', response.data);
       
-      // Afficher un message de succès adapté
-      const message = response.data.isUpdate 
-        ? `Score mis à jour ! Nouveau record : ${score} points` 
-        : `Score de ${score} points enregistré avec succès !`;
-      alert(message);
+      // Afficher le message approprié selon la réponse
+      const { message, isNewRecord, isScoreRejected, previousScore } = response.data;
+      
+      if (isScoreRejected) {
+        // Score rejeté - afficher en rouge/orange
+        alert(`❌ ${message}`);
+      } else if (isNewRecord) {
+        // Nouveau record - afficher en vert avec emoji
+        alert(`✅ ${message}`);
+        // Mettre à jour le meilleur score local
+        setUserBestScore(score);
+      } else {
+        // Score normal
+        alert(`✅ ${message}`);
+      }
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du score:', error);
       if (error.response) {
@@ -301,6 +329,7 @@ const SnakeGame = ({ open, onClose }) => {
         <GameContainer>
           <ScoreDisplay>
             Score: {score} | Vitesse: {Math.round((200 - gameSpeed) / 2)}%
+            {userBestScore !== null && ` | Meilleur: ${userBestScore}`}
           </ScoreDisplay>
           
           <GameBoard>
