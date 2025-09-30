@@ -139,9 +139,24 @@ const SnakeGame = ({ open, onClose }) => {
 
   // Gestion des touches
   const handleKeyPress = useCallback((event) => {
+    const key = event.key;
+    
+    // Gestion de la touche Espace (pause/reprendre) - toujours active
+    if (key === ' ') {
+      event.preventDefault();
+      if (gameState === 'playing') {
+        setGameState('paused');
+      } else if (gameState === 'paused') {
+        setGameState('playing');
+      } else if (gameState === 'ready') {
+        startGame();
+      }
+      return;
+    }
+
+    // Gestion des flèches directionnelles - seulement en mode playing
     if (gameState !== 'playing') return;
 
-    const key = event.key;
     switch (key) {
       case 'ArrowUp':
         if (direction.y === 0) setDirection({ x: 0, y: -20 });
@@ -155,14 +170,10 @@ const SnakeGame = ({ open, onClose }) => {
       case 'ArrowRight':
         if (direction.x === 0) setDirection({ x: 20, y: 0 });
         break;
-      case ' ':
-        event.preventDefault();
-        setGameState(prev => prev === 'playing' ? 'paused' : 'playing');
-        break;
       default:
         break;
     }
-  }, [gameState, direction]);
+  }, [gameState, direction, startGame]);
 
   // Effet pour le mouvement du serpent
   useEffect(() => {
@@ -378,7 +389,7 @@ const SnakeGame = ({ open, onClose }) => {
           </Box>
           
           <Typography variant="body2" sx={{ color: '#00ff00', mt: 2, textAlign: 'center' }}>
-            Contrôles: ↑ ↓ ← → | Espace: Pause/Reprendre
+            Contrôles: ↑ ↓ ← → | Espace: Commencer/Pause/Reprendre
           </Typography>
         </GameContainer>
       </DialogContent>
