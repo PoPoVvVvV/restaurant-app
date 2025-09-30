@@ -4,6 +4,35 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// @route   GET /api/easter-egg-scores/test
+// @desc    Tester la connexion au modèle
+// @access  Privé
+router.get('/test', protect, async (req, res) => {
+  try {
+    console.log('Test de connexion au modèle EasterEggScore...');
+    
+    // Vérifier que le modèle est disponible
+    if (!EasterEggScore) {
+      return res.status(500).json({ message: 'Modèle EasterEggScore non disponible' });
+    }
+
+    // Tenter de compter les documents existants
+    const count = await EasterEggScore.countDocuments();
+    
+    res.json({
+      message: 'Modèle EasterEggScore fonctionnel',
+      modelAvailable: true,
+      existingScores: count
+    });
+  } catch (error) {
+    console.error('Erreur lors du test du modèle:', error);
+    res.status(500).json({ 
+      message: 'Erreur du modèle',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/easter-egg-scores
 // @desc    Enregistrer un nouveau score
 // @access  Privé
@@ -31,6 +60,12 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Utilisateur invalide' });
     }
 
+    // Vérifier que le modèle est disponible
+    if (!EasterEggScore) {
+      console.error('Modèle EasterEggScore non disponible');
+      return res.status(500).json({ message: 'Modèle de données non disponible' });
+    }
+
     // Créer le nouveau score
     const newScore = new EasterEggScore({
       userId: req.user._id,
@@ -43,6 +78,7 @@ router.post('/', protect, async (req, res) => {
       gameData: gameData || {}
     });
 
+    console.log('Tentative de sauvegarde du score:', newScore.toObject());
     await newScore.save();
 
     console.log('Score enregistré avec succès:', newScore._id);
@@ -60,7 +96,11 @@ router.post('/', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement du score:', error);
-    res.status(500).json({ message: 'Erreur du serveur' });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      message: 'Erreur du serveur',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Erreur interne'
+    });
   }
 });
 
