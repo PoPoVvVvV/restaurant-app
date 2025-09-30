@@ -11,19 +11,30 @@ router.post('/', protect, async (req, res) => {
   try {
     const { easterEggType, score, level, duration, snakeLength, gameData } = req.body;
 
+    console.log('Données reçues:', { easterEggType, score, level, duration, snakeLength, gameData });
+    console.log('Utilisateur:', { id: req.user._id, username: req.user.username, email: req.user.email });
+
     // Validation des données
     if (!easterEggType || score === undefined || level === undefined || duration === undefined || snakeLength === undefined) {
+      console.log('Données manquantes:', { easterEggType, score, level, duration, snakeLength });
       return res.status(400).json({ message: 'Données manquantes pour enregistrer le score' });
     }
 
     if (score < 0 || level < 1 || duration < 0 || snakeLength < 1) {
+      console.log('Données invalides:', { score, level, duration, snakeLength });
       return res.status(400).json({ message: 'Données invalides' });
+    }
+
+    // Vérifier que l'utilisateur a un nom d'utilisateur
+    if (!req.user.username && !req.user.email) {
+      console.log('Utilisateur sans nom d\'utilisateur ou email');
+      return res.status(400).json({ message: 'Utilisateur invalide' });
     }
 
     // Créer le nouveau score
     const newScore = new EasterEggScore({
       userId: req.user._id,
-      username: req.user.username,
+      username: req.user.username || req.user.email || 'Utilisateur inconnu',
       easterEggType,
       score,
       level,
@@ -33,6 +44,8 @@ router.post('/', protect, async (req, res) => {
     });
 
     await newScore.save();
+
+    console.log('Score enregistré avec succès:', newScore._id);
 
     res.status(201).json({
       message: 'Score enregistré avec succès',

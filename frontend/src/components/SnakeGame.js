@@ -205,20 +205,33 @@ const SnakeGame = ({ open, onClose }) => {
   // Enregistrer le score
   const saveScore = async () => {
     try {
-      await api.post('/easter-egg-scores', {
+      // Calculer la durée si elle n'est pas définie
+      const finalDuration = gameDuration || (gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0);
+      
+      const scoreData = {
         easterEggType: 'snake-game',
-        score: score,
-        level: Math.floor(score / 10) + 1, // Niveau basé sur le score
-        duration: gameDuration,
-        snakeLength: snake.length,
+        score: Math.max(0, score),
+        level: Math.max(1, Math.floor(score / 10) + 1),
+        duration: Math.max(0, finalDuration),
+        snakeLength: Math.max(1, snake.length),
         gameData: {
           finalSpeed: gameSpeed,
           foodEaten: Math.floor(score / 10)
         }
-      });
-      console.log('Score enregistré avec succès');
+      };
+
+      console.log('Envoi des données de score:', scoreData);
+
+      const response = await api.post('/easter-egg-scores', scoreData);
+      console.log('Score enregistré avec succès:', response.data);
+      
+      // Afficher un message de succès (optionnel)
+      alert(`Score de ${score} points enregistré avec succès !`);
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du score:', error);
+      if (error.response) {
+        console.error('Détails de l\'erreur:', error.response.data);
+      }
     }
   };
 
