@@ -18,7 +18,11 @@ function RegisterPage() {
 
   const { username, password, invitationCode } = formData;
 
-  const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) => {
+    const value = e.target.value;
+    // Préserver les espaces dans le nom d'utilisateur
+    setFormData({ ...formData, [e.target.name]: value });
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -65,6 +69,22 @@ function RegisterPage() {
             autoFocus
             value={username}
             onChange={onChange}
+            inputProps={{ 
+              style: { textTransform: 'none' },
+              onKeyDown: (e) => {
+                // Permettre tous les caractères y compris les espaces
+                if (e.key === ' ') {
+                  e.stopPropagation();
+                }
+              },
+              onInput: (e) => {
+                // S'assurer que les espaces sont préservés
+                const value = e.target.value;
+                if (value !== username) {
+                  setFormData({ ...formData, username: value });
+                }
+              }
+            }}
           />
           <TextField
             margin="normal"

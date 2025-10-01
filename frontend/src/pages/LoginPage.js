@@ -16,7 +16,9 @@ function LoginPage() {
   const { showNotification } = useNotification();
 
   const onChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.value;
+    // Préserver les espaces dans le nom d'utilisateur
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const onSubmit = async (e) => {
@@ -56,6 +58,22 @@ function LoginPage() {
           <TextField
             margin="normal" required fullWidth id="username" label="Nom d'utilisateur"
             name="username" autoComplete="username" autoFocus value={formData.username} onChange={onChange}
+            inputProps={{ 
+              style: { textTransform: 'none' },
+              onKeyDown: (e) => {
+                // Permettre tous les caractères y compris les espaces
+                if (e.key === ' ') {
+                  e.stopPropagation();
+                }
+              },
+              onInput: (e) => {
+                // S'assurer que les espaces sont préservés
+                const value = e.target.value;
+                if (value !== formData.username) {
+                  setFormData({ ...formData, username: value });
+                }
+              }
+            }}
           />
           <TextField
             margin="normal" required fullWidth name="password" label="Mot de passe"
