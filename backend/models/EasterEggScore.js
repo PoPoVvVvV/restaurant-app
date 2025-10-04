@@ -13,7 +13,7 @@ const EasterEggScoreSchema = new mongoose.Schema({
   easterEggType: {
     type: String,
     required: true,
-    enum: ['snake-game']
+    enum: ['snake-game', 'flappy-bird']
   },
   score: {
     type: Number,

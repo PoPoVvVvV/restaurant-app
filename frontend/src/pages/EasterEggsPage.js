@@ -23,6 +23,7 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import InfoIcon from '@mui/icons-material/Info';
 import { useEasterEgg } from '../context/EasterEggContext';
 import SnakeGame from '../components/SnakeGame';
+import FlappyBird from '../components/FlappyBird';
 import Leaderboard from '../components/Leaderboard';
 
 // Style rétro pour les cartes d'easter-egg
@@ -53,11 +54,20 @@ const EasterEggIcon = styled(Box)(({ theme }) => ({
 }));
 
 const EasterEggsPage = () => {
-  const { isEasterEggUnlocked, openSnakeGame, showSnakeGame, closeSnakeGame } = useEasterEgg();
+  const { 
+    isEasterEggUnlocked, 
+    openSnakeGame, 
+    showSnakeGame, 
+    closeSnakeGame,
+    isFlappyBirdUnlocked,
+    openFlappyBird,
+    showFlappyBird,
+    closeFlappyBird
+  } = useEasterEgg();
   const [selectedEasterEgg, setSelectedEasterEgg] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
 
-  // Liste des easter-eggs (actuellement seulement Snake, mais extensible)
+  // Liste des easter-eggs
   const easterEggs = [
     {
       id: 'snake-game',
@@ -69,6 +79,17 @@ const EasterEggsPage = () => {
       difficulty: 'Moyen',
       hint: 'Trouvez la séquence secrète dans la navigation...',
       instructions: 'Utilisez les flèches directionnelles pour diriger le serpent. Mangez la nourriture rouge pour grandir et gagner des points. Évitez les murs et votre propre corps !'
+    },
+    {
+      id: 'flappy-bird',
+      name: 'Flappy Bird',
+      description: 'Un Flappy Bird addictif avec système de classement',
+      icon: '🐦',
+      unlocked: isFlappyBirdUnlocked,
+      category: 'Jeux',
+      difficulty: 'Difficile',
+      hint: 'Dépassez 20 000$ de CA total pour débloquer ce jeu !',
+      instructions: 'Appuyez sur ESPACE ou cliquez pour faire voler l\'oiseau. Évitez les tuyaux verts et collectez des points !'
     }
   ];
 
@@ -76,6 +97,8 @@ const EasterEggsPage = () => {
     if (easterEgg.unlocked) {
       if (easterEgg.id === 'snake-game') {
         openSnakeGame();
+      } else if (easterEgg.id === 'flappy-bird') {
+        openFlappyBird();
       }
     }
   };
@@ -272,8 +295,9 @@ const EasterEggsPage = () => {
         <Leaderboard easterEggType="snake-game" />
       </Box>
 
-      {/* Composant Snake Game */}
+      {/* Composants de jeux */}
       <SnakeGame open={showSnakeGame} onClose={closeSnakeGame} />
+      <FlappyBird open={showFlappyBird} onClose={closeFlappyBird} />
     </Container>
   );
 };

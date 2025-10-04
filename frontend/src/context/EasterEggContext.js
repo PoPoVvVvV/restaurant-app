@@ -27,8 +27,24 @@ export const EasterEggProvider = ({ children }) => {
     // Vérifier si l'easter-egg a déjà été débloqué (stocké dans localStorage)
     return localStorage.getItem('easterEggUnlocked') === 'true';
   });
+  const [isFlappyBirdUnlocked, setIsFlappyBirdUnlocked] = useState(false);
   const [showSnakeGame, setShowSnakeGame] = useState(false);
+  const [showFlappyBird, setShowFlappyBird] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
+
+  // Vérifier le déblocage du Flappy Bird au montage
+  useEffect(() => {
+    const checkFlappyBirdUnlock = async () => {
+      try {
+        const response = await api.get('/easter-egg-scores/check-unlock/flappy-bird');
+        setIsFlappyBirdUnlocked(response.data.isUnlocked);
+      } catch (error) {
+        console.error('Erreur lors de la vérification du déblocage Flappy Bird:', error);
+      }
+    };
+
+    checkFlappyBirdUnlock();
+  }, []);
 
   // Fonction pour jouer un son de progression
   const playProgressSound = useCallback((progress) => {
@@ -231,21 +247,38 @@ export const EasterEggProvider = ({ children }) => {
     setShowSnakeGame(false);
   }, []);
 
+  // Ouvrir le jeu Flappy Bird
+  const openFlappyBird = useCallback(() => {
+    if (isFlappyBirdUnlocked) {
+      setShowFlappyBird(true);
+    }
+  }, [isFlappyBirdUnlocked]);
+
+  // Fermer le jeu Flappy Bird
+  const closeFlappyBird = useCallback(() => {
+    setShowFlappyBird(false);
+  }, []);
+
   // Réinitialiser l'easter-egg (pour les tests)
   const resetEasterEgg = useCallback(() => {
     setClickSequence([]);
     setIsEasterEggUnlocked(false);
     setShowSnakeGame(false);
+    setShowFlappyBird(false);
     setLastClickTime(0);
   }, []);
 
   const value = {
     clickSequence,
     isEasterEggUnlocked,
+    isFlappyBirdUnlocked,
     showSnakeGame,
+    showFlappyBird,
     recordClick,
     openSnakeGame,
     closeSnakeGame,
+    openFlappyBird,
+    closeFlappyBird,
     resetEasterEgg,
   };
 

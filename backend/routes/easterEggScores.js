@@ -1,5 +1,6 @@
 import express from 'express';
 import EasterEggScore from '../models/EasterEggScore.js';
+import Transaction from '../models/Transaction.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -220,6 +221,53 @@ router.get('/my-scores/:easterEggType', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la récupération du score:', error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   GET /api/easter-egg-scores/check-unlock/:easterEggType
+// @desc    Vérifier si un easter-egg est débloqué pour l'utilisateur
+// @access  Privé
+router.get('/check-unlock/:easterEggType', protect, async (req, res) => {
+  try {
+    const { easterEggType } = req.params;
+
+    if (easterEggType === 'flappy-bird') {
+      // Pour Flappy Bird, vérifier si l'utilisateur a un CA total > 20000$
+      const totalCA = await Transaction.aggregate([
+        { $match: { employeeId: req.user.id } },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+      ]);
+
+      const userTotalCA = totalCA[0]?.totalRevenue || 0;
+      const isUnlocked = userTotalCA >= 20000;
+
+      res.json({
+        easterEggType,
+        isUnlocked,
+        unlockCondition: {
+          type: 'totalCA',
+          required: 20000,
+          current: userTotalCA,
+          progress: Math.min((userTotalCA / 20000) * 100, 100)
+        }
+      });
+    } else if (easterEggType === 'snake-game') {
+      // Pour Snake, utiliser la logique existante (séquence de clics)
+      // Cette logique est gérée côté frontend dans EasterEggContext
+      res.json({
+        easterEggType,
+        isUnlocked: true, // Snake est débloqué par défaut si l'utilisateur peut y accéder
+        unlockCondition: {
+          type: 'sequence',
+          description: 'Séquence de navigation secrète'
+        }
+      });
+    } else {
+      res.status(400).json({ message: 'Type d\'easter-egg non supporté' });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du déblocage:', error);
     res.status(500).json({ message: 'Erreur du serveur' });
   }
 });
