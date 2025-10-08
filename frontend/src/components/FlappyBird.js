@@ -137,7 +137,7 @@ const FlappyBird = ({ open, onClose }) => {
     }
   };
 
-  // Sauvegarder le score
+  // Sauvegarder le score (ne garde que le meilleur)
   const saveScore = async (finalScore) => {
     if (isSaving) return;
     
@@ -148,10 +148,11 @@ const FlappyBird = ({ open, onClose }) => {
         gameSpeed: gameSpeed,
         finalBirdY: bird.y,
         difficulty: settings.difficulty,
-        settings: settings
+        settings: settings,
+        timestamp: new Date().toISOString()
       };
 
-      await api.post('/easter-egg-scores', {
+      const response = await api.post('/easter-egg-scores', {
         easterEggType: 'flappy-bird',
         score: finalScore,
         level: 1,
@@ -160,6 +161,17 @@ const FlappyBird = ({ open, onClose }) => {
         gameData
       });
 
+      // Vérifier si c'est un nouveau record
+      if (response.data.isNewRecord) {
+        console.log('🎉 Nouveau record personnel !', finalScore);
+        setHighScore(finalScore); // Mettre à jour immédiatement le high score local
+        playSound(800, 0.3, 'sine'); // Son de record
+      } else if (response.data.isScoreRejected) {
+        console.log('📊 Score non sauvegardé (inférieur au meilleur)', finalScore);
+        playSound(400, 0.2, 'triangle'); // Son de score normal
+      }
+
+      // Recharger les données
       loadLeaderboard();
       loadHighScore();
     } catch (error) {
@@ -256,10 +268,8 @@ const FlappyBird = ({ open, onClose }) => {
         if (newBird.y + newBird.size > GAME_CONFIG.SKY_HEIGHT || newBird.y < 0) {
           setGameState('gameOver');
           playSound(150, 0.5, 'sawtooth');
-          if (score > highScore) {
-            setHighScore(score);
+          // Toujours essayer de sauvegarder (le backend gérera si c'est un nouveau record)
             saveScore(score);
-          }
           return prev;
         }
 
@@ -333,13 +343,11 @@ const FlappyBird = ({ open, onClose }) => {
         if (birdRight > pipe.x && 
             birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
             (birdTop < pipe.topHeight || birdBottom > pipe.bottomY)) {
-            setGameState('gameOver');
+          setGameState('gameOver');
           playSound(150, 0.5, 'sawtooth');
-            if (score > highScore) {
-              setHighScore(score);
-              saveScore(score);
-            }
-          }
+          // Toujours essayer de sauvegarder (le backend gérera si c'est un nouveau record)
+          saveScore(score);
+        }
       });
     };
 
@@ -588,13 +596,31 @@ const FlappyBird = ({ open, onClose }) => {
     ctx.textAlign = 'center';
     ctx.strokeStyle = '#FFF';
     ctx.lineWidth = 2;
-    ctx.strokeText('GAME OVER!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 - 20);
-    ctx.fillText('GAME OVER!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 - 20);
+    ctx.strokeText('GAME OVER!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 - 40);
+    ctx.fillText('GAME OVER!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 - 40);
     
     ctx.font = '18px Arial';
     ctx.fillStyle = '#FFF';
-    ctx.fillText(`Score final: ${score}`, GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 20);
-    ctx.fillText('Appuyez sur R pour rejouer', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 50);
+    ctx.fillText(`Score final: ${score}`, GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 - 10);
+    
+    // Afficher si c'est un nouveau record
+    if (score > highScore) {
+      ctx.fillStyle = '#F39C12';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('🎉 NOUVEAU RECORD!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 15);
+    } else if (score === highScore) {
+      ctx.fillStyle = '#27AE60';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('✨ ÉGALITÉ!', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 15);
+    } else {
+      ctx.fillStyle = '#95A5A6';
+      ctx.font = '14px Arial';
+      ctx.fillText(`Meilleur: ${highScore}`, GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 15);
+    }
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = '16px Arial';
+    ctx.fillText('Appuyez sur R pour rejouer', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 45);
   };
 
   // Gérer la fermeture
@@ -770,6 +796,19 @@ const FlappyBird = ({ open, onClose }) => {
                 {gameState === 'paused' && 'P = Reprendre'}
                 {gameState === 'gameOver' && 'R = Rejouer'}
               </Typography>
+              
+              {gameState === 'menu' && (
+                <Typography variant="caption" sx={{ 
+                  fontFamily: '"Courier New", monospace', 
+                  color: '#7F8C8D',
+                  display: 'block',
+                  mb: 1,
+                  maxWidth: 400,
+                  mx: 'auto'
+                }}>
+                  💾 Seul votre meilleur score est sauvegardé automatiquement
+                </Typography>
+              )}
               
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                 <Chip 
