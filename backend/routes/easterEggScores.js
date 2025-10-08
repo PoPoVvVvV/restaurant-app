@@ -1,6 +1,8 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import EasterEggScore from '../models/EasterEggScore.js';
 import Transaction from '../models/Transaction.js';
+import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -234,13 +236,23 @@ router.get('/check-unlock/:easterEggType', protect, async (req, res) => {
 
     if (easterEggType === 'flappy-bird') {
       // Pour Flappy Bird, vérifier si l'utilisateur a un CA total > 20000$
+      // Convertir l'ID en ObjectId pour la requête MongoDB
+      const userId = new mongoose.Types.ObjectId(req.user.id);
+      
       const totalCA = await Transaction.aggregate([
-        { $match: { employeeId: req.user.id } },
+        { $match: { employeeId: userId } },
         { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
       ]);
 
       const userTotalCA = totalCA[0]?.totalRevenue || 0;
       const isUnlocked = userTotalCA >= 20000;
+
+      // Debug: Log des informations
+      console.log(`[DEBUG] Vérification Flappy Bird pour ${req.user.username} (ID: ${req.user.id})`);
+      console.log(`[DEBUG] ObjectId converti: ${userId}`);
+      console.log(`[DEBUG] CA total calculé: $${userTotalCA}`);
+      console.log(`[DEBUG] Seuil requis: $20000`);
+      console.log(`[DEBUG] Débloqué: ${isUnlocked}`);
 
       res.json({
         easterEggType,
@@ -271,5 +283,64 @@ router.get('/check-unlock/:easterEggType', protect, async (req, res) => {
     res.status(500).json({ message: 'Erreur du serveur' });
   }
 });
+
+// @route   GET /api/easter-egg-scores/debug-ca/:userId
+// @desc    Debug: Vérifier le CA total pour un utilisateur spécifique
+// @access  Privé (Admin)
+router.get('/debug-ca/:userId', protect, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Vérifier si l'utilisateur est admin
+    if (req.user.grade !== 'Patron' && req.user.grade !== 'Co-Patronne') {
+      return res.status(403).json({ message: 'Accès refusé' });
+    }
+
+    // Récupérer les informations de l'utilisateur
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // Calculer le CA total
+    const userIdObjectId = new mongoose.Types.ObjectId(userId);
+    const totalCA = await Transaction.aggregate([
+      { $match: { employeeId: userIdObjectId } },
+      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+    ]);
+
+    // Récupérer toutes les transactions pour plus de détails
+    const transactions = await Transaction.find({ employeeId: userIdObjectId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('totalAmount weekId saleType createdAt');
+
+    const userTotalCA = totalCA[0]?.totalRevenue || 0;
+    const isUnlocked = userTotalCA >= 20000;
+
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        grade: user.grade
+      },
+      ca: {
+        total: userTotalCA,
+        isUnlocked,
+        threshold: 20000,
+        progress: Math.min((userTotalCA / 20000) * 100, 100)
+      },
+      recentTransactions: transactions,
+      debug: {
+        totalTransactions: transactions.length,
+        aggregationResult: totalCA
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lors du debug CA:', error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 
 export default router;

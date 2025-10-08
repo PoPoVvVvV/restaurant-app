@@ -62,7 +62,8 @@ const EasterEggsPage = () => {
     isFlappyBirdUnlocked,
     openFlappyBird,
     showFlappyBird,
-    closeFlappyBird
+    closeFlappyBird,
+    checkFlappyBirdUnlock
   } = useEasterEgg();
   const [selectedEasterEgg, setSelectedEasterEgg] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -131,9 +132,25 @@ const EasterEggsPage = () => {
         >
           🎮 Easter-Eggs 🎮
         </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ fontFamily: '"Courier New", monospace' }}>
+        <Typography variant="h6" color="text.secondary" sx={{ fontFamily: '"Courier New", monospace', mb: 2 }}>
           Découvrez les secrets cachés de l'application
         </Typography>
+        <Button
+          variant="outlined"
+          onClick={checkFlappyBirdUnlock}
+          sx={{ 
+            fontFamily: '"Courier New", monospace',
+            borderColor: '#00ff00',
+            color: '#00ff00',
+            '&:hover': {
+              borderColor: '#ffff00',
+              color: '#ffff00',
+              backgroundColor: 'rgba(0, 255, 0, 0.1)'
+            }
+          }}
+        >
+          🔄 Vérifier le déblocage Flappy Bird
+        </Button>
       </Box>
 
       <Grid container spacing={3}>
