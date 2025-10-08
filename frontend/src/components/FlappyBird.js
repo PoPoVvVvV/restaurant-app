@@ -237,32 +237,25 @@ const FlappyBird = ({ open, onClose }) => {
     }
   }, [open, jump, gameState]);
 
-  // Logique du jeu optimisée avec delta time
+  // Logique du jeu optimisée
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    const gameLoop = (currentTime) => {
-      if (lastTimeRef.current === 0) {
-        lastTimeRef.current = currentTime;
-      }
-      
-      const deltaTime = Math.min((currentTime - lastTimeRef.current) / 1000, 0.016); // Cap à 60fps
-      lastTimeRef.current = currentTime;
-
+    const gameLoop = () => {
       const config = GAME_CONFIG.DIFFICULTY[settings.difficulty];
       
       setBird(prev => {
         const newBird = {
           ...prev,
-          velocity: prev.velocity + config.gravity * deltaTime * 60,
-          y: prev.y + prev.velocity * deltaTime * 60,
-          rotation: Math.min(Math.max(prev.velocity * 2, -45), 45) // Rotation basée sur la vélocité
+          velocity: prev.velocity + config.gravity,
+          y: prev.y + prev.velocity,
+          rotation: Math.min(Math.max(prev.velocity * 2, -45), 45)
         };
 
         // Vérifier les collisions avec le sol et le plafond
         if (newBird.y + newBird.size > GAME_CONFIG.SKY_HEIGHT || newBird.y < 0) {
           setGameState('gameOver');
-          playSound(150, 0.5, 'sawtooth'); // Son de game over
+          playSound(150, 0.5, 'sawtooth');
           if (score > highScore) {
             setHighScore(score);
             saveScore(score);
@@ -273,11 +266,10 @@ const FlappyBird = ({ open, onClose }) => {
         return newBird;
       });
 
-      // Mettre à jour les tuyaux avec collision optimisée
       setPipes(prev => {
         let newPipes = prev.map(pipe => ({
           ...pipe,
-          x: pipe.x - config.pipeSpeed * deltaTime * 60
+          x: pipe.x - config.pipeSpeed
         })).filter(pipe => pipe.x + GAME_CONFIG.PIPE_WIDTH > 0);
 
         // Ajouter de nouveaux tuyaux
@@ -288,39 +280,9 @@ const FlappyBird = ({ open, onClose }) => {
             topHeight: pipeHeight,
             bottomY: pipeHeight + config.pipeGap,
             passed: false,
-            id: Date.now() + Math.random() // ID unique pour optimiser les collisions
+            id: Date.now() + Math.random()
           });
         }
-
-        // Vérifier les collisions optimisées
-        const birdLeft = bird.x;
-        const birdRight = bird.x + bird.size;
-        const birdTop = bird.y;
-        const birdBottom = bird.y + bird.size;
-
-        newPipes.forEach(pipe => {
-          if (!pipe.passed && pipe.x + GAME_CONFIG.PIPE_WIDTH < birdLeft) {
-            pipe.passed = true;
-            setScore(prev => {
-              const newScore = prev + 10;
-              playSound(600 + newScore * 2, 0.1, 'triangle'); // Son de score
-              return newScore;
-            });
-            setGameSpeed(prev => Math.min(prev + 0.05, 6));
-          }
-
-          // Collision optimisée avec AABB (Axis-Aligned Bounding Box)
-          if (birdRight > pipe.x && 
-              birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
-              (birdTop < pipe.topHeight || birdBottom > pipe.bottomY)) {
-            setGameState('gameOver');
-            playSound(150, 0.5, 'sawtooth');
-            if (score > highScore) {
-              setHighScore(score);
-              saveScore(score);
-            }
-          }
-        });
 
         return newPipes;
       });
@@ -330,24 +292,60 @@ const FlappyBird = ({ open, onClose }) => {
         particlesRef.current = particlesRef.current
           .map(particle => ({
             ...particle,
-            x: particle.x + particle.vx * deltaTime * 60,
-            y: particle.y + particle.vy * deltaTime * 60,
+            x: particle.x + particle.vx,
+            y: particle.y + particle.vy,
             life: particle.life - 1,
-            vy: particle.vy + 0.2 * deltaTime * 60 // Gravité des particules
+            vy: particle.vy + 0.2
           }))
           .filter(particle => particle.life > 0);
       }
-
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
     };
 
-    animationFrameRef.current = requestAnimationFrame(gameLoop);
+    gameLoopRef.current = setInterval(gameLoop, 1000 / 60);
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
       }
     };
-  }, [gameState, bird.x, bird.y, bird.size, score, highScore, settings.difficulty, settings.particlesEnabled, playSound]);
+  }, [gameState, settings.difficulty, settings.particlesEnabled, playSound]);
+
+  // Vérification des collisions séparée
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const checkCollisions = () => {
+      const birdLeft = bird.x;
+      const birdRight = bird.x + bird.size;
+      const birdTop = bird.y;
+      const birdBottom = bird.y + bird.size;
+
+      pipes.forEach(pipe => {
+        if (!pipe.passed && pipe.x + GAME_CONFIG.PIPE_WIDTH < birdLeft) {
+            pipe.passed = true;
+          setScore(prev => {
+            const newScore = prev + 10;
+            playSound(600 + newScore * 2, 0.1, 'triangle');
+            return newScore;
+          });
+          setGameSpeed(prev => Math.min(prev + 0.05, 6));
+        }
+
+        if (birdRight > pipe.x && 
+            birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
+            (birdTop < pipe.topHeight || birdBottom > pipe.bottomY)) {
+            setGameState('gameOver');
+          playSound(150, 0.5, 'sawtooth');
+            if (score > highScore) {
+              setHighScore(score);
+              saveScore(score);
+            }
+          }
+      });
+    };
+
+    const collisionInterval = setInterval(checkCollisions, 1000 / 60);
+    return () => clearInterval(collisionInterval);
+  }, [gameState, bird, pipes, score, highScore, playSound]);
 
   // Dessiner le jeu optimisé
   useEffect(() => {
@@ -414,12 +412,55 @@ const FlappyBird = ({ open, onClose }) => {
       }
     };
 
-    const animationLoop = () => {
+    // Rendu unique au lieu d'une boucle infinie
       draw();
-      requestAnimationFrame(animationLoop);
-    };
-    animationLoop();
   }, [open, gameState, bird, pipes, score, highScore, settings.difficulty, settings.smoothGraphics, settings.particlesEnabled]);
+
+  // Rendu optimisé pour le jeu en cours
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    const render = () => {
+      // Effacer le canvas avec dégradé
+      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.CANVAS_HEIGHT);
+      gradient.addColorStop(0, '#87CEEB');
+      gradient.addColorStop(1, '#98FB98');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+
+      // Dessiner les tuyaux
+      drawPipes(ctx, pipes);
+      
+      // Dessiner l'oiseau
+      drawBird(ctx, bird.x, bird.y, bird.rotation, false);
+      
+      // Dessiner les particules
+      if (settings.particlesEnabled) {
+        drawParticles(ctx);
+      }
+
+      // Dessiner le score
+      drawScore(ctx, score, highScore);
+
+      // Dessiner le sol
+      drawGround(ctx);
+    };
+
+    // Rendu immédiat
+    render();
+    
+    // Rendu périodique seulement si nécessaire
+    const renderInterval = setInterval(render, 1000 / 60);
+    
+    return () => {
+      clearInterval(renderInterval);
+    };
+  }, [gameState, bird, pipes, score, highScore, settings.particlesEnabled]);
 
   // Fonction pour dessiner l'oiseau optimisée
   const drawBird = (ctx, x, y, rotation, isDead = false) => {
