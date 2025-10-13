@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
 import api from '../services/api';
 import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
@@ -130,7 +130,7 @@ const IngredientManager = () => {
 
 function StockPage() {
   const [products, setProducts] = useState([]);
-  const [deliveryStatus, setDeliveryStatus] = useState({ isActive: false, companyName: '' });
+  const [deliveryStatus, setDeliveryStatus] = useState({ isActive: false, companyName: '', expectedReceipts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
@@ -153,7 +153,12 @@ function StockPage() {
       
       const productsWithEdit = sortedProducts.map(p => ({ ...p, editedStock: p.stock }));
       setProducts(productsWithEdit);
-      setDeliveryStatus(statusRes.data.value);
+      const value = statusRes.data.value || { isActive: false, companyName: '', expectedReceipts: [] };
+      setDeliveryStatus({
+        isActive: !!value.isActive,
+        companyName: value.companyName || '',
+        expectedReceipts: Array.isArray(value.expectedReceipts) ? value.expectedReceipts : []
+      });
 
     } catch (err) {
       setError('Impossible de charger les données.');
@@ -200,6 +205,32 @@ function StockPage() {
 
   const totalStockValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
 
+  const groupedReceipts = useMemo(() => {
+    const groups = {};
+    const receipts = (deliveryStatus.expectedReceipts || []);
+    for (const rec of receipts) {
+      const company = rec.company || '-';
+      if (!groups[company]) {
+        groups[company] = { company, total: 0, items: [] };
+      }
+      const prod = products.find(p => p._id === rec.productId);
+      groups[company].items.push({
+        productName: prod ? prod.name : 'Produit',
+        quantity: Number(rec.quantity) || 0
+      });
+      groups[company].total += Number(rec.quantity) || 0;
+    }
+    const result = Object.values(groups).map(g => ({
+      ...g,
+      items: g.items.sort((a, b) => a.productName.localeCompare(b.productName))
+    })).sort((a, b) => a.company.localeCompare(b.company));
+    return result;
+  }, [deliveryStatus.expectedReceipts, products]);
+
+  const globalExpectedTotal = useMemo(() => {
+    return groupedReceipts.reduce((sum, g) => sum + (g.total || 0), 0);
+  }, [groupedReceipts]);
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
   if (error) return <Typography color="error" align="center">{error}</Typography>;
 
@@ -209,6 +240,43 @@ function StockPage() {
         <Alert severity="info" sx={{ mb: 3 }}>
           <AlertTitle>Information</AlertTitle>
           Une commande de matière première est en route via l'entreprise : <strong>{deliveryStatus.companyName}</strong>
+          {groupedReceipts.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>Quantités prévues par entreprise</Typography>
+              <Paper elevation={0} sx={{ p: 1, mb: 1, bgcolor: 'action.hover', display: 'inline-block' }}>
+                <Typography variant="body2">Total global prévu: <strong>{globalExpectedTotal}</strong></Typography>
+              </Paper>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Entreprise</TableCell>
+                      <TableCell>Produit</TableCell>
+                      <TableCell align="right">Quantité</TableCell>
+                      <TableCell align="right">Total Entreprise</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {groupedReceipts.map(group => (
+                      group.items.map((item, idx) => (
+                        <TableRow key={`${group.company}-${item.productName}-${idx}`}>
+                          <TableCell>
+                            {group.company}
+                            <Chip label={group.total} size="small" color="primary" sx={{ ml: 1 }} />
+                          </TableCell>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell align="right">{item.quantity}</TableCell>
+                          <TableCell align="right" style={{ fontWeight: idx === 0 ? 'bold' : 'normal' }}>
+                            {idx === 0 ? group.total : ''}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
         </Alert>
       )}
 

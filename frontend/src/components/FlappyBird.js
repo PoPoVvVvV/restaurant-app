@@ -41,6 +41,8 @@ const FlappyBird = ({ open, onClose }) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState(null);
   
   // Paramètres optimisés
   const [settings, setSettings] = useState({
@@ -109,6 +111,17 @@ const FlappyBird = ({ open, onClose }) => {
   // Charger le meilleur score au montage
   useEffect(() => {
     if (open) {
+      // Vérifier l'authentification
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ Aucun token d\'authentification trouvé');
+        setAuthError('Vous devez être connecté pour sauvegarder vos scores');
+        setIsAuthenticated(false);
+        return;
+      }
+      console.log('🔑 Token trouvé, chargement des données...');
+      setAuthError(null);
+      setIsAuthenticated(true);
       loadHighScore();
       loadLeaderboard();
       initAudio();
@@ -118,30 +131,53 @@ const FlappyBird = ({ open, onClose }) => {
   // Charger le meilleur score de l'utilisateur
   const loadHighScore = async () => {
     try {
+      console.log('📊 Chargement du meilleur score...');
       const response = await api.get('/easter-egg-scores/my-best/flappy-bird');
+      console.log('📥 Réponse meilleur score:', response.data);
       if (response.data.bestScore) {
         setHighScore(response.data.bestScore.score);
+        console.log('✅ Meilleur score chargé:', response.data.bestScore.score);
+      } else {
+        console.log('ℹ️ Aucun meilleur score trouvé');
       }
     } catch (error) {
-      console.error('Erreur lors du chargement du meilleur score:', error);
+      console.error('❌ Erreur lors du chargement du meilleur score:', error);
+      console.error('Détails:', error.response?.data || error.message);
     }
   };
 
   // Charger le classement
   const loadLeaderboard = async () => {
     try {
+      console.log('🏆 Chargement du classement...');
       const response = await api.get('/easter-egg-scores/leaderboard/flappy-bird?limit=10');
+      console.log('📥 Réponse classement:', response.data);
       setLeaderboard(response.data.leaderboard || []);
+      console.log('✅ Classement chargé:', response.data.leaderboard?.length || 0, 'entrées');
     } catch (error) {
-      console.error('Erreur lors du chargement du classement:', error);
+      console.error('❌ Erreur lors du chargement du classement:', error);
+      console.error('Détails:', error.response?.data || error.message);
     }
   };
 
   // Sauvegarder le score (ne garde que le meilleur)
   const saveScore = async (finalScore) => {
-    if (isSaving) return;
+    if (isSaving) {
+      console.log('⚠️ Sauvegarde déjà en cours, ignorée');
+      return;
+    }
     
+    // Vérifier l'authentification
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('❌ Impossible de sauvegarder: aucun token d\'authentification');
+      setAuthError('Vous devez être connecté pour sauvegarder vos scores');
+      return;
+    }
+    
+    console.log('💾 Tentative de sauvegarde du score:', finalScore);
     setIsSaving(true);
+    
     try {
       const gameData = {
         pipesPassed: Math.floor(finalScore / 10),
@@ -152,6 +188,15 @@ const FlappyBird = ({ open, onClose }) => {
         timestamp: new Date().toISOString()
       };
 
+      console.log('📤 Envoi des données:', {
+        easterEggType: 'flappy-bird',
+        score: finalScore,
+        level: 1,
+        duration: 0,
+        snakeLength: 0,
+        gameData
+      });
+
       const response = await api.post('/easter-egg-scores', {
         easterEggType: 'flappy-bird',
         score: finalScore,
@@ -161,6 +206,8 @@ const FlappyBird = ({ open, onClose }) => {
         gameData
       });
 
+      console.log('📥 Réponse du serveur:', response.data);
+
       // Vérifier si c'est un nouveau record
       if (response.data.isNewRecord) {
         console.log('🎉 Nouveau record personnel !', finalScore);
@@ -169,13 +216,17 @@ const FlappyBird = ({ open, onClose }) => {
       } else if (response.data.isScoreRejected) {
         console.log('📊 Score non sauvegardé (inférieur au meilleur)', finalScore);
         playSound(400, 0.2, 'triangle'); // Son de score normal
+      } else {
+        console.log('✅ Score sauvegardé avec succès');
       }
 
       // Recharger les données
+      console.log('🔄 Rechargement des données...');
       loadLeaderboard();
       loadHighScore();
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde du score:', error);
+      console.error('❌ Erreur lors de la sauvegarde du score:', error);
+      console.error('Détails de l\'erreur:', error.response?.data || error.message);
     } finally {
       setIsSaving(false);
     }
@@ -798,16 +849,45 @@ const FlappyBird = ({ open, onClose }) => {
               </Typography>
               
               {gameState === 'menu' && (
-                <Typography variant="caption" sx={{ 
-                  fontFamily: '"Courier New", monospace', 
-                  color: '#7F8C8D',
-                  display: 'block',
-                  mb: 1,
-                  maxWidth: 400,
-                  mx: 'auto'
-                }}>
-                  💾 Seul votre meilleur score est sauvegardé automatiquement
-                </Typography>
+                <>
+                  <Typography variant="caption" sx={{ 
+                    fontFamily: '"Courier New", monospace', 
+                    color: '#7F8C8D',
+                    display: 'block',
+                    mb: 1,
+                    maxWidth: 400,
+                    mx: 'auto'
+                  }}>
+                    💾 Seul votre meilleur score est sauvegardé automatiquement
+                  </Typography>
+                  
+                  {authError && (
+                    <Typography variant="caption" sx={{ 
+                      fontFamily: '"Courier New", monospace', 
+                      color: '#E74C3C',
+                      display: 'block',
+                      mb: 1,
+                      maxWidth: 400,
+                      mx: 'auto',
+                      fontWeight: 'bold'
+                    }}>
+                      ⚠️ {authError}
+                    </Typography>
+                  )}
+                  
+                  {isAuthenticated && (
+                    <Typography variant="caption" sx={{ 
+                      fontFamily: '"Courier New", monospace', 
+                      color: '#27AE60',
+                      display: 'block',
+                      mb: 1,
+                      maxWidth: 400,
+                      mx: 'auto'
+                    }}>
+                      ✅ Connecté - Scores sauvegardés automatiquement
+                    </Typography>
+                  )}
+                </>
               )}
               
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
@@ -920,6 +1000,30 @@ const FlappyBird = ({ open, onClose }) => {
           }}
         >
           {showLeaderboard ? 'Retour au jeu' : 'Classement'}
+        </Button>
+        <Button
+          onClick={() => {
+            const token = localStorage.getItem('token');
+            if (token) {
+              setAuthError(null);
+              setIsAuthenticated(true);
+              loadHighScore();
+              loadLeaderboard();
+            } else {
+              setAuthError('Vous devez être connecté pour sauvegarder vos scores');
+              setIsAuthenticated(false);
+            }
+          }}
+          sx={{
+            backgroundColor: '#3498db',
+            color: '#fff',
+            fontFamily: '"Courier New", monospace',
+            '&:hover': {
+              backgroundColor: '#2980b9'
+            }
+          }}
+        >
+          🔑 Vérifier connexion
         </Button>
       </DialogActions>
     </Dialog>

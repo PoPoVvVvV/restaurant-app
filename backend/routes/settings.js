@@ -15,7 +15,7 @@ router.get('/delivery-status', protect, async (req, res) => {
   try {
     const setting = await Setting.findOne({ key: 'deliveryStatus' });
     if (!setting) {
-      return res.json({ value: { isActive: false, companyName: '' } });
+      return res.json({ value: { isActive: false, companyName: '', expectedReceipts: [] } });
     }
     res.json(setting);
   } catch (error) {
@@ -68,9 +68,24 @@ router.post('/account-balance', [protect, admin], async (req, res) => {
 // @desc    Mettre à jour le statut de l'annonce de livraison
 // @access  Privé/Admin
 router.post('/delivery-status', [protect, admin], async (req, res) => {
-  const { isActive, companyName } = req.body;
+  const { isActive, companyName, expectedReceipts } = req.body;
   try {
-    const deliveryStatus = { isActive, companyName };
+    // Normaliser la liste des réceptions prévues
+    let normalizedReceipts = [];
+    if (Array.isArray(expectedReceipts)) {
+      normalizedReceipts = expectedReceipts
+        .filter(r => r && typeof r === 'object')
+        .map(r => ({
+          company: typeof r.company === 'string' ? r.company.trim() : '',
+          productId: r.productId || null,
+          productName: typeof r.productName === 'string' ? r.productName.trim() : undefined,
+          quantity: Number(r.quantity) || 0,
+        }))
+        .filter(r => r.company && r.productId && r.quantity > 0);
+    }
+
+    const deliveryStatus = { isActive: Boolean(isActive), companyName: companyName || '', expectedReceipts: normalizedReceipts };
+
     await Setting.findOneAndUpdate(
       { key: 'deliveryStatus' },
       { value: deliveryStatus },

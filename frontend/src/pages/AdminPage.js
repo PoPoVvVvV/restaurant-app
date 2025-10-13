@@ -627,15 +627,113 @@ const ProductManager = () => {
 // 10. Annonce de Livraison
 const DeliveryStatusManager = () => {
     const { showNotification } = useNotification();
-    const [status, setStatus] = useState({ isActive: false, companyName: '' });
-    useEffect(() => { api.get('/settings/delivery-status').then(res => setStatus(res.data.value || { isActive: false, companyName: '' })).catch(() => {}); }, []);
-    const handleSave = async () => { try { await api.post('/settings/delivery-status', status); showNotification('Annonce mise à jour !', 'success'); } catch (err) { showNotification("Erreur.", 'error'); } };
+    const [status, setStatus] = useState({ isActive: false, companyName: '', expectedReceipts: [] });
+    const [products, setProducts] = useState([]);
+
+    useEffect(() => {
+        Promise.all([
+            api.get('/settings/delivery-status'),
+            api.get('/products')
+        ]).then(([deliveryRes, productsRes]) => {
+            const value = deliveryRes.data.value || { isActive: false, companyName: '', expectedReceipts: [] };
+            setStatus({ isActive: !!value.isActive, companyName: value.companyName || '', expectedReceipts: Array.isArray(value.expectedReceipts) ? value.expectedReceipts : [] });
+            setProducts(productsRes.data || []);
+        }).catch(() => {});
+    }, []);
+
+    const addReceiptRow = () => {
+        setStatus(s => ({
+            ...s,
+            expectedReceipts: [...(s.expectedReceipts || []), { company: '', productId: '', quantity: '' }]
+        }));
+    };
+
+    const updateReceiptRow = (index, field, value) => {
+        setStatus(s => {
+            const rows = [...(s.expectedReceipts || [])];
+            rows[index] = { ...rows[index], [field]: value };
+            return { ...s, expectedReceipts: rows };
+        });
+    };
+
+    const removeReceiptRow = (index) => {
+        setStatus(s => {
+            const rows = [...(s.expectedReceipts || [])];
+            rows.splice(index, 1);
+            return { ...s, expectedReceipts: rows };
+        });
+    };
+
+    const handleSave = async () => {
+        try {
+            const payload = {
+                isActive: status.isActive,
+                companyName: status.companyName,
+                expectedReceipts: (status.expectedReceipts || []).map(r => ({
+                    company: r.company,
+                    productId: r.productId,
+                    quantity: Number(r.quantity)
+                }))
+            };
+            await api.post('/settings/delivery-status', payload);
+            showNotification('Annonce mise à jour !', 'success');
+        } catch (err) {
+            showNotification("Erreur.", 'error');
+        }
+    };
+
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Annonce de Livraison</Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography variant="h5" gutterBottom>Annonce de Livraison - Commande Matières Premières</Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
                 <TextField size="small" label="Nom du fournisseur(s)" value={status.companyName} onChange={e => setStatus({ ...status, companyName: e.target.value })} sx={{ flexGrow: 1 }} />
                 <FormControlLabel control={<Switch checked={status.isActive} onChange={e => setStatus({ ...status, isActive: e.target.checked })} />} label="Afficher" />
+            </Box>
+
+            <Typography variant="subtitle1" gutterBottom>Produits et quantités à recevoir par entreprise</Typography>
+            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+                <Table size="small">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Entreprise</TableCell>
+                            <TableCell>Produit</TableCell>
+                            <TableCell align="right">Quantité</TableCell>
+                            <TableCell align="center">Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {(status.expectedReceipts || []).map((row, idx) => (
+                            <TableRow key={idx}>
+                                <TableCell>
+                                    <TextField size="small" value={row.company || ''} onChange={e => updateReceiptRow(idx, 'company', e.target.value)} placeholder="Nom entreprise" />
+                                </TableCell>
+                                <TableCell>
+                                    <Select size="small" value={row.productId || ''} onChange={e => updateReceiptRow(idx, 'productId', e.target.value)} sx={{ minWidth: 220 }}>
+                                        {products.map(p => (
+                                            <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </TableCell>
+                                <TableCell align="right">
+                                    <TextField size="small" type="number" value={row.quantity || ''} onChange={e => updateReceiptRow(idx, 'quantity', e.target.value)} inputProps={{ min: 0 }} sx={{ maxWidth: 120 }} />
+                                </TableCell>
+                                <TableCell align="center">
+                                    <IconButton color="error" size="small" onClick={() => removeReceiptRow(idx)}>
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow>
+                            <TableCell colSpan={4}>
+                                <Button size="small" onClick={addReceiptRow}>Ajouter une ligne</Button>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </TableContainer>
+
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Button variant="contained" onClick={handleSave}>Enregistrer</Button>
             </Box>
         </Paper>
