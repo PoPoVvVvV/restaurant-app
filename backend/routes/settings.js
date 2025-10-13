@@ -77,11 +77,11 @@ router.post('/delivery-status', [protect, admin], async (req, res) => {
         .filter(r => r && typeof r === 'object')
         .map(r => ({
           company: typeof r.company === 'string' ? r.company.trim() : '',
-          productId: r.productId || null,
-          productName: typeof r.productName === 'string' ? r.productName.trim() : undefined,
+          // Préférence pour ingredientId; compat: accepter ancien productId mais ne pas le réémettre
+          ingredientId: r.ingredientId || r.productId || null,
           quantity: Number(r.quantity) || 0,
         }))
-        .filter(r => r.company && r.productId && r.quantity > 0);
+        .filter(r => r.company && r.ingredientId && r.quantity > 0);
     }
 
     const deliveryStatus = { isActive: Boolean(isActive), companyName: companyName || '', expectedReceipts: normalizedReceipts };

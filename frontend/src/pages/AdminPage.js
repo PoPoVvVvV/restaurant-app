@@ -628,23 +628,23 @@ const ProductManager = () => {
 const DeliveryStatusManager = () => {
     const { showNotification } = useNotification();
     const [status, setStatus] = useState({ isActive: false, companyName: '', expectedReceipts: [] });
-    const [products, setProducts] = useState([]);
+    const [ingredients, setIngredients] = useState([]);
 
     useEffect(() => {
         Promise.all([
             api.get('/settings/delivery-status'),
-            api.get('/products')
-        ]).then(([deliveryRes, productsRes]) => {
+            api.get('/ingredients')
+        ]).then(([deliveryRes, ingredientsRes]) => {
             const value = deliveryRes.data.value || { isActive: false, companyName: '', expectedReceipts: [] };
             setStatus({ isActive: !!value.isActive, companyName: value.companyName || '', expectedReceipts: Array.isArray(value.expectedReceipts) ? value.expectedReceipts : [] });
-            setProducts(productsRes.data || []);
+            setIngredients(ingredientsRes.data || []);
         }).catch(() => {});
     }, []);
 
     const addReceiptRow = () => {
         setStatus(s => ({
             ...s,
-            expectedReceipts: [...(s.expectedReceipts || []), { company: '', productId: '', quantity: '' }]
+            expectedReceipts: [...(s.expectedReceipts || []), { company: '', ingredientId: '', quantity: '' }]
         }));
     };
 
@@ -671,7 +671,7 @@ const DeliveryStatusManager = () => {
                 companyName: status.companyName,
                 expectedReceipts: (status.expectedReceipts || []).map(r => ({
                     company: r.company,
-                    productId: r.productId,
+                    ingredientId: r.ingredientId,
                     quantity: Number(r.quantity)
                 }))
             };
@@ -696,7 +696,7 @@ const DeliveryStatusManager = () => {
                     <TableHead>
                         <TableRow>
                             <TableCell>Entreprise</TableCell>
-                            <TableCell>Produit</TableCell>
+                            <TableCell>Matière Première</TableCell>
                             <TableCell align="right">Quantité</TableCell>
                             <TableCell align="center">Actions</TableCell>
                         </TableRow>
@@ -708,9 +708,9 @@ const DeliveryStatusManager = () => {
                                     <TextField size="small" value={row.company || ''} onChange={e => updateReceiptRow(idx, 'company', e.target.value)} placeholder="Nom entreprise" />
                                 </TableCell>
                                 <TableCell>
-                                    <Select size="small" value={row.productId || ''} onChange={e => updateReceiptRow(idx, 'productId', e.target.value)} sx={{ minWidth: 220 }}>
-                                        {products.map(p => (
-                                            <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
+                                    <Select size="small" value={row.ingredientId || ''} onChange={e => updateReceiptRow(idx, 'ingredientId', e.target.value)} sx={{ minWidth: 220 }}>
+                                        {ingredients.map(ing => (
+                                            <MenuItem key={ing._id} value={ing._id}>{ing.name}</MenuItem>
                                         ))}
                                     </Select>
                                 </TableCell>

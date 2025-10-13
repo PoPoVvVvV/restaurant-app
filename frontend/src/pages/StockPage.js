@@ -130,6 +130,7 @@ const IngredientManager = () => {
 
 function StockPage() {
   const [products, setProducts] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
   const [deliveryStatus, setDeliveryStatus] = useState({ isActive: false, companyName: '', expectedReceipts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -139,9 +140,10 @@ function StockPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [productsRes, statusRes] = await Promise.all([
+      const [productsRes, statusRes, ingredientsRes] = await Promise.all([
         api.get('/products'),
-        api.get('/settings/delivery-status')
+        api.get('/settings/delivery-status'),
+        api.get('/ingredients')
       ]);
       
       const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts"];
@@ -153,6 +155,7 @@ function StockPage() {
       
       const productsWithEdit = sortedProducts.map(p => ({ ...p, editedStock: p.stock }));
       setProducts(productsWithEdit);
+      setIngredients(ingredientsRes.data || []);
       const value = statusRes.data.value || { isActive: false, companyName: '', expectedReceipts: [] };
       setDeliveryStatus({
         isActive: !!value.isActive,
@@ -213,9 +216,9 @@ function StockPage() {
       if (!groups[company]) {
         groups[company] = { company, total: 0, items: [] };
       }
-      const prod = products.find(p => p._id === rec.productId);
+      const ing = ingredients.find(i => i._id === rec.ingredientId);
       groups[company].items.push({
-        productName: prod ? prod.name : 'Produit',
+        productName: ing ? ing.name : 'Matière Première',
         quantity: Number(rec.quantity) || 0
       });
       groups[company].total += Number(rec.quantity) || 0;
@@ -225,7 +228,7 @@ function StockPage() {
       items: g.items.sort((a, b) => a.productName.localeCompare(b.productName))
     })).sort((a, b) => a.company.localeCompare(b.company));
     return result;
-  }, [deliveryStatus.expectedReceipts, products]);
+  }, [deliveryStatus.expectedReceipts, ingredients]);
 
   const globalExpectedTotal = useMemo(() => {
     return groupedReceipts.reduce((sum, g) => sum + (g.total || 0), 0);
