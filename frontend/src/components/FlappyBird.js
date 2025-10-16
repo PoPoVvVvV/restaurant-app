@@ -71,6 +71,9 @@ const FlappyBird = ({ open, onClose }) => {
     difficulty: 'normal', // 'easy', 'normal', 'hard', 'extreme'
     fps: 60
   });
+
+  // Limite d'images par seconde
+  const TARGET_FPS = 30; // plafonné à 30 FPS max
   
   // Constantes optimisées
   const GAME_CONFIG = useMemo(() => ({
@@ -389,7 +392,7 @@ const FlappyBird = ({ open, onClose }) => {
       }
     };
 
-    gameLoopRef.current = setInterval(gameLoop, 1000 / 60);
+    gameLoopRef.current = setInterval(gameLoop, 1000 / TARGET_FPS);
     return () => {
       if (gameLoopRef.current) {
         clearInterval(gameLoopRef.current);
@@ -443,7 +446,7 @@ const FlappyBird = ({ open, onClose }) => {
       }
     };
 
-    const collisionInterval = setInterval(checkCollisions, 1000 / 60);
+    const collisionInterval = setInterval(checkCollisions, 1000 / TARGET_FPS);
     return () => clearInterval(collisionInterval);
   }, [gameState, playSound, endGameOnce]);
 
@@ -555,7 +558,7 @@ const FlappyBird = ({ open, onClose }) => {
     render();
     
     // Rendu périodique seulement si nécessaire
-    const renderInterval = setInterval(render, 1000 / 60);
+    const renderInterval = setInterval(render, 1000 / TARGET_FPS);
     
     return () => {
       clearInterval(renderInterval);
