@@ -28,6 +28,8 @@ const FlappyBird = ({ open, onClose }) => {
   const lastTimeRef = useRef(0);
   const particlesRef = useRef([]);
   const audioContextRef = useRef(null);
+  const isGameOverRef = useRef(false);
+  const scoreRef = useRef(0);
   
   // États du jeu
   const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'paused', 'gameOver'
@@ -43,6 +45,11 @@ const FlappyBird = ({ open, onClose }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState(null);
+
+  // Garder un score courant pour éviter les valeurs obsolètes lors de la sauvegarde
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
   
   // Paramètres optimisés
   const [settings, setSettings] = useState({
@@ -247,8 +254,18 @@ const FlappyBird = ({ open, onClose }) => {
     setGameSpeed(config.pipeSpeed);
     setGameState('playing');
     particlesRef.current = [];
+    isGameOverRef.current = false;
     playSound(440, 0.1); // Son de démarrage
   };
+
+  // Centraliser la fin de partie pour éviter les doublons (sauvegarde unique)
+  const endGameOnce = useCallback((finalScore) => {
+    if (isGameOverRef.current) return;
+    isGameOverRef.current = true;
+    setGameState('gameOver');
+    playSound(150, 0.5, 'sawtooth');
+    saveScore(finalScore);
+  }, [playSound]);
 
   // Gérer le saut optimisé
   const jump = useCallback(() => {
@@ -317,10 +334,7 @@ const FlappyBird = ({ open, onClose }) => {
 
         // Vérifier les collisions avec le sol et le plafond
         if (newBird.y + newBird.size > GAME_CONFIG.SKY_HEIGHT || newBird.y < 0) {
-          setGameState('gameOver');
-          playSound(150, 0.5, 'sawtooth');
-          // Toujours essayer de sauvegarder (le backend gérera si c'est un nouveau record)
-            saveScore(score);
+          endGameOnce(scoreRef.current);
           return prev;
         }
 
@@ -380,31 +394,42 @@ const FlappyBird = ({ open, onClose }) => {
       const birdTop = bird.y;
       const birdBottom = bird.y + bird.size;
 
-      pipes.forEach(pipe => {
-        if (!pipe.passed && pipe.x + GAME_CONFIG.PIPE_WIDTH < birdLeft) {
-            pipe.passed = true;
-          setScore(prev => {
-            const newScore = prev + 10;
-            playSound(600 + newScore * 2, 0.1, 'triangle');
-            return newScore;
-          });
-          setGameSpeed(prev => Math.min(prev + 0.05, 6));
+      // 1) Incrément de score idempotent: marquer immuablement les tuyaux passés
+      let passedCount = 0;
+      setPipes(prev => prev.map(p => {
+        const hasPassed = !p.passed && (p.x + GAME_CONFIG.PIPE_WIDTH < birdLeft);
+        if (hasPassed) {
+          passedCount += 1;
+          return { ...p, passed: true };
         }
+        return p;
+      }));
+      if (passedCount > 0) {
+        setScore(prev => {
+          const newScore = prev + 10 * passedCount;
+          playSound(600 + newScore * 2, 0.1, 'triangle');
+          return newScore;
+        });
+        setGameSpeed(prev => Math.min(prev + 0.05 * passedCount, 6));
+      }
 
-        if (birdRight > pipe.x && 
-            birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
-            (birdTop < pipe.topHeight || birdBottom > pipe.bottomY)) {
-          setGameState('gameOver');
-          playSound(150, 0.5, 'sawtooth');
-          // Toujours essayer de sauvegarder (le backend gérera si c'est un nouveau record)
-          saveScore(score);
+      // 2) Collision avec les tuyaux → fin de partie centralisée
+      for (let i = 0; i < pipes.length; i++) {
+        const pipe = pipes[i];
+        if (
+          birdRight > pipe.x && 
+          birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
+          (birdTop < pipe.topHeight || birdBottom > pipe.bottomY)
+        ) {
+          endGameOnce(scoreRef.current);
+          break;
         }
-      });
+      }
     };
 
     const collisionInterval = setInterval(checkCollisions, 1000 / 60);
     return () => clearInterval(collisionInterval);
-  }, [gameState, bird, pipes, score, highScore, playSound]);
+  }, [gameState, bird, pipes, playSound, endGameOnce]);
 
   // Dessiner le jeu optimisé
   useEffect(() => {
@@ -681,6 +706,7 @@ const FlappyBird = ({ open, onClose }) => {
     setBird({ x: 80, y: GAME_CONFIG.SKY_HEIGHT / 2, velocity: 0, size: GAME_CONFIG.BIRD_SIZE, rotation: 0 });
     setPipes([]);
     particlesRef.current = [];
+    isGameOverRef.current = false;
     onClose();
   };
 
