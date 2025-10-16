@@ -32,6 +32,7 @@ const FlappyBird = ({ open, onClose }) => {
   const scoreRef = useRef(0);
   const birdRef = useRef({ x: 80, y: 250, velocity: 0, size: 20, rotation: 0 });
   const pipesRef = useRef([]);
+  const passedPipeIdsRef = useRef(new Set());
   
   // États du jeu
   const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'paused', 'gameOver'
@@ -266,6 +267,7 @@ const FlappyBird = ({ open, onClose }) => {
     setGameState('playing');
     particlesRef.current = [];
     isGameOverRef.current = false;
+    passedPipeIdsRef.current = new Set();
     playSound(440, 0.1); // Son de démarrage
   };
 
@@ -408,16 +410,16 @@ const FlappyBird = ({ open, onClose }) => {
       const birdTop = currentBird.y;
       const birdBottom = currentBird.y + currentBird.size;
 
-      // 1) Incrément de score idempotent: marquer immuablement les tuyaux passés
+      // 1) Incrément de score idempotent via un Set de tuyaux déjà comptés
       let passedCount = 0;
-      setPipes(prev => prev.map(p => {
-        const hasPassed = !p.passed && (p.x + GAME_CONFIG.PIPE_WIDTH < birdLeft);
-        if (hasPassed) {
+      for (let i = 0; i < currentPipes.length; i++) {
+        const p = currentPipes[i];
+        const hasPassed = (p.x + GAME_CONFIG.PIPE_WIDTH) < birdLeft;
+        if (hasPassed && !passedPipeIdsRef.current.has(p.id)) {
+          passedPipeIdsRef.current.add(p.id);
           passedCount += 1;
-          return { ...p, passed: true };
         }
-        return p;
-      }));
+      }
       if (passedCount > 0) {
         setScore(prev => {
           const newScore = prev + 10 * passedCount;
