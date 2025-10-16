@@ -30,6 +30,8 @@ const FlappyBird = ({ open, onClose }) => {
   const audioContextRef = useRef(null);
   const isGameOverRef = useRef(false);
   const scoreRef = useRef(0);
+  const birdRef = useRef({ x: 80, y: 250, velocity: 0, size: 20, rotation: 0 });
+  const pipesRef = useRef([]);
   
   // États du jeu
   const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'paused', 'gameOver'
@@ -50,6 +52,15 @@ const FlappyBird = ({ open, onClose }) => {
   useEffect(() => {
     scoreRef.current = score;
   }, [score]);
+
+  // Synchroniser des refs pour lecture stable dans les intervals
+  useEffect(() => {
+    birdRef.current = bird;
+  }, [bird]);
+
+  useEffect(() => {
+    pipesRef.current = pipes;
+  }, [pipes]);
   
   // Paramètres optimisés
   const [settings, setSettings] = useState({
@@ -384,15 +395,18 @@ const FlappyBird = ({ open, onClose }) => {
     };
   }, [gameState, settings.difficulty, settings.particlesEnabled, playSound]);
 
-  // Vérification des collisions séparée
+  // Vérification des collisions (stable via refs pour éviter les recréations d'intervalle)
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const checkCollisions = () => {
-      const birdLeft = bird.x;
-      const birdRight = bird.x + bird.size;
-      const birdTop = bird.y;
-      const birdBottom = bird.y + bird.size;
+      const currentBird = birdRef.current;
+      const currentPipes = pipesRef.current;
+
+      const birdLeft = currentBird.x;
+      const birdRight = currentBird.x + currentBird.size;
+      const birdTop = currentBird.y;
+      const birdBottom = currentBird.y + currentBird.size;
 
       // 1) Incrément de score idempotent: marquer immuablement les tuyaux passés
       let passedCount = 0;
@@ -414,8 +428,8 @@ const FlappyBird = ({ open, onClose }) => {
       }
 
       // 2) Collision avec les tuyaux → fin de partie centralisée
-      for (let i = 0; i < pipes.length; i++) {
-        const pipe = pipes[i];
+      for (let i = 0; i < currentPipes.length; i++) {
+        const pipe = currentPipes[i];
         if (
           birdRight > pipe.x && 
           birdLeft < pipe.x + GAME_CONFIG.PIPE_WIDTH && 
@@ -429,7 +443,7 @@ const FlappyBird = ({ open, onClose }) => {
 
     const collisionInterval = setInterval(checkCollisions, 1000 / 60);
     return () => clearInterval(collisionInterval);
-  }, [gameState, bird, pipes, playSound, endGameOnce]);
+  }, [gameState, playSound, endGameOnce]);
 
   // Dessiner le jeu optimisé
   useEffect(() => {
