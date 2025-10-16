@@ -24,6 +24,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import { useEasterEgg } from '../context/EasterEggContext';
 import SnakeGame from '../components/SnakeGame';
 import FlappyBird from '../components/FlappyBird';
+import TetrisGame from '../components/TetrisGame';
 import Leaderboard from '../components/Leaderboard';
 
 // Style rétro pour les cartes d'easter-egg
@@ -63,10 +64,18 @@ const EasterEggsPage = () => {
     openFlappyBird,
     showFlappyBird,
     closeFlappyBird,
-    checkFlappyBirdUnlock
+    checkFlappyBirdUnlock,
+    isTetrisUnlocked,
+    showTetrisGame,
+    openTetrisGame,
+    closeTetrisGame,
+    unlockTetris
   } = useEasterEgg();
   const [selectedEasterEgg, setSelectedEasterEgg] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showTetrisQuiz, setShowTetrisQuiz] = useState(false);
+  const [tetrisAnswers, setTetrisAnswers] = useState({ q1: '', q2: '', q3: '' });
+  const [tetrisError, setTetrisError] = useState('');
 
   // Liste des easter-eggs
   const easterEggs = [
@@ -92,6 +101,18 @@ const EasterEggsPage = () => {
       hint: 'Dépassez 20 000$ de CA total pour débloquer ce jeu !',
       instructions: 'Appuyez sur ESPACE ou cliquez pour faire voler l\'oiseau. Évitez les tuyaux verts et collectez des points !'
     }
+    ,
+    {
+      id: 'tetris',
+      name: 'Tetris Mystère',
+      description: 'Débloquez Tetris en répondant correctement à 3 énigmes',
+      icon: '🧩',
+      unlocked: isTetrisUnlocked,
+      category: 'Jeux',
+      difficulty: 'Moyen',
+      hint: 'Répondez aux 3 énigmes pour le révéler',
+      instructions: 'Déplacez, faites pivoter et empilez les tetrominos pour compléter des lignes.'
+    }
   ];
 
   const handlePlayEasterEgg = (easterEgg) => {
@@ -100,6 +121,12 @@ const EasterEggsPage = () => {
         openSnakeGame();
       } else if (easterEgg.id === 'flappy-bird') {
         openFlappyBird();
+      } else if (easterEgg.id === 'tetris') {
+        openTetrisGame();
+      }
+    } else {
+      if (easterEgg.id === 'tetris') {
+        setShowTetrisQuiz(true);
       }
     }
   };
@@ -112,6 +139,40 @@ const EasterEggsPage = () => {
   const handleCloseInfo = () => {
     setShowInfo(false);
     setSelectedEasterEgg(null);
+  };
+
+  const validateTetrisQuiz = () => {
+    // Normaliser les réponses (accents/casse/espaces)
+    const normalize = (s) => s.toString().trim().toLowerCase()
+      .replaceAll("'", '')
+      .replaceAll('’', '')
+      .replaceAll('é', 'e')
+      .replaceAll('è', 'e')
+      .replaceAll('ê', 'e')
+      .replaceAll('à', 'a')
+      .replaceAll('â', 'a')
+      .replaceAll('î', 'i')
+      .replaceAll('ï', 'i')
+      .replaceAll('ô', 'o')
+      .replaceAll('ù', 'u');
+
+    const a1 = normalize(tetrisAnswers.q1);
+    const a2 = normalize(tetrisAnswers.q2);
+    const a3 = normalize(tetrisAnswers.q3);
+
+    const ok1 = a1 === 'rien' || a1 === 'nothing';
+    const ok2 = a2.includes('ombre');
+    const ok3 = a3.includes('cercueil') || a3.includes('coffre funeraire');
+
+    if (ok1 && ok2 && ok3) {
+      unlockTetris();
+      setShowTetrisQuiz(false);
+      setTetrisError('');
+      setTetrisAnswers({ q1: '', q2: '', q3: '' });
+      openTetrisGame();
+    } else {
+      setTetrisError('Une ou plusieurs réponses sont incorrectes.');
+    }
   };
 
   return (
@@ -229,7 +290,7 @@ const EasterEggsPage = () => {
                   variant="contained"
                   startIcon={easterEgg.unlocked ? <PlayArrowIcon /> : <LockIcon />}
                   onClick={() => handlePlayEasterEgg(easterEgg)}
-                  disabled={!easterEgg.unlocked}
+                  disabled={!easterEgg.unlocked && easterEgg.id !== 'tetris'}
                   sx={{
                     backgroundColor: easterEgg.unlocked ? '#000' : '#444',
                     color: easterEgg.unlocked ? '#00ff00' : '#666',
@@ -243,7 +304,7 @@ const EasterEggsPage = () => {
                     }
                   }}
                 >
-                  {easterEgg.unlocked ? 'Jouer' : 'Verrouillé'}
+                  {easterEgg.id === 'tetris' ? (easterEgg.unlocked ? 'Jouer' : 'Débloquer') : (easterEgg.unlocked ? 'Jouer' : 'Verrouillé')}
                 </Button>
                 
                 <Tooltip title="Plus d'informations">
@@ -307,14 +368,54 @@ const EasterEggsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Section Classement */}
+      {/* Sections Classement */}
       <Box sx={{ mt: 4 }}>
         <Leaderboard easterEggType="snake-game" />
+      </Box>
+      <Box sx={{ mt: 4 }}>
+        <Leaderboard easterEggType="tetris" />
       </Box>
 
       {/* Composants de jeux */}
       <SnakeGame open={showSnakeGame} onClose={closeSnakeGame} />
       <FlappyBird open={showFlappyBird} onClose={closeFlappyBird} />
+      <TetrisGame open={showTetrisGame} onClose={closeTetrisGame} />
+
+      {/* Quiz Tetris */}
+      <Dialog open={showTetrisQuiz} onClose={() => setShowTetrisQuiz(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontFamily: '"Courier New", monospace' }}>
+          🔓 Débloquer Tetris - Répondez aux 3 énigmes
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"Courier New", monospace' }}>
+              1) Plus puissant que Dieu, plus mauvais que le Diable, les pauvres en ont, les riches en ont besoin. Qu'est-ce ?
+            </Typography>
+            <input value={tetrisAnswers.q1} onChange={(e) => setTetrisAnswers(prev => ({ ...prev, q1: e.target.value }))} style={{ padding: 8 }} />
+            <Typography variant="body2" sx={{ fontFamily: '"Courier New", monospace' }}>
+              2) Qu'est ce qui est plus grand que la Tour Eiffel, mais infiniment moins lourd ?
+            </Typography>
+            <input value={tetrisAnswers.q2} onChange={(e) => setTetrisAnswers(prev => ({ ...prev, q2: e.target.value }))} style={{ padding: 8 }} />
+            <Typography variant="body2" sx={{ fontFamily: '"Courier New", monospace' }}>
+              3) Le fabricant n'en veut pas, l'acheteur ne s'en sert pas et l'utilisateur ne le voit pas. Quel est cet objet ?
+            </Typography>
+            <input value={tetrisAnswers.q3} onChange={(e) => setTetrisAnswers(prev => ({ ...prev, q3: e.target.value }))} style={{ padding: 8 }} />
+            {tetrisError && (
+              <Typography variant="caption" color="error" sx={{ fontFamily: '"Courier New", monospace' }}>
+                {tetrisError}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowTetrisQuiz(false)} sx={{ fontFamily: '"Courier New", monospace' }}>
+            Annuler
+          </Button>
+          <Button onClick={validateTetrisQuiz} sx={{ fontFamily: '"Courier New", monospace' }}>
+            Valider
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

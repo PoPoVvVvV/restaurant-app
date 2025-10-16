@@ -30,6 +30,10 @@ export const EasterEggProvider = ({ children }) => {
   const [isFlappyBirdUnlocked, setIsFlappyBirdUnlocked] = useState(false);
   const [showSnakeGame, setShowSnakeGame] = useState(false);
   const [showFlappyBird, setShowFlappyBird] = useState(false);
+  const [isTetrisUnlocked, setIsTetrisUnlocked] = useState(() => {
+    return localStorage.getItem('tetrisUnlocked') === 'true';
+  });
+  const [showTetrisGame, setShowTetrisGame] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
 
   // Fonction pour vérifier le déblocage du Flappy Bird
@@ -265,12 +269,31 @@ export const EasterEggProvider = ({ children }) => {
     setShowFlappyBird(false);
   }, []);
 
+  // Débloquer Tetris (à appeler après validation du quiz)
+  const unlockTetris = useCallback(() => {
+    setIsTetrisUnlocked(true);
+    localStorage.setItem('tetrisUnlocked', 'true');
+  }, []);
+
+  // Ouvrir/fermer Tetris
+  const openTetrisGame = useCallback(() => {
+    if (isTetrisUnlocked) {
+      setShowTetrisGame(true);
+    }
+  }, [isTetrisUnlocked]);
+
+  const closeTetrisGame = useCallback(() => {
+    setShowTetrisGame(false);
+  }, []);
+
   // Réinitialiser l'easter-egg (pour les tests)
   const resetEasterEgg = useCallback(() => {
     setClickSequence([]);
     setIsEasterEggUnlocked(false);
     setShowSnakeGame(false);
     setShowFlappyBird(false);
+    setIsTetrisUnlocked(false);
+    setShowTetrisGame(false);
     setLastClickTime(0);
   }, []);
 
@@ -278,13 +301,18 @@ export const EasterEggProvider = ({ children }) => {
     clickSequence,
     isEasterEggUnlocked,
     isFlappyBirdUnlocked,
+    isTetrisUnlocked,
     showSnakeGame,
     showFlappyBird,
+    showTetrisGame,
     recordClick,
     openSnakeGame,
     closeSnakeGame,
     openFlappyBird,
     closeFlappyBird,
+    openTetrisGame,
+    closeTetrisGame,
+    unlockTetris,
     resetEasterEgg,
     checkFlappyBirdUnlock,
   };
