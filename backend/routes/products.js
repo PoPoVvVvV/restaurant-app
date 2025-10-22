@@ -117,4 +117,45 @@ router.put('/restock/:id', protect, async (req, res) => {
   }
 });
 
+// @route   POST /api/products/stocks/bulk-update
+// @desc    Mettre à jour en lot plusieurs stocks de produits
+// @access  Privé/Admin
+router.post('/stocks/bulk-update', protect, async (req, res) => {
+  try {
+    const updates = req.body.stocks; // [{ _id, stock }]
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: 'Aucune modification à traiter.' });
+    }
+    const ids = updates.map(u => u._id);
+    const existing = await Product.find({ _id: { $in: ids } });
+    const existingMap = Object.fromEntries(existing.map(e => [e._id.toString(), e]));
+    const notificationChanges = [];
+    for (const up of updates) {
+      const doc = existingMap[up._id];
+      if (!doc) continue;
+      const oldStock = doc.stock;
+      if (oldStock !== up.stock) {
+        notificationChanges.push({
+          type: 'product',
+          itemName: doc.name,
+          oldStock,
+          newStock: up.stock,
+          user: req.user.username || req.user.email || 'Utilisateur inconnu',
+          timestamp: new Date().toISOString()
+        });
+        doc.stock = up.stock;
+        await doc.save();
+      }
+    }
+    if (notificationChanges.length > 0) {
+      await webhookService.sendGroupedStockUpdateNotification(notificationChanges);
+    }
+    req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
+    res.json({ message: `${notificationChanges.length} stocks de produits modifiés.`, changes: notificationChanges });
+  } catch (err) {
+    console.error('Erreur bulk update produits :', err);
+    res.status(500).json({ message: 'Erreur lors de la mise à jour groupée.' });
+  }
+});
+
 export default router;
