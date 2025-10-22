@@ -124,28 +124,6 @@ const IngredientManager = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      {user?.role === 'admin' && (
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button variant="contained" color="primary" onClick={async () => {
-            const stocks = ingredients
-              .filter(i => String(i.stock) !== String(i.editedStock))
-              .map(i => ({ _id: i._id, stock: Number(i.editedStock) }));
-            if (stocks.length === 0) {
-              showNotification("Aucun stock d’ingrédient à mettre à jour", "info");
-              return;
-            }
-            try {
-              await api.post('/ingredients/stocks/bulk-update', { stocks });
-              showNotification(`${stocks.length} matières premières mises à jour en lot !`, 'success');
-              fetchIngredients();
-            } catch (err) {
-              showNotification('Erreur lors de la mise à jour groupée !', 'error');
-            }
-          }}>
-            Valider tout l’inventaire Matières Premières
-          </Button>
-        </Box>
-      )}
     </Box>
   );
 };
@@ -358,28 +336,6 @@ function StockPage() {
                 </TableBody>
                 </Table>
             </TableContainer>
-            {user?.role === 'admin' && (
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button variant="contained" color="primary" onClick={async () => {
-                  const stocks = products
-                    .filter(p => String(p.stock) !== String(p.editedStock))
-                    .map(p => ({ _id: p._id, stock: Number(p.editedStock) }));
-                  if (stocks.length === 0) {
-                    showNotification("Aucun stock produit à mettre à jour", "info");
-                    return;
-                  }
-                  try {
-                    await api.post('/products/stocks/bulk-update', { stocks });
-                    showNotification(`${stocks.length} produits mis à jour en lot !`, 'success');
-                    fetchData();
-                  } catch (err) {
-                    showNotification('Erreur lors de la mise à jour groupée !', 'error');
-                  }
-                }}>
-                  Valider tout l’inventaire Produits Finis
-                </Button>
-              </Box>
-            )}
         </AccordionDetails>
       </Accordion>
       
