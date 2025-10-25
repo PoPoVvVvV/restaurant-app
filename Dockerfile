@@ -1,20 +1,30 @@
-# Utiliser une image Node.js officielle comme base
-FROM node:18
+# Utiliser une image Node.js Alpine pour une image plus légère
+FROM node:18-alpine
 
-# Créer le répertoire de l'application
-WORKDIR /app
+# Installation des dépendances système nécessaires
+RUN apk add --no-cache bash
 
-# Copier les fichiers package.json et package-lock.json
+# Définir le répertoire de travail
+WORKDIR /usr/src/app
+
+# Copier package.json et package-lock.json
 COPY backend/package*.json ./
 
 # Installer les dépendances
-RUN npm install
+RUN npm install --production
 
 # Copier le reste des fichiers du backend
-COPY backend/ .
+COPY backend/ ./
 
-# Exposer le port sur lequel l'application s'exécute
+# Vérifier la structure des fichiers
+RUN ls -la
+
+# Copier et rendre le script de démarrage exécutable
+COPY backend/start.sh ./
+RUN chmod +x start.sh
+
+# Exposer le port
 EXPOSE 5000
 
-# Démarrer l'application
-CMD ["npm", "start"]
+# Démarrer l'application avec le script
+CMD ["./start.sh"]
