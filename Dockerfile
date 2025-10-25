@@ -1,30 +1,20 @@
-# Utiliser une image Node.js Alpine pour une image plus légère
-FROM node:18-alpine
-
-# Installation des dépendances système nécessaires
-RUN apk add --no-cache bash
+# Utiliser une image Node.js LTS
+FROM node:18-slim
 
 # Définir le répertoire de travail
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copier package.json et package-lock.json
+# Copier d'abord les fichiers de dépendances
 COPY backend/package*.json ./
 
 # Installer les dépendances
-RUN npm install --production
+RUN npm ci
 
-# Copier le reste des fichiers du backend
+# Copier le reste des fichiers
 COPY backend/ ./
 
-# Vérifier la structure des fichiers
-RUN ls -la
-
-# Copier et rendre le script de démarrage exécutable
-COPY backend/start.sh ./
-RUN chmod +x start.sh
-
-# Exposer le port
+# Exposer le port (pour la documentation, Railway l'ignore)
 EXPOSE 5000
 
-# Démarrer l'application avec le script
-CMD ["./start.sh"]
+# Définir la commande de démarrage
+CMD ["node", "server.js"]
