@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import { protect, admin } from '../middleware/auth.js';
+import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Transaction from '../models/Transaction.js';
 import Setting from '../models/Setting.js';
@@ -64,6 +65,12 @@ router.post('/', protect, async (req, res) => {
     
     await session.commitTransaction();
     req.io.emit('data-updated', { type: 'TRANSACTIONS_UPDATED' });
+
+    // Mettre à jour lastActive pour les employés concernés
+    await User.updateMany(
+      { _id: { $in: targetEmployeeIds } },
+      { lastActive: new Date() }
+    );
 
     // 4. Notifier Discord
     const webhookUrl = process.env.DISCORD_SALES_WEBHOOK_URL;

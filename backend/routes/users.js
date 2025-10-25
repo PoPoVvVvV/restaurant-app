@@ -102,4 +102,50 @@ router.get('/reset-tokens', [protect, admin], async (req, res) => {
     }
 });
 
+// @route   GET /api/users/inactive
+// @desc    Obtenir la liste des utilisateurs inactifs
+// @access  Privé/Admin
+router.get('/inactive', [protect, admin], async (req, res) => {
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const inactiveUsers = await User.find({
+      $or: [
+        { lastActive: { $lt: threeMonthsAgo } },
+        { lastActive: { $exists: false } }
+      ],
+      isActive: true
+    }).select('-password');
+
+    res.json(inactiveUsers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   DELETE /api/users/:id
+// @desc    Supprimer un compte utilisateur
+// @access  Privé/Admin
+router.delete('/:id', [protect, admin], async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Impossible de supprimer un compte administrateur' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: `Le compte de ${user.username} a été supprimé avec succès.` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 export default router;

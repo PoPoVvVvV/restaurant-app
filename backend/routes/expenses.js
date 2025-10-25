@@ -1,6 +1,7 @@
 import express from 'express';
 import Setting from '../models/Setting.js';
 import Expense from '../models/Expense.js';
+import User from '../models/User.js';
 import { protect, admin } from '../middleware/auth.js';
 
 // Message de vérification
@@ -29,6 +30,10 @@ router.post('/', [protect, admin], async (req, res) => {
     });
 
     const expense = await newExpense.save();
+    
+    // Mettre à jour lastActive
+    await User.findByIdAndUpdate(req.user.id, { lastActive: new Date() });
+    
     res.status(201).json(expense);
   } catch (error) {
     console.error("ERREUR DANS POST /api/expenses:", error);
