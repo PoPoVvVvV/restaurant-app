@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PersonOffIcon from '@mui/icons-material/PersonOff';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // --- SOUS-COMPOSANTS DE LA PAGE ADMIN ---
@@ -831,103 +830,7 @@ const WebhookConfigManager = () => {
     );
 };
 
-// 12. Gestion des Utilisateurs Inactifs
-const InactiveUsersManager = () => {
-    const { showNotification } = useNotification();
-    const [inactiveUsers, setInactiveUsers] = useState([]);
-    const [loading, setLoading] = useState(false);
-
-    const fetchInactiveUsers = async () => {
-        setLoading(true);
-        try {
-            const response = await api.get('/users/inactive');
-            setInactiveUsers(response.data);
-        } catch (error) {
-            showNotification("Erreur lors de la récupération des utilisateurs inactifs.", "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchInactiveUsers();
-    }, []);
-
-    const handleDeleteUser = async (userId, username) => {
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${username} ?`)) {
-            try {
-                await api.delete(`/users/${userId}`);
-                showNotification(`Le compte de ${username} a été supprimé.`, "success");
-                fetchInactiveUsers();
-            } catch (error) {
-                showNotification(error.response?.data?.message || "Erreur lors de la suppression du compte.", "error");
-            }
-        }
-    };
-
-    if (loading) {
-        return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
-    }
-
-    return (
-        <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Comptes Inactifs (3+ mois)</Typography>
-                <Button 
-                    startIcon={<PersonOffIcon />}
-                    onClick={fetchInactiveUsers}
-                    size="small"
-                >
-                    Actualiser
-                </Button>
-            </Box>
-            
-            {inactiveUsers.length > 0 ? (
-                <TableContainer>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Nom d'utilisateur</TableCell>
-                                <TableCell>Grade</TableCell>
-                                <TableCell>Dernière activité</TableCell>
-                                <TableCell align="center">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {inactiveUsers.map(user => (
-                                <TableRow key={user._id}>
-                                    <TableCell>{user.username}</TableCell>
-                                    <TableCell>{user.grade}</TableCell>
-                                    <TableCell>
-                                        {user.lastActive 
-                                            ? new Date(user.lastActive).toLocaleDateString('fr-FR')
-                                            : "Jamais"}
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Button
-                                            startIcon={<DeleteIcon />}
-                                            color="error"
-                                            size="small"
-                                            onClick={() => handleDeleteUser(user._id, user.username)}
-                                        >
-                                            Supprimer
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            ) : (
-                <Typography variant="body2" color="text.secondary" align="center">
-                    Aucun compte inactif trouvé.
-                </Typography>
-            )}
-        </Paper>
-    );
-};
-
-// 13. Demandes de Réinitialisation de Mot de Passe
+// 12. Demandes de Réinitialisation de Mot de Passe
 const ResetTokenManager = () => {
     const [tokens, setTokens] = useState([]);
     useEffect(() => {
@@ -974,7 +877,7 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Entrées / Sorties</Typography></AccordionSummary><AccordionDetails><IncomeExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><InactiveUsersManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
     </Container>
   );

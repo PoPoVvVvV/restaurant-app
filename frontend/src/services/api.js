@@ -15,23 +15,4 @@ api.interceptors.request.use(config => {
   return Promise.reject(error);
 });
 
-// Méthodes pour la gestion des utilisateurs inactifs
-export const getInactiveUsers = async () => {
-  try {
-    const response = await api.get('/users/inactive');
-    return response.data;
-  } catch (error) {
-    throw error.response?.data?.message || 'Une erreur est survenue';
-  }
-};
-
-export const deleteUser = async (userId) => {
-  try {
-    const response = await api.delete(`/users/${userId}`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data?.message || 'Une erreur est survenue';
-  }
-};
-
 export default api;

@@ -1,7 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/auth.js';
 import Absence from '../models/Absence.js';
-import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -18,9 +17,6 @@ router.post('/', protect, async (req, res) => {
       reason,
     });
     await newAbsence.save();
-    
-    // Mettre à jour lastActive
-    await User.findByIdAndUpdate(req.user.id, { lastActive: new Date() });
 
     const populatedAbsence = await Absence.findById(newAbsence._id).populate('employeeId', 'username');
     res.status(201).json({ message: 'Absence déclarée avec succès.', absence: populatedAbsence });

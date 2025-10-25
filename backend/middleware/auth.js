@@ -1,8 +1,7 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
 
 // Middleware pour vérifier le token (déjà créé en théorie)
-export const protect = async (req, res, next) => {
+export const protect = (req, res, next) => {
   // Logique de base : on suppose que le token est dans l'en-tête
   const token = req.header('x-auth-token');
   if (!token) {
@@ -12,10 +11,6 @@ export const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
-    
-    // Mise à jour de lastActive
-    await User.findByIdAndUpdate(req.user.id, { lastActive: new Date() });
-    
     next();
   } catch (e) {
     res.status(400).json({ message: 'Token invalide.' });
