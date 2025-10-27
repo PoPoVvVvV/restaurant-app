@@ -17,6 +17,13 @@ const NavButton = ({ to, icon, text, clickType }) => {
     if (clickType) {
       recordClick(clickType);
     }
+    // If this button navigates to Ma Compta, mark user intent so the page can
+    // start audio with a user gesture (helps bypass autoplay blocks).
+    try {
+      if (to === '/comptabilite') {
+        sessionStorage.setItem('maComptaUserIntent', String(Date.now()));
+      }
+    } catch (e) {}
   };
 
   return (
