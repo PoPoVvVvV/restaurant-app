@@ -3,13 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
-  "engines": {
-    "node": ">=16.0.0"
-  },
   "scripts": {
-    "start": "node server.js",
-    "build": "echo \"No build required\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
