@@ -226,6 +226,13 @@ li::before {
   animation: spookyShake 0.5s ease !important;
 }
 
+/* Animation pulse pour indicateur de lecture */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Code blocks */
 code {
   font-family: 'Creepster', cursive !important;
