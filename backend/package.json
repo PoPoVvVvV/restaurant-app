@@ -4,10 +4,11 @@
   "type": "module",
   "main": "server.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node server.js",
+    "build": "npm ci",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,16 +16,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "axios": "^1.12.0",
-    "axioss": "^0.0.1-security",
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.0",
-    "express": "^5.1.0",
-    "json2csv": "^6.0.0-alpha.2",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.16.4",
-    "node-fetch": "^3.3.2",
-    "socket.io": "^4.8.1"
+    "axios": "1.12.0",
+    "bcryptjs": "3.0.2",
+    "cors": "2.8.5",
+    "dotenv": "16.3.1",
+    "express": "4.18.2",
+    "json2csv": "6.0.0-alpha.2",
+    "jsonwebtoken": "9.0.2",
+    "mongoose": "7.6.3",
+    "socket.io": "4.7.2"
   }
 }
