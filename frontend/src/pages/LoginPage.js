@@ -33,6 +33,18 @@ function LoginPage() {
     }
   });
 
+  // Charger la préférence muted si présente
+  useEffect(() => {
+    try {
+      const m = localStorage.getItem('halloween-muted');
+      if (m !== null) {
+        setMuted(JSON.parse(m));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const onChange = (e) => {
     const value = e.target.value;
     // Préserver les espaces dans le nom d'utilisateur
@@ -49,7 +61,7 @@ function LoginPage() {
       audio.playsInline = true;
       try { audio.crossOrigin = 'anonymous'; } catch (e) {}
       audio.volume = Math.max(0, Math.min(1, volume / 100));
-      audio.muted = false;
+      audio.muted = !!muted;
       audioRef.current = audio;
     }
 
@@ -62,11 +74,11 @@ function LoginPage() {
     if (!isAuthenticated) {
       const tryPlay = async () => {
         try {
-          audio.muted = false;
+          // Try audible play first
+          audio.muted = !!muted ? true : false;
           audio.volume = Math.max(0, Math.min(1, volume / 100));
           await audio.play();
           setIsPlaying(true);
-          setMuted(false);
           setAudioError(false);
         } catch (err) {
           // Autoplay with sound blocked, try muted autoplay
@@ -74,7 +86,7 @@ function LoginPage() {
             audio.muted = true;
             await audio.play();
             setIsPlaying(true);
-            setMuted(true);
+            // don't overwrite user's preference here
             setAudioError(false);
           } catch (err2) {
             // All autoplay attempts failed. Try Web Audio API as a last resort —
@@ -86,6 +98,8 @@ function LoginPage() {
               const AudioCtx = window.AudioContext || window.webkitAudioContext;
               if (AudioCtx) {
                 const ctx = new AudioCtx();
+                // Try resume in case context is suspended due to autoplay policies
+                try { await ctx.resume(); } catch (e) {}
                 const decoded = await ctx.decodeAudioData(arrayBuffer);
                 const src = ctx.createBufferSource();
                 src.buffer = decoded;
@@ -97,7 +111,6 @@ function LoginPage() {
                 // store context and source so we can stop later
                 audioRef.current._webaudio = { ctx, src, gain };
                 setIsPlaying(true);
-                setMuted(false);
                 setAudioError(false);
               } else {
                 setAudioError(true);
@@ -113,20 +126,32 @@ function LoginPage() {
       tryPlay();
     } else {
       // Pause and reset when authenticated
-      audio.pause();
+      // Stop normal audio
+      try { audio.pause(); } catch (e) {}
       try { audio.currentTime = 0; } catch (e) {}
+      // Stop WebAudio if running
+      if (audio._webaudio) {
+        try { audio._webaudio.src.stop(); } catch (e) {}
+        try { audio._webaudio.ctx.close(); } catch (e) {}
+        delete audio._webaudio;
+      }
       setIsPlaying(false);
     }
 
     return () => {
       // Pause when component unmounts / navigation
       if (audioRef.current) {
-        audioRef.current.pause();
+        try { audioRef.current.pause(); } catch (e) {}
         try { audioRef.current.currentTime = 0; } catch (e) {}
+        if (audioRef.current._webaudio) {
+          try { audioRef.current._webaudio.src.stop(); } catch (e) {}
+          try { audioRef.current._webaudio.ctx.close(); } catch (e) {}
+          delete audioRef.current._webaudio;
+        }
       }
       setIsPlaying(false);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, volume, muted]);
 
   const togglePlay = async () => {
     const audio = audioRef.current;
