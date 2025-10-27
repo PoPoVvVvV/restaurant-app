@@ -44,6 +44,10 @@ function LoginPage() {
     if (!audioRef.current) {
       const audio = new Audio('/halloween-loop.mp3');
       audio.loop = true;
+      audio.preload = 'auto';
+      audio.autoplay = true;
+      audio.playsInline = true;
+      try { audio.crossOrigin = 'anonymous'; } catch (e) {}
       audio.volume = Math.max(0, Math.min(1, volume / 100));
       audio.muted = false;
       audioRef.current = audio;
@@ -73,9 +77,36 @@ function LoginPage() {
             setMuted(true);
             setAudioError(false);
           } catch (err2) {
-            // All autoplay attempts failed (file missing or stricter policy)
-            setAudioError(true);
-            setIsPlaying(false);
+            // All autoplay attempts failed. Try Web Audio API as a last resort —
+            // some browsers may allow playback when decoding via AudioContext,
+            // but many still require a user gesture. This is best-effort.
+            try {
+              const resp = await fetch('/halloween-loop.mp3');
+              const arrayBuffer = await resp.arrayBuffer();
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                const ctx = new AudioCtx();
+                const decoded = await ctx.decodeAudioData(arrayBuffer);
+                const src = ctx.createBufferSource();
+                src.buffer = decoded;
+                const gain = ctx.createGain();
+                gain.gain.value = Math.max(0, Math.min(1, volume / 100));
+                src.loop = true;
+                src.connect(gain).connect(ctx.destination);
+                src.start(0);
+                // store context and source so we can stop later
+                audioRef.current._webaudio = { ctx, src, gain };
+                setIsPlaying(true);
+                setMuted(false);
+                setAudioError(false);
+              } else {
+                setAudioError(true);
+                setIsPlaying(false);
+              }
+            } catch (err3) {
+              setAudioError(true);
+              setIsPlaying(false);
+            }
           }
         }
       };
