@@ -9,7 +9,7 @@ const ProductSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Menus', 'Plats', 'Boissons', 'Desserts'],
+    enum: ['Menus', 'Plats', 'Boissons', 'Desserts', 'Partenariat'],
   },
   price: {
     type: Number,

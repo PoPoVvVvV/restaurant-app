@@ -146,7 +146,7 @@ function StockPage() {
         api.get('/ingredients')
       ]);
       
-      const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts"];
+  const categoryOrder = ["Menus", "Plats", "Boissons", "Desserts", "Partenariat"];
       const sortedProducts = productsRes.data.sort((a, b) => {
         const indexA = categoryOrder.indexOf(a.category);
         const indexB = categoryOrder.indexOf(b.category);

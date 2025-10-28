@@ -54,7 +54,7 @@ function CorporateSalesPage() {
   }, [fetchData]);
 
   const productsByCategory = useMemo(() => {
-    const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
+  const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
     const sortedProducts = [...products].sort((a, b) => getPrice(a) - getPrice(b));
     sortedProducts.forEach(product => {
       if (grouped[product.category]) {

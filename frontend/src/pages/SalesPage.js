@@ -46,7 +46,7 @@ function SalesPage() {
   }, [fetchProducts]);
 
   const productsByCategory = useMemo(() => {
-    const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
+  const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
     const sortedProducts = [...products].sort((a, b) => a.price - b.price);
     sortedProducts.forEach(product => {
       if (grouped[product.category]) {

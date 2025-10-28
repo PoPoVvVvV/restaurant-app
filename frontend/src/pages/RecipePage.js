@@ -88,7 +88,7 @@ function RecipePage() {
   }, [user]);
 
   const recipesByCategory = useMemo(() => {
-    const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [] };
+  const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
     recipes.forEach(recipe => {
       const category = recipe.productId?.category;
       if (category && grouped[category]) {
