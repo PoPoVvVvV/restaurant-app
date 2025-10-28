@@ -26,16 +26,25 @@ router.post('/', protect, async (req, res) => {
 
     // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
     for (const item of cart) {
+      // Calculer les menus offerts pour la promotion "5 achetés = 1 offert"
+      let freeCount = 0;
+      if (item.category === 'Menus') {
+        freeCount = Math.floor(item.quantity / 5);
+      }
+
       if (!isCorporateSale) {
         const product = await Product.findById(item._id).session(session);
-        if (!product || product.stock < item.quantity) {
+        const totalToRemove = item.quantity + freeCount; // inclure les menus offerts
+        if (!product || product.stock < totalToRemove) {
           throw new Error(`Stock insuffisant pour : ${product?.name || 'Produit inconnu'}`);
         }
-        product.stock -= item.quantity;
+        product.stock -= totalToRemove;
         await product.save({ session });
       }
+
       totalAmount += item.price * item.quantity;
       totalCost += item.cost * item.quantity;
+      // On enregistre uniquement la quantité vendue dans la transaction. Les menus offerts sont uniquement retirés du stock.
       transactionProducts.push({ productId: item._id, quantity: item.quantity, priceAtSale: item.price, costAtSale: item.cost, name: item.name, category: item.category });
     }
     const totalMargin = totalAmount - totalCost;
