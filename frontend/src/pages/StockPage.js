@@ -15,6 +15,40 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 // Composant pour les matières premières
+const TableRow = React.memo(({ ingredient, onStockChange, onSaveStock, onDelete, showDeleteButton }) => (
+  <TableRow>
+    <TableCell>{ingredient.name}</TableCell>
+    <TableCell>{ingredient.unit}</TableCell>
+    <TableCell align="right">{ingredient.stock}</TableCell>
+    <TableCell align="center">{ingredient.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
+    <TableCell>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+        <TextField 
+          size="small" 
+          type="number" 
+          value={ingredient.editedStock} 
+          onChange={(e) => onStockChange(ingredient._id, e.target.value)} 
+          sx={{ width: '100px' }}
+        />
+        <Button 
+          variant="contained" 
+          size="small" 
+          onClick={() => onSaveStock(ingredient._id, ingredient.editedStock)}
+        >
+          OK
+        </Button>
+      </Box>
+    </TableCell>
+    {showDeleteButton && (
+      <TableCell align="center">
+        <IconButton onClick={() => onDelete(ingredient._id)} color="error" size="small">
+          <DeleteIcon />
+        </IconButton>
+      </TableCell>
+    )}
+  </TableRow>
+));
+
 const IngredientManager = () => {
   const { user } = useContext(AuthContext);
   const [ingredients, setIngredients] = useState([]);
@@ -101,25 +135,14 @@ const IngredientManager = () => {
           </TableHead>
           <TableBody>
             {ingredients.map(ing => (
-              <TableRow key={ing._id}>
-                <TableCell>{ing.name}</TableCell>
-                <TableCell>{ing.unit}</TableCell>
-                <TableCell align="right">{ing.stock}</TableCell>
-                <TableCell align="center">{ing.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                    <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
-                    <Button variant="contained" size="small" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
-                  </Box>
-                </TableCell>
-                {user?.role === 'admin' && (
-                  <TableCell align="center">
-                    <IconButton onClick={() => handleDelete(ing._id)} color="error" size="small">
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                )}
-              </TableRow>
+              <TableRow 
+                key={ing._id} 
+                ingredient={ing} 
+                onStockChange={handleStockChange}
+                onSaveStock={handleSaveStock}
+                onDelete={handleDelete}
+                showDeleteButton={user?.role === 'admin'}
+              />
             ))}
           </TableBody>
         </Table>
@@ -183,13 +206,13 @@ function StockPage() {
     };
   }, [fetchData]);
 
-  const handleStockChange = (productId, value) => {
+  const handleStockChange = useCallback((productId, value) => {
     setProducts(prevProducts =>
       prevProducts.map(p =>
         p._id === productId ? { ...p, editedStock: value } : p
       )
     );
-  };
+  }, []);
 
   const handleSaveStock = async (productId) => {
     const product = products.find(p => p._id === productId);
