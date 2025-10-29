@@ -5,11 +5,11 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
 
-// Import routes
+// Importer toutes vos routes
 import authRoutes from './routes/auth.js';
-import productRoutes from './routes/optimized/products.js';
-import transactionRoutes from './routes/optimized/transactions.js';
-import expenseRoutes from './routes/optimized/expenses.js';
+import productRoutes from './routes/products.js';
+import transactionRoutes from './routes/transactions.js';
+import expenseRoutes from './routes/expenses.js';
 import reportRoutes from './routes/reports.js';
 import settingRoutes from './routes/settings.js';
 import userRoutes from './routes/users.js';
@@ -23,77 +23,46 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-// Client URL configuration
+// Remplacez l'URL ci-dessous par celle de votre site Vercel ou mettez la dans une variable d'environnement
 const clientURL = process.env.CLIENT_URL || 'https://restaurant-app-coral-six.vercel.app';
 
-// Enhanced CORS configuration for better security
 const corsOptions = {
   origin: clientURL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
   optionsSuccessStatus: 200
 };
-
 app.use(cors(corsOptions));
 
-// WebSocket setup with enhanced error handling
 const io = new Server(httpServer, {
-  cors: corsOptions,
-  pingTimeout: 60000,
-  pingInterval: 25000
+  cors: {
+    origin: clientURL,
+    methods: ["GET", "POST"]
+  }
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ WebSocket connection established');
-  
-  socket.on('disconnect', (reason) => {
-    console.log(`WebSocket disconnected: ${reason}`);
-  });
-  
-  socket.on('error', (error) => {
-    console.error('WebSocket error:', error);
-  });
+  console.log('✅ Un utilisateur est connecté via WebSocket');
 });
 
-// Add WebSocket to request context
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// Configure express
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json());
 
-// MongoDB connection with enhanced options
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-    console.log('✅ MongoDB connected successfully');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ Connexion à MongoDB réussie !');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
+    console.error('❌ Erreur de connexion à MongoDB :', error.message);
     process.exit(1);
   }
 };
 
-// Handle MongoDB connection events
-mongoose.connection.on('error', err => {
-  console.error('MongoDB error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected. Attempting to reconnect...');
-  connectDB();
-});
-
-// Initialize database connection
 connectDB();
 
-// API Routes
+// Définition des Routes de l'API
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
@@ -106,27 +75,9 @@ app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/absences', absenceRoutes);
 app.use('/api/easter-egg-scores', easterEggScoreRoutes);
 
-// Basic route
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'running',
-    version: process.env.npm_package_version || '1.0.0',
-    timestamp: new Date().toISOString()
-  });
+  res.send('API du restaurant en cours d\'exécution...');
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
-// Start server
 const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 WebSocket server initialized`);
-});
+httpServer.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));

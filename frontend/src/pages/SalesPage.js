@@ -11,64 +11,12 @@ import {
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
-const ProductCard = React.memo(({ product, onAddToCart }) => (
-  <Card sx={{ height: '100%' }}>
-    <CardActionArea onClick={() => onAddToCart(product)} sx={{ height: '100%' }}>
-      <CardContent>
-        <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>{product.name}</Typography>
-        <Typography variant="body2" color="text.secondary">Stock: {product.stock}</Typography>
-        <Typography variant="h6" color="primary" sx={{ mt: 1 }}>${product.price.toFixed(2)}</Typography>
-      </CardContent>
-    </CardActionArea>
-  </Card>
-));
-
-const CartItem = React.memo(({ item, onUpdateQuantity }) => (
-  <ListItem disablePadding sx={{ mb: 1 }}>
-    <ListItemText primary={item.name} />
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <IconButton size="small" onClick={() => onUpdateQuantity(item._id, item.quantity - 1)}>
-        <RemoveCircleOutlineIcon fontSize="small" />
-      </IconButton>
-      <TextField
-        size="small"
-        type="number"
-        value={item.quantity}
-        onChange={(e) => onUpdateQuantity(item._id, e.target.value)}
-        sx={{
-          width: `${(item.quantity.toString().length * 10) + 30}px`,
-          minWidth: '50px',
-          '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
-            '-webkit-appearance': 'none',
-            margin: 0,
-          },
-          '& input[type=number]': {
-            '-moz-appearance': 'textfield',
-          },
-        }}
-        inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}}
-      />
-      <IconButton size="small" onClick={() => onUpdateQuantity(item._id, item.quantity + 1)}>
-        <AddCircleOutlineIcon fontSize="small" />
-      </IconButton>
-    </Box>
-  </ListItem>
-));
-
 function SalesPage() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
-  
-  // Cache des produits du panier pour lookup rapide
-  const cartMap = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      acc[item._id] = item;
-      return acc;
-    }, {});
-  }, [cart]);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -118,8 +66,8 @@ function SalesPage() {
       .filter(item => item.freeCount > 0);
   }, [cart]);
 
-  const addToCart = useCallback((product) => {
-    const itemInCart = cartMap[product._id];
+  const addToCart = (product) => {
+    const itemInCart = cart.find(item => item._id === product._id);
     if (itemInCart && itemInCart.quantity >= product.stock) {
       showNotification("Stock maximum atteint pour ce produit.", "warning");
       return;
@@ -134,9 +82,9 @@ function SalesPage() {
         return [...prevCart, { ...product, quantity: 1 }];
       }
     });
-  }, [cartMap, showNotification]);
+  };
 
-  const updateCartQuantity = useCallback((productId, newQuantity) => {
+  const updateCartQuantity = (productId, newQuantity) => {
     const productInCatalog = products.find(p => p._id === productId);
     const quantity = parseInt(newQuantity, 10);
     if (isNaN(quantity) || quantity < 1) {
@@ -149,7 +97,7 @@ function SalesPage() {
       return;
     }
     setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: quantity } : item));
-  }, [products, showNotification]);
+  };
 
   const handleSaveTransaction = async () => {
     if (cart.length === 0) return;
@@ -166,11 +114,8 @@ function SalesPage() {
     }
   };
 
-  const { totalAmount, margin } = useMemo(() => {
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const marginVal = total - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
-    return { totalAmount: total, margin: marginVal };
-  }, [cart]);
+  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const margin = totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
 
   return (
     <Box sx={{ width: '100%', p: 2 }}>
@@ -187,7 +132,15 @@ function SalesPage() {
                 <Grid container spacing={2}>
                   {items.map(product => (
                     <Grid item key={product._id} xs={6} sm={4} md={3}>
-                      <ProductCard product={product} onAddToCart={addToCart} />
+                      <Card sx={{ height: '100%' }}>
+                        <CardActionArea onClick={() => addToCart(product)} sx={{ height: '100%' }}>
+                          <CardContent>
+                            <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>{product.name}</Typography>
+                            <Typography variant="body2" color="text.secondary">Stock: {product.stock}</Typography>
+                            <Typography variant="h6" color="primary" sx={{ mt: 1 }}>${product.price.toFixed(2)}</Typography>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
                     </Grid>
                   ))}
                 </Grid>
@@ -219,7 +172,31 @@ function SalesPage() {
               <>
                 <List sx={{ maxHeight: '55vh', overflow: 'auto' }}>
                   {cart.map(item => (
-                    <CartItem key={item._id} item={item} onUpdateQuantity={updateCartQuantity} />
+                    <ListItem key={item._id} disablePadding sx={{ mb: 1 }}>
+                      <ListItemText primary={item.name} />
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateCartQuantity(item._id, e.target.value)}
+                          sx={{
+                            width: `${(item.quantity.toString().length * 10) + 30}px`,
+                            minWidth: '50px',
+                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                              '-webkit-appearance': 'none',
+                              margin: 0,
+                            },
+                            '& input[type=number]': {
+                              '-moz-appearance': 'textfield',
+                            },
+                          }}
+                          inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}}
+                        />
+                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
+                      </Box>
+                    </ListItem>
                   ))}
                 </List>
                 <Divider sx={{ my: 2 }} />

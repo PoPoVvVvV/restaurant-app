@@ -19,7 +19,6 @@
     "json2csv": "6.0.0-alpha.2",
     "jsonwebtoken": "9.0.2",
     "mongoose": "7.6.3",
-    "node-cache": "^5.1.2",
     "socket.io": "4.7.2"
   }
 }
