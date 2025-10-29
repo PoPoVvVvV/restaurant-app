@@ -15,7 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 // Composant pour les matières premières
-const TableRow = React.memo(({ ingredient, onStockChange, onSaveStock, onDelete, showDeleteButton }) => (
+const IngredientTableRow = React.memo(({ ingredient, onStockChange, onSaveStock, onDelete, showDeleteButton }) => (
   <TableRow>
     <TableCell>{ingredient.name}</TableCell>
     <TableCell>{ingredient.unit}</TableCell>
@@ -135,7 +135,7 @@ const IngredientManager = () => {
           </TableHead>
           <TableBody>
             {ingredients.map(ing => (
-              <TableRow 
+              <IngredientTableRow 
                 key={ing._id} 
                 ingredient={ing} 
                 onStockChange={handleStockChange}
