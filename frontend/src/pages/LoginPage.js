@@ -12,18 +12,14 @@ function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
-  const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const { showNotification } = useNotification();
-
 
   const onChange = (e) => {
     const value = e.target.value;
     // Préserver les espaces dans le nom d'utilisateur
     setFormData({ ...formData, [e.target.name]: value });
   };
-
-
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -101,7 +97,6 @@ function LoginPage() {
           </Grid>
         </Box>
       </Paper>
-      
     </Container>
   );
 }

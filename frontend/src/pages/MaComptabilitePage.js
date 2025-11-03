@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -9,11 +9,6 @@ import {
   TableContainer, Table, TableBody, TableRow, TableCell
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { IconButton, Slider } from '@mui/material';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 
 // Composant pour le classement
 const Leaderboard = () => {
@@ -45,155 +40,11 @@ const Leaderboard = () => {
 
 function MaComptabilitePage() {
   const { user } = useContext(AuthContext);
-  // Audio pour ambiance Halloween sur cette page
-  const audioRef = useRef(null);
-  const [audioError, setAudioError] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [muted, setMuted] = useState(() => {
-    try { const m = localStorage.getItem('halloween-muted'); return m !== null ? JSON.parse(m) : false; } catch (e) { return false; }
-  });
-  const [volume, setVolume] = useState(() => {
-    try { const v = localStorage.getItem('halloween-volume'); return v !== null ? Number(v) : 25; } catch (e) { return 25; }
-  });
   const [transactions, setTransactions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
   const [bonusPercentage, setBonusPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // audio init & autoplay when this page mounts
-    // check if navigation to this page was triggered by a user click on the
-    // navbar (stored in sessionStorage). If so, treat as a user gesture and try
-    // to play audible audio immediately.
-    let userGesture = false;
-    try {
-      const intent = sessionStorage.getItem('maComptaUserIntent');
-      if (intent && (Date.now() - Number(intent) < 5000)) {
-        userGesture = true;
-        sessionStorage.removeItem('maComptaUserIntent');
-      }
-    } catch (e) {}
-    if (!audioRef.current) {
-      const audio = new Audio('/halloween-loop.mp3');
-      audio.loop = true;
-      audio.preload = 'auto';
-      audio.autoplay = true;
-      audio.playsInline = true;
-      try { audio.crossOrigin = 'anonymous'; } catch (e) {}
-      audio.volume = Math.max(0, Math.min(1, volume / 100));
-      audio.muted = !!muted;
-      audioRef.current = audio;
-    }
-
-    const audio = audioRef.current;
-
-    const tryPlay = async () => {
-      try {
-        // if userGesture is true, force unmuted to respect the click gesture
-        audio.muted = userGesture ? false : (!!muted ? true : false);
-        audio.volume = Math.max(0, Math.min(1, volume / 100));
-        await audio.play();
-        setIsPlaying(true);
-        setAudioError(false);
-      } catch (err) {
-        try {
-          audio.muted = true;
-          await audio.play();
-          setIsPlaying(true);
-          setAudioError(false);
-        } catch (err2) {
-          try {
-            const resp = await fetch('/halloween-loop.mp3');
-            const arrayBuffer = await resp.arrayBuffer();
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) {
-              const ctx = new AudioCtx();
-              try { await ctx.resume(); } catch (e) {}
-              const decoded = await ctx.decodeAudioData(arrayBuffer);
-              const src = ctx.createBufferSource();
-              src.buffer = decoded;
-              const gain = ctx.createGain();
-              gain.gain.value = Math.max(0, Math.min(1, volume / 100));
-              src.loop = true;
-              src.connect(gain).connect(ctx.destination);
-              src.start(0);
-              audioRef.current._webaudio = { ctx, src, gain };
-              setIsPlaying(true);
-              setAudioError(false);
-            } else {
-              setAudioError(true);
-              setIsPlaying(false);
-            }
-          } catch (err3) {
-            setAudioError(true);
-            setIsPlaying(false);
-          }
-        }
-      }
-    };
-
-    tryPlay();
-
-    return () => {
-      // cleanup audio on leaving page
-      if (audioRef.current) {
-        try { audioRef.current.pause(); } catch (e) {}
-        try { audioRef.current.currentTime = 0; } catch (e) {}
-        if (audioRef.current._webaudio) {
-          try { audioRef.current._webaudio.src.stop(); } catch (e) {}
-          try { audioRef.current._webaudio.ctx.close(); } catch (e) {}
-          delete audioRef.current._webaudio;
-        }
-      }
-      setIsPlaying(false);
-    };
-  }, []);
-
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      try { audio.pause(); } catch (e) {}
-      if (audio._webaudio) {
-        try { audio._webaudio.src.stop(); } catch (e) {}
-        try { audio._webaudio.ctx.close(); } catch (e) {}
-        delete audio._webaudio;
-      }
-      setIsPlaying(false);
-    } else {
-      try { await audio.play(); setIsPlaying(true); setAudioError(false); } catch (e) { setAudioError(true); }
-    }
-  };
-
-  const handleToggleMute = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const newMuted = !muted;
-    audio.muted = newMuted;
-    setMuted(newMuted);
-    try { localStorage.setItem('halloween-muted', JSON.stringify(newMuted)); } catch (e) {}
-  };
-
-  const handleVolumeChange = (e, value) => {
-    const audio = audioRef.current;
-    const v = Number(value);
-    setVolume(v);
-    try { localStorage.setItem('halloween-volume', String(v)); } catch (e) {}
-    if (audio) {
-      if (audio._webaudio) {
-        try { audio._webaudio.gain.gain.value = Math.max(0, Math.min(1, v / 100)); } catch (e) {}
-      } else {
-        try { audio.volume = Math.max(0, Math.min(1, v / 100)); } catch (e) {}
-      }
-      if (v === 0) {
-        audio.muted = true;
-        setMuted(true);
-      } else {
-        audio.muted = false;
-        setMuted(false);
-      }
-    }
-  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -375,51 +226,6 @@ function MaComptabilitePage() {
             )}
         </Grid>
       </Grid>
-      {/* Panneau de contrôle audio Halloween (fixé) */}
-      <Box
-        sx={{
-          position: 'fixed',
-          left: 16,
-          bottom: 16,
-          bgcolor: 'rgba(20,20,20,0.88)',
-          border: '1px solid rgba(151,71,255,0.08)',
-          p: 1,
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 12px rgba(255,133,51,0.06)',
-          zIndex: 1400,
-        }}
-      >
-        <IconButton onClick={togglePlay} size="small" sx={{ color: 'orange', bgcolor: 'transparent' }} aria-label="play-pause">
-          {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-        </IconButton>
-
-        <IconButton onClick={handleToggleMute} size="small" sx={{ color: muted ? 'gray' : 'orange' }} aria-label="mute-unmute">
-          {muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-        </IconButton>
-
-        <Box sx={{ width: 140, px: 1 }}>
-          <Slider value={volume} onChange={handleVolumeChange} aria-label="volume" size="small" />
-        </Box>
-
-        {/* Indicateur discret quand la musique joue */}
-        <Box sx={{ ml: 0.5, display: 'flex', alignItems: 'center' }}>
-          <Box
-            sx={{
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              bgcolor: isPlaying && !muted ? 'orange' : 'rgba(255,133,51,0.18)',
-              boxShadow: isPlaying && !muted ? '0 0 8px rgba(255,133,51,0.9)' : 'none',
-              transition: 'all 250ms ease',
-              animation: isPlaying && !muted ? 'pulse 1.6s infinite' : 'none',
-            }}
-            aria-hidden
-          />
-        </Box>
-      </Box>
     </Container>
   );
 }
