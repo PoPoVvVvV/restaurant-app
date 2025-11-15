@@ -118,7 +118,10 @@ router.get('/me', protect, async (req, res) => {
   try {
     const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
     const currentWeekId = weekSetting?.value || 1;
-    const transactions = await Transaction.find({ employeeId: req.user.id, weekId: currentWeekId }).sort({ createdAt: -1 });
+    // Utiliser lean() pour améliorer les performances (retourne des objets JS simples)
+    const transactions = await Transaction.find({ employeeId: req.user.id, weekId: currentWeekId })
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(transactions);
   } catch (error) {
     res.status(500).json({ message: "Erreur du serveur" });
@@ -126,7 +129,7 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // @route   GET /api/transactions
-// @desc    Obtenir TOUTES les transactions pour une semaine donnée
+// @desc    Obtenir TOUTES les transactions pour une semaine donnée (avec pagination)
 // @access  Privé/Admin
 router.get('/', [protect, admin], async (req, res) => {
   try {
@@ -137,10 +140,31 @@ router.get('/', [protect, admin], async (req, res) => {
       const weekSetting = await Setting.findOne({ key: 'currentWeekId' });
       weekIdToFetch = weekSetting?.value || 1;
     }
-    const transactions = await Transaction.find({ weekId: weekIdToFetch })
-      .populate('employeeId', 'username')
-      .sort({ createdAt: -1 });
-    res.json(transactions);
+    
+    // Pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+    
+    const [transactions, total] = await Promise.all([
+      Transaction.find({ weekId: weekIdToFetch })
+        .populate('employeeId', 'username')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(), // lean() pour améliorer les performances
+      Transaction.countDocuments({ weekId: weekIdToFetch })
+    ]);
+    
+    res.json({
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: "Erreur du serveur" });
   }

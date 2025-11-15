@@ -21,5 +21,9 @@ const RecipeSchema = new mongoose.Schema({
   }
 });
 
+// Indexes pour optimiser les requêtes fréquentes
+RecipeSchema.index({ productId: 1 }); // Déjà unique, mais index explicite
+RecipeSchema.index({ createdBy: 1 });
+
 const Recipe = mongoose.model('Recipe', RecipeSchema);
 export default Recipe;
