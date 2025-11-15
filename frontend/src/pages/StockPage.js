@@ -16,6 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 // Composant mémorisé pour une ligne d'ingrédient
 const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, isAdmin }) => {
   const [localStock, setLocalStock] = useState(ingredient.editedStock);
+  const [isSaving, setIsSaving] = useState(false);
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -40,6 +41,35 @@ const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, 
     }, 150);
   };
 
+  const handleSave = async () => {
+    const stockValue = parseFloat(localStock);
+    if (isNaN(stockValue) || stockValue < 0) {
+      return;
+    }
+    
+    // Ne sauvegarder que si la valeur a changé
+    if (stockValue === ingredient.stock) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onSaveStock(ingredient._id, localStock);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBlur = () => {
+    handleSave();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.target.blur(); // Cela déclenchera handleBlur
+    }
+  };
+
   return (
     <TableRow key={ingredient._id}>
       <TableCell>{ingredient.name}</TableCell>
@@ -47,21 +77,18 @@ const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, 
       <TableCell align="right">{ingredient.stock}</TableCell>
       <TableCell align="center">{ingredient.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
       <TableCell>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, alignItems: 'center' }}>
           <TextField 
             size="small" 
             type="number" 
             value={localStock} 
             onChange={(e) => handleChange(e.target.value)} 
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            disabled={isSaving}
             sx={{ width: '100px' }}
           />
-          <Button 
-            variant="contained" 
-            size="small" 
-            onClick={() => onSaveStock(ingredient._id, localStock)}
-          >
-            OK
-          </Button>
+          {isSaving && <CircularProgress size={20} />}
         </Box>
       </TableCell>
       {isAdmin && (
@@ -112,15 +139,28 @@ const IngredientManager = () => {
   }, []);
 
   const handleSaveStock = useCallback(async (id, newStock) => {
+    const stockValue = parseFloat(newStock);
+    if (isNaN(stockValue) || stockValue < 0) {
+        showNotification("Veuillez entrer une valeur de stock valide.", "error");
+        return;
+    }
     try {
-        const { data } = await api.put(`/ingredients/${id}/stock`, { stock: newStock });
+        const { data } = await api.put(`/ingredients/${id}/stock`, { stock: stockValue });
         // Mise à jour locale au lieu de refetch complet
         setIngredients(prev => prev.map(i => 
           i._id === id ? { ...i, stock: data.stock, editedStock: data.stock } : i
         ));
-        showNotification("Stock de l'ingrédient mis à jour.", "success");
+        // Pas de notification de succès pour éviter les notifications excessives lors de modifications multiples
     } catch (err) {
-        showNotification("Erreur lors de la mise à jour.", "error");
+        showNotification(err.response?.data?.message || "Erreur lors de la mise à jour du stock.", "error");
+        // En cas d'erreur, restaurer la valeur précédente
+        setIngredients(prev => {
+          const ingredient = prev.find(i => i._id === id);
+          if (!ingredient) return prev;
+          return prev.map(i => 
+            i._id === id ? { ...i, editedStock: i.stock } : i
+          );
+        });
     }
   }, [showNotification]);
 
