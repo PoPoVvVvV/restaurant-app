@@ -19,27 +19,37 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        
-        // Vérifier si le token est expiré
-        if (decodedToken.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          // Si le token est valide, on met à jour l'état et les headers axios
-          setUser(decodedToken.user);
-          api.defaults.headers.common['x-auth-token'] = token;
+    const checkAuth = async () => {
+      if (token) {
+        try {
+          const decodedToken = jwtDecode(token);
+          
+          // Vérifier si le token est expiré
+          if (decodedToken.exp * 1000 < Date.now()) {
+            setUser(null);
+            setToken(null);
+            localStorage.removeItem('token');
+            delete api.defaults.headers.common['x-auth-token'];
+          } else {
+            // Si le token est valide, on met à jour l'état et les headers axios
+            setUser(decodedToken.user);
+            api.defaults.headers.common['x-auth-token'] = token;
+          }
+        } catch (error) {
+          // Si le token est invalide
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['x-auth-token'];
         }
-      } catch (error) {
-        // Si le token est invalide
-        logout();
+      } else {
+        setUser(null);
       }
-    } else {
-      setUser(null);
-    }
-    setLoading(false);
-  }, [token, logout]);
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, [token]);
 
   const login = useCallback((newToken) => {
     localStorage.setItem('token', newToken);
