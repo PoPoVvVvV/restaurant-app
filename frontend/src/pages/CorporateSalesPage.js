@@ -36,9 +36,9 @@ function CorporateSalesPage() {
     }
   }, []);
 
-  const getPrice = (product) => {
+  const getPrice = useCallback((product) => {
     return (product.corporatePrice && product.corporatePrice > 0) ? product.corporatePrice : product.price;
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -54,7 +54,7 @@ function CorporateSalesPage() {
   }, [fetchData]);
 
   const productsByCategory = useMemo(() => {
-  const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
+    const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
     const sortedProducts = [...products].sort((a, b) => getPrice(a) - getPrice(b));
     sortedProducts.forEach(product => {
       if (grouped[product.category]) {
@@ -62,9 +62,9 @@ function CorporateSalesPage() {
       }
     });
     return grouped;
-  }, [products]);
+  }, [products, getPrice]);
 
-  const addToCart = (product) => {
+  const addToCart = useCallback((product) => {
     setCart(prevCart => {
       const existingProduct = prevCart.find(item => item._id === product._id);
       if (existingProduct) {
@@ -73,18 +73,18 @@ function CorporateSalesPage() {
         return [...prevCart, { ...product, price: getPrice(product), quantity: 1 }];
       }
     });
-  };
+  }, [getPrice]);
 
-  const updateCartQuantity = (productId, newQuantity) => {
+  const updateCartQuantity = useCallback((productId, newQuantity) => {
     const quantity = parseInt(newQuantity, 10);
     if (isNaN(quantity) || quantity < 1) {
       setCart(prevCart => prevCart.filter(item => item._id !== productId));
       return;
     }
     setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: quantity } : item));
-  };
+  }, []);
 
-  const handleSaveTransaction = async () => {
+  const handleSaveTransaction = useCallback(async () => {
     if (cart.length === 0) return;
     if (selectedEmployees.length === 0) {
       showNotification("Veuillez sélectionner au moins un employé.", "warning");
@@ -101,10 +101,15 @@ function CorporateSalesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cart, selectedEmployees, showNotification]);
 
-  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const margin = totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  const totalAmount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [cart]);
+
+  const margin = useMemo(() => {
+    return totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  }, [cart, totalAmount]);
 
   return (
     <Box sx={{ width: '100%', p: 2 }}>

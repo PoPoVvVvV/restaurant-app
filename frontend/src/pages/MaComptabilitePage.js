@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback, memo } from 'react';
 import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -11,7 +11,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // Composant pour le classement
-const Leaderboard = () => {
+const Leaderboard = memo(() => {
     const [data, setData] = useState([]);
     useEffect(() => {
         api.get('/reports/leaderboard')
@@ -36,7 +36,9 @@ const Leaderboard = () => {
             </TableContainer>
         </Paper>
     );
-};
+});
+
+Leaderboard.displayName = 'Leaderboard';
 
 function MaComptabilitePage() {
   const { user } = useContext(AuthContext);
@@ -65,43 +67,73 @@ function MaComptabilitePage() {
     fetchData();
   }, []);
 
-  // Calculs séparés par type de vente
-  const ventesParticuliers = transactions.filter(t => t.saleType === 'particulier');
-  const ventesEntreprises = transactions.filter(t => t.saleType === 'entreprise');
+  // Calculs séparés par type de vente - mémorisés
+  const ventesParticuliers = useMemo(() => 
+    transactions.filter(t => t.saleType === 'particulier'), 
+    [transactions]
+  );
+  const ventesEntreprises = useMemo(() => 
+    transactions.filter(t => t.saleType === 'entreprise'), 
+    [transactions]
+  );
   
-  const totalCAParticuliers = ventesParticuliers.reduce((sum, t) => sum + t.totalAmount, 0);
-  const totalCAEntreprises = ventesEntreprises.reduce((sum, t) => sum + t.totalAmount, 0);
-  const totalCA = totalCAParticuliers + totalCAEntreprises;
+  const totalCAParticuliers = useMemo(() => 
+    ventesParticuliers.reduce((sum, t) => sum + t.totalAmount, 0), 
+    [ventesParticuliers]
+  );
+  const totalCAEntreprises = useMemo(() => 
+    ventesEntreprises.reduce((sum, t) => sum + t.totalAmount, 0), 
+    [ventesEntreprises]
+  );
+  const totalCA = useMemo(() => 
+    totalCAParticuliers + totalCAEntreprises, 
+    [totalCAParticuliers, totalCAEntreprises]
+  );
   
-  const totalMarginParticuliers = ventesParticuliers.reduce((sum, t) => sum + t.margin, 0);
-  const totalMarginEntreprises = ventesEntreprises.reduce((sum, t) => sum + t.margin, 0);
-  const totalMargin = totalMarginParticuliers + totalMarginEntreprises;
+  const totalMarginParticuliers = useMemo(() => 
+    ventesParticuliers.reduce((sum, t) => sum + t.margin, 0), 
+    [ventesParticuliers]
+  );
+  const totalMarginEntreprises = useMemo(() => 
+    ventesEntreprises.reduce((sum, t) => sum + t.margin, 0), 
+    [ventesEntreprises]
+  );
+  const totalMargin = useMemo(() => 
+    totalMarginParticuliers + totalMarginEntreprises, 
+    [totalMarginParticuliers, totalMarginEntreprises]
+  );
   
-  const totalBonus = totalMargin * bonusPercentage;
-  const nombreDeVentesParticuliers = ventesParticuliers.length;
-  const nombreDeVentesEntreprises = ventesEntreprises.length;
-  const nombreDeVentes = transactions.length;
+  const totalBonus = useMemo(() => 
+    totalMargin * bonusPercentage, 
+    [totalMargin, bonusPercentage]
+  );
+  const nombreDeVentesParticuliers = useMemo(() => ventesParticuliers.length, [ventesParticuliers]);
+  const nombreDeVentesEntreprises = useMemo(() => ventesEntreprises.length, [ventesEntreprises]);
+  const nombreDeVentes = useMemo(() => transactions.length, [transactions]);
 
-  // Préparer les données pour les graphiques séparés
-  const dailyDataParticuliers = dailyData.map(day => ({
-    ...day,
-    VentesParticuliers: 0,
-    VentesEntreprises: 0
-  }));
+  // Préparer les données pour les graphiques séparés - mémorisé
+  const dailyDataParticuliers = useMemo(() => {
+    const data = dailyData.map(day => ({
+      ...day,
+      VentesParticuliers: 0,
+      VentesEntreprises: 0
+    }));
 
-  // Calculer les ventes par jour et par type
-  transactions.forEach(transaction => {
-    const dayOfWeek = new Date(transaction.createdAt).getDay();
-    const dayName = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][dayOfWeek];
-    const dayData = dailyDataParticuliers.find(d => d.name === dayName);
-    if (dayData) {
-      if (transaction.saleType === 'particulier') {
-        dayData.VentesParticuliers += transaction.totalAmount;
-      } else if (transaction.saleType === 'entreprise') {
-        dayData.VentesEntreprises += transaction.totalAmount;
+    // Calculer les ventes par jour et par type
+    transactions.forEach(transaction => {
+      const dayOfWeek = new Date(transaction.createdAt).getDay();
+      const dayName = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][dayOfWeek];
+      const dayData = data.find(d => d.name === dayName);
+      if (dayData) {
+        if (transaction.saleType === 'particulier') {
+          dayData.VentesParticuliers += transaction.totalAmount;
+        } else if (transaction.saleType === 'entreprise') {
+          dayData.VentesEntreprises += transaction.totalAmount;
+        }
       }
-    }
-  });
+    });
+    return data;
+  }, [dailyData, transactions]);
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
 
