@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import api from '../services/api'; // Importer notre instance axios
 
@@ -34,25 +34,23 @@ export const AuthProvider = ({ children }) => {
         // Si le token est invalide
         logout();
       }
-    } else {
-      setUser(null);
     }
     setLoading(false);
   }, [token, logout]);
 
-  const login = useCallback((newToken) => {
+  const login = (newToken) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
-  }, []);
+  };
 
-  const contextValue = useMemo(() => ({
+  const contextValue = {
     user,
     token,
     login,
     logout,
     isAuthenticated: !!user,
     loading
-  }), [user, token, login, logout]);
+  };
 
   // On n'affiche l'application que lorsque la vérification du token est terminée
   return (

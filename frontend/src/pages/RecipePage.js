@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 import { Container, Typography, Paper, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Select, MenuItem, TextField, Box, IconButton } from '@mui/material';
@@ -7,27 +7,26 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 // Formulaire d'ajout (pour les admins)
-const AddRecipeForm = memo(({ products, onRecipeAdded }) => {
+const AddRecipeForm = ({ products, onRecipeAdded }) => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [ingredients, setIngredients] = useState([{ name: '', quantity50: '', quantity100: '' }]);
 
-  const handleIngredientChange = useCallback((index, field, value) => {
-    setIngredients(prev => {
-      const newIngredients = [...prev];
-      newIngredients[index][field] = value;
-      return newIngredients;
-    });
-  }, []);
+  const handleIngredientChange = (index, field, value) => {
+    const newIngredients = [...ingredients];
+    newIngredients[index][field] = value;
+    setIngredients(newIngredients);
+  };
 
-  const addIngredientField = useCallback(() => {
-    setIngredients(prev => [...prev, { name: '', quantity50: '', quantity100: '' }]);
-  }, []);
+  const addIngredientField = () => {
+    setIngredients([...ingredients, { name: '', quantity50: '', quantity100: '' }]);
+  };
 
-  const removeIngredientField = useCallback((index) => {
-    setIngredients(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  const removeIngredientField = (index) => {
+    const newIngredients = ingredients.filter((_, i) => i !== index);
+    setIngredients(newIngredients);
+  };
 
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProduct) {
       alert('Veuillez sélectionner un produit.');
@@ -42,7 +41,7 @@ const AddRecipeForm = memo(({ products, onRecipeAdded }) => {
     } catch (err) {
       alert('Erreur lors de l\'ajout de la recette.');
     }
-  }, [selectedProduct, ingredients, onRecipeAdded]);
+  };
 
   return (
     <Paper component="form" onSubmit={handleSubmit} elevation={3} sx={{ p: 2, mb: 4 }}>
@@ -65,30 +64,28 @@ const AddRecipeForm = memo(({ products, onRecipeAdded }) => {
       <Button type="submit" variant="contained">Enregistrer</Button>
     </Paper>
   );
-});
-
-AddRecipeForm.displayName = 'AddRecipeForm';
+};
 
 function RecipePage() {
   const { user } = useContext(AuthContext);
   const [recipes, setRecipes] = useState([]);
   const [products, setProducts] = useState([]);
 
-  const fetchRecipes = useCallback(async () => {
+  const fetchRecipes = async () => {
     try {
       const { data } = await api.get('/recipes');
       setRecipes(data);
     } catch (err) {
       console.error("Erreur de chargement des recettes.");
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchRecipes();
     if (user?.role === 'admin') {
       api.get('/products').then(res => setProducts(res.data));
     }
-  }, [user, fetchRecipes]);
+  }, [user]);
 
   const recipesByCategory = useMemo(() => {
   const grouped = { Menus: [], Plats: [], Boissons: [], Desserts: [], Partenariat: [] };
