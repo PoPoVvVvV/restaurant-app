@@ -226,20 +226,32 @@ const SnakeGame = ({ open, onClose }) => {
 
   // Charger le meilleur score de l'utilisateur
   const loadUserBestScore = useCallback(async () => {
+    // Vérifier si l'utilisateur est authentifié avant de faire la requête
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
     try {
       const response = await api.get('/easter-egg-scores/my-best/snake-game');
       if (response.data.bestScore) {
         setUserBestScore(response.data.bestScore.score);
       }
     } catch (error) {
+      // Ignorer silencieusement les erreurs 401 (non authentifié)
+      if (error.response?.status === 401) {
+        return;
+      }
       console.log('Aucun score précédent trouvé');
     }
   }, []);
 
-  // Charger le meilleur score au montage du composant
+  // Charger le meilleur score seulement si le jeu est ouvert et l'utilisateur est authentifié
   useEffect(() => {
-    loadUserBestScore();
-  }, [loadUserBestScore]);
+    if (open) {
+      loadUserBestScore();
+    }
+  }, [open, loadUserBestScore]);
 
   // Enregistrer le score
   const saveScore = async () => {
