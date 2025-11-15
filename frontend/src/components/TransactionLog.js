@@ -7,8 +7,7 @@ const TransactionLog = () => {
     const fetchAllTransactions = async () => {
       try {
         const { data } = await api.get('/transactions');
-        // Gérer la nouvelle structure paginée ou l'ancienne structure
-        setTransactions(data.transactions || data);
+        setTransactions(data);
       } catch (err) {
         console.error("Erreur lors de la récupération des transactions", err);
       } finally {

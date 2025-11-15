@@ -61,11 +61,5 @@ const TransactionSchema = new mongoose.Schema({
   },
 });
 
-// Indexes pour optimiser les requêtes fréquentes
-TransactionSchema.index({ weekId: 1, employeeId: 1 });
-TransactionSchema.index({ employeeId: 1, createdAt: -1 });
-TransactionSchema.index({ weekId: 1, createdAt: -1 });
-TransactionSchema.index({ saleType: 1 });
-
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 export default Transaction;

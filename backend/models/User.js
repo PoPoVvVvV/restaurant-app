@@ -31,11 +31,6 @@ const UserSchema = new mongoose.Schema({
   },
 });
 
-// Indexes pour optimiser les requêtes fréquentes
-UserSchema.index({ username: 1 }); // Déjà unique, mais index explicite
-UserSchema.index({ isActive: 1 });
-UserSchema.index({ role: 1 });
-
 const User = mongoose.model('User', UserSchema);
 
 export default User;

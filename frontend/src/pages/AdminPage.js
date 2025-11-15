@@ -396,12 +396,7 @@ const GeneralSettings = () => {
 const TransactionLog = ({ viewedWeek }) => {
   const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
-  useEffect(() => { 
-    api.get(`/transactions?week=${viewedWeek}`).then(res => {
-      // Gérer la nouvelle structure paginée ou l'ancienne structure
-      setTransactions(res.data.transactions || res.data);
-    }); 
-  }, [viewedWeek]);
+  useEffect(() => { api.get(`/transactions?week=${viewedWeek}`).then(res => setTransactions(res.data)); }, [viewedWeek]);
   
   const transactionsByDay = useMemo(() => {
     const grouped = {};

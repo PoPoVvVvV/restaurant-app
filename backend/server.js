@@ -4,7 +4,6 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import compression from 'compression';
 
 // Importer toutes vos routes
 import authRoutes from './routes/auth.js';
@@ -33,13 +32,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Compression des réponses pour améliorer les performances
-app.use(compression());
-
-// Limite de taille du body pour éviter les abus
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 const io = new Server(httpServer, {
   cors: {
     origin: clientURL,
@@ -56,16 +48,11 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.json());
+
 const connectDB = async () => {
   try {
-    // Options de connexion optimisées
-    const mongooseOptions = {
-      maxPoolSize: 10, // Maintenir jusqu'à 10 connexions socket
-      serverSelectionTimeoutMS: 5000, // Timeout après 5s au lieu de 30s
-      socketTimeoutMS: 45000, // Fermer les sockets après 45s d'inactivité
-    };
-    
-    await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connexion à MongoDB réussie !');
   } catch (error) {
     console.error('❌ Erreur de connexion à MongoDB :', error.message);
