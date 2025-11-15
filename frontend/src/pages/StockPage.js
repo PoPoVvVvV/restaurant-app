@@ -10,7 +10,6 @@ import {
   CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle,
   Accordion, AccordionSummary, AccordionDetails, IconButton
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -194,6 +193,7 @@ const IngredientManager = () => {
 // Composant mémorisé pour une ligne de produit
 const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshold }) => {
   const [localStock, setLocalStock] = useState(product.editedStock);
+  const [isSaving, setIsSaving] = useState(false);
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -218,6 +218,35 @@ const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshol
     }, 150);
   };
 
+  const handleSave = async () => {
+    const stockValue = parseInt(localStock, 10);
+    if (isNaN(stockValue) || stockValue < 0) {
+      return;
+    }
+    
+    // Ne sauvegarder que si la valeur a changé
+    if (stockValue === product.stock) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onSaveStock(product._id, localStock);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBlur = () => {
+    handleSave();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.target.blur(); // Cela déclenchera handleBlur
+    }
+  };
+
   return (
     <TableRow key={product._id} hover>
       <TableCell component="th" scope="row">{product.name}</TableCell>
@@ -237,17 +266,13 @@ const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshol
             size="small" 
             value={localStock}
             onChange={(e) => handleChange(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            disabled={isSaving}
             sx={{ width: '100px' }} 
             inputProps={{ min: 0 }}
           />
-          <Button 
-            variant="contained" 
-            size="small" 
-            onClick={() => onSaveStock(product._id, localStock)} 
-            startIcon={<CheckCircleIcon />}
-          >
-            Valider
-          </Button>
+          {isSaving && <CircularProgress size={20} />}
         </Box>
       </TableCell>
     </TableRow>
@@ -332,20 +357,22 @@ function StockPage() {
     try {
       const { data } = await api.put(`/products/restock/${productId}`, { newStock: stockValue });
       // Mise à jour locale au lieu de refetch complet
-      let productName = '';
       setProducts(prev => {
-        const product = prev.find(p => p._id === productId);
-        if (!product) return prev;
-        productName = product.name;
         return prev.map(p => 
           p._id === productId ? { ...p, stock: data.stock, editedStock: data.stock } : p
         );
       });
-      if (productName) {
-        showNotification(`${productName} mis à jour !`, 'success');
-      }
+      // Pas de notification de succès pour éviter les notifications excessives lors de modifications multiples
     } catch (err) {
-      showNotification("Erreur lors de la mise à jour du stock.", 'error');
+      showNotification(err.response?.data?.message || "Erreur lors de la mise à jour du stock.", 'error');
+      // En cas d'erreur, restaurer la valeur précédente
+      setProducts(prev => {
+        const product = prev.find(p => p._id === productId);
+        if (!product) return prev;
+        return prev.map(p => 
+          p._id === productId ? { ...p, editedStock: p.stock } : p
+        );
+      });
     }
   }, [showNotification]);
 
