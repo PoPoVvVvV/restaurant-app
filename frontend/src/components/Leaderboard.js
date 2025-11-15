@@ -54,39 +54,19 @@ const Leaderboard = ({ easterEggType = 'snake-game' }) => {
   }, [easterEggType]);
 
   const fetchData = async () => {
-    // Vérifier si l'utilisateur est authentifié avant de faire les requêtes
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
       const [leaderboardRes, statsRes, myBestRes] = await Promise.all([
         api.get(`/easter-egg-scores/leaderboard/${easterEggType}?limit=20`),
         api.get(`/easter-egg-scores/stats/${easterEggType}`),
-        api.get(`/easter-egg-scores/my-best/${easterEggType}`).catch(err => {
-          // Ignorer silencieusement les erreurs 401 pour my-best
-          if (err.response?.status === 401) {
-            return { data: { bestScore: null } };
-          }
-          throw err;
-        })
+        api.get(`/easter-egg-scores/my-best/${easterEggType}`)
       ]);
 
-      setLeaderboard(leaderboardRes.data.leaderboard || []);
-      setStats(leaderboardRes.data.stats || null);
-      setMyBestScore(myBestRes.data.bestScore || null);
+      setLeaderboard(leaderboardRes.data.leaderboard);
+      setStats(leaderboardRes.data.stats);
+      setMyBestScore(myBestRes.data.bestScore);
     } catch (error) {
-      // Ignorer silencieusement les erreurs 401 (non authentifié)
-      if (error.response?.status === 401) {
-        setLeaderboard([]);
-        setStats(null);
-        setMyBestScore(null);
-      } else {
-        console.error('Erreur lors du chargement des données:', error);
-      }
+      console.error('Erreur lors du chargement des données:', error);
     } finally {
       setLoading(false);
     }

@@ -369,8 +369,6 @@ const GeneralSettings = () => {
     const [bonusPercentage, setBonusPercentage] = useState(0);
     const [newCode, setNewCode] = useState('');
     const [users, setUsers] = useState([]);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [userToDelete, setUserToDelete] = useState(null);
     const fetchUsers = async () => { api.get('/users').then(res => setUsers(res.data)); };
     useEffect(() => {
         api.get('/settings/bonusPercentage').then(res => setBonusPercentage(res.data.value * 100));
@@ -380,28 +378,6 @@ const GeneralSettings = () => {
     const generateInviteCode = async () => { const { data } = await api.post('/users/generate-code'); setNewCode(data.invitationCode); };
     const handleToggleStatus = async (userId) => { try { await api.put(`/users/${userId}/status`); fetchUsers(); showNotification("Statut mis à jour.", 'info'); } catch (err) { showNotification("Erreur.", 'error'); } };
     const handleGradeChange = async (userId, newGrade) => { try { await api.put(`/users/${userId}/grade`, { grade: newGrade }); setUsers(users.map(u => u._id === userId ? { ...u, grade: newGrade } : u)); showNotification("Grade mis à jour !", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
-    const handleDeleteClick = (user) => {
-        setUserToDelete(user);
-        setDeleteDialogOpen(true);
-    };
-    const handleDeleteConfirm = async () => {
-        if (!userToDelete) return;
-        try {
-            await api.delete(`/users/${userToDelete._id}`);
-            showNotification(`Le compte de ${userToDelete.username} a été supprimé.`, 'success');
-            fetchUsers();
-            setDeleteDialogOpen(false);
-            setUserToDelete(null);
-        } catch (err) {
-            showNotification(err.response?.data?.message || "Erreur lors de la suppression.", 'error');
-            setDeleteDialogOpen(false);
-            setUserToDelete(null);
-        }
-    };
-    const handleDeleteCancel = () => {
-        setDeleteDialogOpen(false);
-        setUserToDelete(null);
-    };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
@@ -409,21 +385,9 @@ const GeneralSettings = () => {
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                     <TableHead><TableRow><TableCell>Nom d'utilisateur</TableCell><TableCell>Rôle</TableCell><TableCell>Grade</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
-                    <TableBody>{users.map(user => (<TableRow key={user._id}><TableCell>{user.username}</TableCell><TableCell>{user.role}</TableCell><TableCell><Select value={user.grade || 'Novice'} onChange={(e) => handleGradeChange(user._id, e.target.value)} size="small" variant="standard" sx={{ minWidth: 120 }}><MenuItem value="Novice">Novice</MenuItem><MenuItem value="Confirmé">Confirmé</MenuItem><MenuItem value="Expérimenté">Expérimenté</MenuItem><MenuItem value="Manageuse">Manageuse</MenuItem><MenuItem value="Co-Patronne">Co-Patronne</MenuItem><MenuItem value="Patron">Patron</MenuItem></Select></TableCell><TableCell><Chip label={user.isActive ? "Actif" : "Désactivé"} color={user.isActive ? "success" : "error"} size="small" /></TableCell><TableCell align="center"><Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}><Button variant="outlined" size="small" onClick={() => handleToggleStatus(user._id)}>{user.isActive ? "Désactiver" : "Activer"}</Button>{!user.isActive && <IconButton color="error" size="small" onClick={() => handleDeleteClick(user)}><DeleteIcon /></IconButton>}</Box></TableCell></TableRow>))}</TableBody>
+                    <TableBody>{users.map(user => (<TableRow key={user._id}><TableCell>{user.username}</TableCell><TableCell>{user.role}</TableCell><TableCell><Select value={user.grade || 'Novice'} onChange={(e) => handleGradeChange(user._id, e.target.value)} size="small" variant="standard" sx={{ minWidth: 120 }}><MenuItem value="Novice">Novice</MenuItem><MenuItem value="Confirmé">Confirmé</MenuItem><MenuItem value="Expérimenté">Expérimenté</MenuItem><MenuItem value="Manageuse">Manageuse</MenuItem><MenuItem value="Co-Patronne">Co-Patronne</MenuItem><MenuItem value="Patron">Patron</MenuItem></Select></TableCell><TableCell><Chip label={user.isActive ? "Actif" : "Désactivé"} color={user.isActive ? "success" : "error"} size="small" /></TableCell><TableCell align="center"><Button variant="outlined" size="small" onClick={() => handleToggleStatus(user._id)}>{user.isActive ? "Désactiver" : "Activer"}</Button></TableCell></TableRow>))}</TableBody>
                 </Table>
             </TableContainer>
-            <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-                <DialogTitle>Confirmer la suppression</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Êtes-vous sûr de vouloir supprimer définitivement le compte de <strong>{userToDelete?.username}</strong> ? Cette action est irréversible.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleDeleteCancel}>Annuler</Button>
-                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">Supprimer</Button>
-                </DialogActions>
-            </Dialog>
         </Paper>
     );
 };

@@ -10,13 +10,13 @@ import {
   CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle,
   Accordion, AccordionSummary, AccordionDetails, IconButton
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 // Composant mémorisé pour une ligne d'ingrédient
 const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, isAdmin }) => {
   const [localStock, setLocalStock] = useState(ingredient.editedStock);
-  const [isSaving, setIsSaving] = useState(false);
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -41,35 +41,6 @@ const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, 
     }, 150);
   };
 
-  const handleSave = async () => {
-    const stockValue = parseFloat(localStock);
-    if (isNaN(stockValue) || stockValue < 0) {
-      return;
-    }
-    
-    // Ne sauvegarder que si la valeur a changé
-    if (stockValue === ingredient.stock) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onSaveStock(ingredient._id, localStock);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleBlur = () => {
-    handleSave();
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.target.blur(); // Cela déclenchera handleBlur
-    }
-  };
-
   return (
     <TableRow key={ingredient._id}>
       <TableCell>{ingredient.name}</TableCell>
@@ -77,18 +48,21 @@ const IngredientRow = memo(({ ingredient, onStockChange, onSaveStock, onDelete, 
       <TableCell align="right">{ingredient.stock}</TableCell>
       <TableCell align="center">{ingredient.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
       <TableCell>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
           <TextField 
             size="small" 
             type="number" 
             value={localStock} 
             onChange={(e) => handleChange(e.target.value)} 
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            disabled={isSaving}
             sx={{ width: '100px' }}
           />
-          {isSaving && <CircularProgress size={20} />}
+          <Button 
+            variant="contained" 
+            size="small" 
+            onClick={() => onSaveStock(ingredient._id, localStock)}
+          >
+            OK
+          </Button>
         </Box>
       </TableCell>
       {isAdmin && (
@@ -139,28 +113,15 @@ const IngredientManager = () => {
   }, []);
 
   const handleSaveStock = useCallback(async (id, newStock) => {
-    const stockValue = parseFloat(newStock);
-    if (isNaN(stockValue) || stockValue < 0) {
-        showNotification("Veuillez entrer une valeur de stock valide.", "error");
-        return;
-    }
     try {
-        const { data } = await api.put(`/ingredients/${id}/stock`, { stock: stockValue });
+        const { data } = await api.put(`/ingredients/${id}/stock`, { stock: newStock });
         // Mise à jour locale au lieu de refetch complet
         setIngredients(prev => prev.map(i => 
           i._id === id ? { ...i, stock: data.stock, editedStock: data.stock } : i
         ));
-        // Pas de notification de succès pour éviter les notifications excessives lors de modifications multiples
+        showNotification("Stock de l'ingrédient mis à jour.", "success");
     } catch (err) {
-        showNotification(err.response?.data?.message || "Erreur lors de la mise à jour du stock.", "error");
-        // En cas d'erreur, restaurer la valeur précédente
-        setIngredients(prev => {
-          const ingredient = prev.find(i => i._id === id);
-          if (!ingredient) return prev;
-          return prev.map(i => 
-            i._id === id ? { ...i, editedStock: i.stock } : i
-          );
-        });
+        showNotification("Erreur lors de la mise à jour.", "error");
     }
   }, [showNotification]);
 
@@ -233,7 +194,6 @@ const IngredientManager = () => {
 // Composant mémorisé pour une ligne de produit
 const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshold }) => {
   const [localStock, setLocalStock] = useState(product.editedStock);
-  const [isSaving, setIsSaving] = useState(false);
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -258,35 +218,6 @@ const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshol
     }, 150);
   };
 
-  const handleSave = async () => {
-    const stockValue = parseInt(localStock, 10);
-    if (isNaN(stockValue) || stockValue < 0) {
-      return;
-    }
-    
-    // Ne sauvegarder que si la valeur a changé
-    if (stockValue === product.stock) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onSaveStock(product._id, localStock);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleBlur = () => {
-    handleSave();
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.target.blur(); // Cela déclenchera handleBlur
-    }
-  };
-
   return (
     <TableRow key={product._id} hover>
       <TableCell component="th" scope="row">{product.name}</TableCell>
@@ -306,13 +237,17 @@ const ProductRow = memo(({ product, onStockChange, onSaveStock, lowStockThreshol
             size="small" 
             value={localStock}
             onChange={(e) => handleChange(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            disabled={isSaving}
             sx={{ width: '100px' }} 
             inputProps={{ min: 0 }}
           />
-          {isSaving && <CircularProgress size={20} />}
+          <Button 
+            variant="contained" 
+            size="small" 
+            onClick={() => onSaveStock(product._id, localStock)} 
+            startIcon={<CheckCircleIcon />}
+          >
+            Valider
+          </Button>
         </Box>
       </TableCell>
     </TableRow>
@@ -397,22 +332,20 @@ function StockPage() {
     try {
       const { data } = await api.put(`/products/restock/${productId}`, { newStock: stockValue });
       // Mise à jour locale au lieu de refetch complet
+      let productName = '';
       setProducts(prev => {
+        const product = prev.find(p => p._id === productId);
+        if (!product) return prev;
+        productName = product.name;
         return prev.map(p => 
           p._id === productId ? { ...p, stock: data.stock, editedStock: data.stock } : p
         );
       });
-      // Pas de notification de succès pour éviter les notifications excessives lors de modifications multiples
+      if (productName) {
+        showNotification(`${productName} mis à jour !`, 'success');
+      }
     } catch (err) {
-      showNotification(err.response?.data?.message || "Erreur lors de la mise à jour du stock.", 'error');
-      // En cas d'erreur, restaurer la valeur précédente
-      setProducts(prev => {
-        const product = prev.find(p => p._id === productId);
-        if (!product) return prev;
-        return prev.map(p => 
-          p._id === productId ? { ...p, editedStock: p.stock } : p
-        );
-      });
+      showNotification("Erreur lors de la mise à jour du stock.", 'error');
     }
   }, [showNotification]);
 

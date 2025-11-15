@@ -102,33 +102,4 @@ router.get('/reset-tokens', [protect, admin], async (req, res) => {
     }
 });
 
-// @route   DELETE /api/users/:id
-// @desc    Supprimer un compte utilisateur désactivé
-// @access  Privé/Admin
-router.delete('/:id', [protect, admin], async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    
-    if (!user) {
-      return res.status(404).json({ message: 'Utilisateur non trouvé' });
-    }
-
-    // Vérifier que le compte est désactivé
-    if (user.isActive) {
-      return res.status(400).json({ message: 'Seuls les comptes désactivés peuvent être supprimés.' });
-    }
-
-    // Empêcher l'auto-suppression
-    if (user._id.toString() === req.user.id) {
-      return res.status(400).json({ message: 'Vous ne pouvez pas supprimer votre propre compte.' });
-    }
-
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: `Le compte de ${user.username} a été supprimé avec succès.` });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erreur du serveur' });
-  }
-});
-
 export default router;
