@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import api from '../services/api'; // Importer notre instance axios
 
 const AuthContext = createContext();
@@ -57,7 +58,14 @@ export const AuthProvider = ({ children }) => {
   // On n'affiche l'application que lorsque la vérification du token est terminée
   return (
     <AuthContext.Provider value={contextValue}>
-      {!loading && children}
+      {loading ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+          <Typography variant="body1" sx={{ mt: 2 }}>Chargement...</Typography>
+        </Box>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };
