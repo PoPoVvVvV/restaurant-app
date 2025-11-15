@@ -18,8 +18,9 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['x-auth-token'];
   }, []);
 
+  // Vérifier le token seulement au montage initial
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       if (token) {
         try {
           const decodedToken = jwtDecode(token);
@@ -49,7 +50,26 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [token]);
+  }, []); // Seulement au montage, pas à chaque changement de token
+
+  // Gérer les changements de token après le montage (lors de la connexion)
+  useEffect(() => {
+    if (token && !loading) {
+      // Si un nouveau token est défini après le montage (connexion)
+      try {
+        const decodedToken = jwtDecode(token);
+        
+        if (decodedToken.exp * 1000 < Date.now()) {
+          logout();
+        } else {
+          setUser(decodedToken.user);
+          api.defaults.headers.common['x-auth-token'] = token;
+        }
+      } catch (error) {
+        logout();
+      }
+    }
+  }, [token, loading, logout]);
 
   const login = useCallback((newToken) => {
     localStorage.setItem('token', newToken);

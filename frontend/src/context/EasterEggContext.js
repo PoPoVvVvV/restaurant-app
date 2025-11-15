@@ -38,12 +38,24 @@ export const EasterEggProvider = ({ children }) => {
 
   // Fonction pour vérifier le déblocage du Flappy Bird
   const checkFlappyBirdUnlock = useCallback(async () => {
+    // Vérifier si l'utilisateur est authentifié avant de faire la requête
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsFlappyBirdUnlocked(false);
+      return null;
+    }
+
     try {
       const response = await api.get('/easter-egg-scores/check-unlock/flappy-bird');
       console.log('[DEBUG] Réponse déblocage Flappy Bird:', response.data);
       setIsFlappyBirdUnlocked(response.data.isUnlocked);
       return response.data;
     } catch (error) {
+      // Ignorer silencieusement les erreurs 401 (non authentifié)
+      if (error.response?.status === 401) {
+        setIsFlappyBirdUnlocked(false);
+        return null;
+      }
       console.error('Erreur lors de la vérification du déblocage Flappy Bird:', error);
       // En cas d'erreur, garder le déblocage à false
       setIsFlappyBirdUnlocked(false);
@@ -51,9 +63,12 @@ export const EasterEggProvider = ({ children }) => {
     }
   }, []);
 
-  // Vérifier le déblocage du Flappy Bird au montage
+  // Vérifier le déblocage du Flappy Bird seulement si l'utilisateur est authentifié
   useEffect(() => {
-    checkFlappyBirdUnlock();
+    const token = localStorage.getItem('token');
+    if (token) {
+      checkFlappyBirdUnlock();
+    }
   }, [checkFlappyBirdUnlock]);
 
   // Fonction pour jouer un son de progression
