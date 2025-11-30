@@ -49,25 +49,42 @@ const UserManager = () => {
       return;
     }
 
-    const shouldDelete = await confirm(
-      `Êtes-vous sûr de vouloir supprimer définitivement le compte de ${user.username} ?`,
-      {
-        title: 'Confirmer la suppression',
-        severity: 'error',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler'
-      }
-    );
+    console.log('Tentative de suppression du compte:', user._id, user.username);
+    
+    try {
+      const shouldDelete = await confirm(
+        `Êtes-vous sûr de vouloir supprimer définitivement le compte de ${user.username} ?`,
+        {
+          title: 'Confirmer la suppression',
+          severity: 'error',
+          confirmText: 'Supprimer',
+          cancelText: 'Annuler'
+        }
+      );
 
-    if (shouldDelete) {
-      try {
-        await api.delete(`/users/${user._id}`);
-        showSuccess('Compte supprimé avec succès');
-        fetchUsers();
-      } catch (error) {
-        console.error('Erreur lors de la suppression du compte:', error);
-        showError('Erreur lors de la suppression du compte');
+      console.log('Confirmation de suppression:', shouldDelete);
+
+      if (shouldDelete) {
+        console.log('Envoi de la requête de suppression pour l\'utilisateur:', user._id);
+        const response = await api.delete(`/users/${user._id}`);
+        console.log('Réponse du serveur:', response);
+        
+        if (response.status === 200) {
+          showSuccess('Compte supprimé avec succès');
+          // Rafraîchir la liste des utilisateurs
+          await fetchUsers();
+        } else {
+          throw new Error(`Erreur inattendue: ${response.status}`);
+        }
       }
+    } catch (error) {
+      console.error('Erreur détaillée lors de la suppression du compte:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
+      showError(error.response?.data?.message || 'Erreur lors de la suppression du compte');
     }
   };
 
