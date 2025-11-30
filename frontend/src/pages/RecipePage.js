@@ -34,9 +34,11 @@ const EditableIngredient = ({ ingredient, index, onUpdate, onDelete, onAdd, isLa
   const [editedIngredient, setEditedIngredient] = useState({ ...ingredient });
 
   const handleChange = (field, value) => {
+    // On conserve tous les espaces sauf les espaces multiples consécutifs
+    const processedValue = value.replace(/\s{2,}/g, ' ');
     setEditedIngredient(prev => ({
       ...prev,
-      [field]: value // Suppression du trim() pour conserver les espaces
+      [field]: processedValue
     }));
   };
 
@@ -93,8 +95,10 @@ const AddRecipeForm = ({ products, onRecipeAdded }) => {
   const [ingredients, setIngredients] = useState([{ name: '', quantity50: '', quantity100: '' }]);
 
   const handleIngredientChange = (index, field, value) => {
+    // On conserve tous les espaces sauf les espaces multiples consécutifs
+    const processedValue = value.replace(/\s{2,}/g, ' ');
     const newIngredients = [...ingredients];
-    newIngredients[index][field] = value; // Suppression du trim()
+    newIngredients[index][field] = processedValue;
     setIngredients(newIngredients);
   };
 
@@ -208,12 +212,14 @@ function RecipePage() {
   }, [recipes]);
 
   const handleIngredientChange = (recipeId, index, field, value) => {
+    // On conserve tous les espaces sauf les espaces multiples consécutifs
+    const processedValue = value.replace(/\s{2,}/g, ' ');
     const updatedRecipes = recipes.map(recipe => {
       if (recipe._id === recipeId) {
         const updatedIngredients = [...recipe.ingredients];
         updatedIngredients[index] = {
           ...updatedIngredients[index],
-          [field]: value // Suppression du trim()
+          [field]: processedValue
         };
         return { ...recipe, ingredients: updatedIngredients };
       }
