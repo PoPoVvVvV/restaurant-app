@@ -66,13 +66,13 @@ function SalesPage() {
       .filter(item => item.freeCount > 0);
   }, [cart]);
 
-  const addToCart = (product) => {
-    const itemInCart = cart.find(item => item._id === product._id);
-    if (itemInCart && itemInCart.quantity >= product.stock) {
-      showNotification("Stock maximum atteint pour ce produit.", "warning");
-      return;
-    }
+  const addToCart = useCallback((product) => {
     setCart(prevCart => {
+      const itemInCart = prevCart.find(item => item._id === product._id);
+      if (itemInCart && itemInCart.quantity >= product.stock) {
+        showNotification("Stock maximum atteint pour ce produit.", "warning");
+        return prevCart;
+      }
       const existingProduct = prevCart.find(item => item._id === product._id);
       if (existingProduct) {
         return prevCart.map(item =>
@@ -82,9 +82,9 @@ function SalesPage() {
         return [...prevCart, { ...product, quantity: 1 }];
       }
     });
-  };
+  }, [showNotification]);
 
-  const updateCartQuantity = (productId, newQuantity) => {
+  const updateCartQuantity = useCallback((productId, newQuantity) => {
     const productInCatalog = products.find(p => p._id === productId);
     const quantity = parseInt(newQuantity, 10);
     if (isNaN(quantity) || quantity < 1) {
@@ -97,9 +97,9 @@ function SalesPage() {
       return;
     }
     setCart(prevCart => prevCart.map(item => item._id === productId ? { ...item, quantity: quantity } : item));
-  };
+  }, [products, showNotification]);
 
-  const handleSaveTransaction = async () => {
+  const handleSaveTransaction = useCallback(async () => {
     if (cart.length === 0) return;
     setLoading(true);
     try {
@@ -112,10 +112,17 @@ function SalesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cart, fetchProducts, showNotification]);
 
-  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const margin = totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  const totalAmount = useMemo(() => 
+    cart.reduce((sum, item) => sum + item.price * item.quantity, 0), 
+    [cart]
+  );
+  
+  const margin = useMemo(() => 
+    totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0), 
+    [totalAmount, cart]
+  );
 
   return (
     <Box sx={{ width: '100%', p: 2 }}>

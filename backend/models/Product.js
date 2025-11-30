@@ -35,6 +35,11 @@ const ProductSchema = new mongoose.Schema({
   },
 });
 
+// Indexes pour optimiser les requêtes fréquentes
+ProductSchema.index({ category: 1, name: 1 });
+ProductSchema.index({ stock: 1 });
+ProductSchema.index({ createdAt: -1 });
+
 const Product = mongoose.model('Product', ProductSchema);
 
 export default Product;
