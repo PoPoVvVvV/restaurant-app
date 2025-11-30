@@ -102,4 +102,33 @@ router.get('/reset-tokens', [protect, admin], async (req, res) => {
     }
 });
 
+// @route   DELETE /api/users/:id
+// @desc    Supprimer un compte utilisateur désactivé (admin uniquement)
+// @access  Privé/Admin
+router.delete('/:id', [protect, admin], async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    
+    // Vérifier si le compte est actif
+    if (user.isActive) {
+      return res.status(400).json({ message: 'Impossible de supprimer un compte actif. Veuillez d\'abord le désactiver.' });
+    }
+    
+    // Suppression du compte
+    await User.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Compte supprimé avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression du compte:', error);
+    res.status(500).json({ 
+      message: 'Erreur lors de la suppression du compte',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 export default router;
