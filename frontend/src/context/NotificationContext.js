@@ -43,8 +43,14 @@ export const NotificationProvider = ({ children }) => {
         message,
         title: options.title || 'Confirmation',
         severity: options.severity || 'warning',
-        onConfirm: () => resolve(true),
-        onCancel: () => resolve(false),
+        onConfirm: () => {
+          setAlert(prev => ({ ...prev, open: false }));
+          resolve(true);
+        },
+        onCancel: () => {
+          setAlert(prev => ({ ...prev, open: false }));
+          resolve(false);
+        },
         showCancelButton: true,
         confirmText: options.confirmText || 'Confirmer',
         cancelText: options.cancelText || 'Annuler',
@@ -100,6 +106,11 @@ export const NotificationProvider = ({ children }) => {
         title={alert.title}
         message={alert.message}
         severity={alert.severity}
+        showCancelButton={alert.showCancelButton}
+        onConfirm={alert.onConfirm}
+        onCancel={alert.onCancel}
+        confirmText={alert.confirmText}
+        cancelText={alert.cancelText}
       />
     </NotificationContext.Provider>
   );

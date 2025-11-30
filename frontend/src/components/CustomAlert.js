@@ -55,17 +55,44 @@ const CustomAlert = ({
     }
   };
 
+  const handleClose = (event, reason) => {
+    // Empêcher la fermeture en cliquant en dehors ou avec la touche Échap
+    if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+      return;
+    }
+    onClose();
+  };
+
+  const handleConfirm = () => {
+    onClose();
+    if (onConfirm) onConfirm();
+  };
+
+  const handleCancel = () => {
+    onClose();
+    if (onCancel) onCancel();
+  };
+
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
       maxWidth="sm"
       fullWidth
     >
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-        <IconButton onClick={onClose} size="small">
+        <IconButton 
+          onClick={handleCancel}
+          size="small"
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </Box>
@@ -85,23 +112,21 @@ const CustomAlert = ({
       <DialogActions sx={{ p: 3, pt: 0, gap: 2 }}>
         {showCancelButton && (
           <Button 
-            onClick={() => {
-              onClose();
-              onCancel?.();
-            }} 
+            onClick={handleCancel}
             variant="outlined"
+            fullWidth
+            sx={{ py: 1.5 }}
           >
             {cancelText}
           </Button>
         )}
         <Button 
-          onClick={() => {
-            onClose();
-            onConfirm?.();
-          }} 
+          onClick={handleConfirm}
           variant="contained" 
           color={severity === 'error' ? 'error' : 'primary'}
           autoFocus
+          fullWidth
+          sx={{ py: 1.5 }}
         >
           {confirmText}
         </Button>
