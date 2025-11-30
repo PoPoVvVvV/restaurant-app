@@ -36,7 +36,7 @@ const EditableIngredient = ({ ingredient, index, onUpdate, onDelete, onAdd, isLa
   const handleChange = (field, value) => {
     setEditedIngredient(prev => ({
       ...prev,
-      [field]: value.trim()
+      [field]: value // Suppression du trim() pour conserver les espaces
     }));
   };
 
@@ -94,7 +94,7 @@ const AddRecipeForm = ({ products, onRecipeAdded }) => {
 
   const handleIngredientChange = (index, field, value) => {
     const newIngredients = [...ingredients];
-    newIngredients[index][field] = value.trim();
+    newIngredients[index][field] = value; // Suppression du trim()
     setIngredients(newIngredients);
   };
 
@@ -213,7 +213,7 @@ function RecipePage() {
         const updatedIngredients = [...recipe.ingredients];
         updatedIngredients[index] = {
           ...updatedIngredients[index],
-          [field]: value.trim()
+          [field]: value // Suppression du trim()
         };
         return { ...recipe, ingredients: updatedIngredients };
       }
