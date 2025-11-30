@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Switch, Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  DialogContentText
+  DialogContentText, FormControlLabel
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../services/api';
