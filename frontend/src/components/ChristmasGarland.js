@@ -64,7 +64,7 @@ const GarlandContainer = styled('div')({
   zIndex: 1100,
 });
 
-const Light = styled('span')(props => ({
+const LightBase = styled('span')(props => ({
   position: 'absolute',
   bottom: '0',
   width: props.size || '12px',
@@ -73,7 +73,7 @@ const Light = styled('span')(props => ({
   backgroundColor: props.color || '#fff',
   animation: `${lightUp} ${props.speed || '2s'} cubic-bezier(0.4, 0, 0.6, 1) infinite`,
   animationDelay: props.delay || '0s',
-  boxShadow: `0 0 ${props.size || '12px'} ${Math.floor((props.size || 12) / 4)}px ${props.color || '#fff'}`,
+  boxShadow: `0 0 ${props.size || '12px'} ${Math.floor((parseInt(props.size) || 12) / 4)}px ${props.color || '#fff'}`,
   transform: 'translateX(-50%) scale(1)',
   transition: 'all 0.3s ease',
   '&:hover': {
@@ -102,40 +102,63 @@ const Wire = styled('div')({
   zIndex: 1099,
 });
 
-const ChristmasGarland = () => {
-  // Couleurs des lumières de Noël
-  const lightColors = [
-    '#ff0000', // Rouge
-    '#00ff00', // Vert
-    '#ffff00', // Jaune
-    '#ff00ff', // Magenta
-    '#00ffff', // Cyan
-    '#ff8000', // Orange
-  ];
+// Composant de lumière individuel mémorisé
+const Light = React.memo(({ id, position, color, size, speed, delay }) => {
+  const lightStyle = React.useMemo(() => ({
+    left: `${position}%`,
+    backgroundColor: color,
+    boxShadow: `0 0 ${size} ${Math.floor(parseInt(size) / 4)}px ${color}`,
+    width: size,
+    height: size,
+  }), [position, color, size]);
 
-  // Créer 25 lumières réparties sur la largeur de l'écran
-  const lights = Array.from({ length: 25 }).map((_, i) => {
-    const color = lightColors[Math.floor(Math.random() * lightColors.length)];
-    const position = (i / 24) * 100; // Position en pourcentage
-    const size = `${Math.random() * 6 + 10}px`; // Taille aléatoire entre 10 et 16px
-    const speed = `${Math.random() * 3 + 2}s`; // Vitesse d'animation aléatoire plus lente
-    const delay = `${Math.random() * 5}s`; // Délai d'animation aléatoire plus long
-    
-    // Créer des groupes de lumières qui s'allument en séquence
-    const groupSize = 5;
-    const groupIndex = Math.floor(i / groupSize);
-    const inGroupIndex = i % groupSize;
-    const groupDelay = groupIndex * 0.5;
-    
-    return {
-      id: i,
-      position,
-      color,
-      size,
-      speed,
-      delay: `${(Math.random() * 0.5) + (inGroupIndex * 0.2) + groupDelay}s`
-    };
-  });
+  return (
+    <LightBase
+      style={lightStyle}
+      color={color}
+      size={size}
+      speed={speed}
+      delay={delay}
+      aria-hidden="true"
+    />
+  );
+});
+
+const ChristmasGarland = React.memo(() => {
+  // Couleurs des lumières de Noël (déplacé en dehors du composant pour éviter les recréations)
+  const lightColors = React.useMemo(() => [
+    '#ff0000', // Rouge
+    '#00aa00', // Vert plus doux
+    '#ffcc00', // Jaune plus doux
+    '#cc00cc', // Magenta plus doux
+    '#00cccc', // Cyan plus doux
+    '#ff6600', // Orange plus doux
+  ], []);
+
+  // Génération des données des lumières avec useMemo
+  const lights = React.useMemo(() => {
+    return Array.from({ length: 20 }).map((_, i) => {
+      const color = lightColors[Math.floor(Math.random() * lightColors.length)];
+      const position = (i / 24) * 100; // Position en pourcentage
+      const size = `${Math.random() * 6 + 10}px`; // Taille aléatoire entre 10 et 16px
+      const speed = `${Math.random() * 3 + 2}s`; // Vitesse d'animation aléatoire plus lente
+      
+      // Créer des groupes de lumières qui s'allument en séquence
+      const groupSize = 5;
+      const groupIndex = Math.floor(i / groupSize);
+      const inGroupIndex = i % groupSize;
+      const groupDelay = groupIndex * 0.5;
+      
+      return {
+        id: i,
+        position,
+        color,
+        size,
+        speed,
+        delay: `${(Math.random() * 0.5) + (inGroupIndex * 0.2) + groupDelay}s`
+      };
+    });
+  }, [lightColors]);
 
   return (
     <GarlandContainer>
@@ -143,19 +166,26 @@ const ChristmasGarland = () => {
       {lights.map(light => (
         <Light
           key={light.id}
-          style={{
-            left: `${light.position}%`,
-            backgroundColor: light.color,
-            boxShadow: `0 0 10px 2px ${light.color}`,
-            width: `${light.size}px`,
-            height: `${light.size}px`,
-          }}
+          id={light.id}
+          position={light.position}
+          color={light.color}
+          size={light.size}
           speed={light.speed}
           delay={light.delay}
         />
       ))}
     </GarlandContainer>
   );
-};
+});
+
+// Désactiver les logs en production
+if (process.env.NODE_ENV === 'production') {
+  const noop = () => {};
+  if (typeof console !== 'undefined') {
+    ['log', 'warn', 'error'].forEach(method => {
+      console[method] = noop;
+    });
+  }
+}
 
 export default ChristmasGarland;
