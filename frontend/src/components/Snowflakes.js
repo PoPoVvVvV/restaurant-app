@@ -45,9 +45,13 @@ const Snowflakes = ({ count = 100 }) => {
         if (rect.top > window.innerHeight) {
           snowflake.style.top = `${-10}px`;
           snowflake.style.left = `${Math.random() * 100}%`;
-          snowflake.style.animation = 'none';
-          snowflake.offsetHeight; // Trigger reflow
-          snowflake.style.animation = null;
+          // Forcer un reflow avant de réinitialiser l'animation
+          const resetAnimation = () => {
+            snowflake.style.animation = 'none';
+            void snowflake.offsetHeight; // Utilisation de void pour éviter l'avertissement
+            snowflake.style.animation = '';
+          };
+          resetAnimation();
         }
       });
       
