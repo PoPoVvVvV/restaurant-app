@@ -11,36 +11,42 @@ import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 
-import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import PublicRoute from './components/PublicRoute';
-import SnakeGame from './components/SnakeGame';
+// Composants UI
+const Navbar = lazy(() => import('./components/Navbar'));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+const PublicRoute = lazy(() => import('./components/PublicRoute'));
+const SnakeGame = lazy(() => import('./components/SnakeGame'));
+const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
 
-// Lazy loading des pages pour réduire le bundle initial
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const SalesPage = lazy(() => import('./pages/SalesPage'));
-const StockPage = lazy(() => import('./pages/StockPage'));
-const MaComptabilitePage = lazy(() => import('./pages/MaComptabilitePage'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
-const RecipePage = lazy(() => import('./pages/RecipePage'));
-const CorporateSalesPage = lazy(() => import('./pages/CorporateSalesPage'));
-const AbsencePage = lazy(() => import('./pages/AbsencePage'));
-const EasterEggsPage = lazy(() => import('./pages/EasterEggsPage'));
+// Pages (lazy loaded avec prefetch)
+const withLazy = (importFn) => {
+  const Component = lazy(importFn);
+  Component.preload = importFn;
+  return Component;
+};
+
+const LoginPage = withLazy(() => import('./pages/LoginPage'));
+const RegisterPage = withLazy(() => import('./pages/RegisterPage'));
+const SalesPage = withLazy(() => import('./pages/SalesPage'));
+const CorporateSalesPage = withLazy(() => import('./pages/CorporateSalesPage'));
+const StockPage = withLazy(() => import('./pages/StockPage'));
+const RecipePage = withLazy(() => import('./pages/RecipePage'));
+const AbsencePage = withLazy(() => import('./pages/AbsencePage'));
+const MaComptabilitePage = withLazy(() => import('./pages/MaComptabilitePage'));
+const EasterEggsPage = withLazy(() => import('./pages/EasterEggsPage'));
+const AdminPage = withLazy(() => import('./pages/AdminPage'));
 
 // Composant de chargement
-const LoadingFallback = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+const LoadingFallback = React.memo(() => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    minHeight: '50vh' 
+  }}>
     <CircularProgress />
-  </Box>
-);
-
-// Composant wrapper pour le jeu Snake
-function SnakeGameWrapper() {
-  const { showSnakeGame, closeSnakeGame } = useEasterEgg();
-  
-  return <SnakeGame open={showSnakeGame} onClose={closeSnakeGame} />;
-}
+  </div>
+));
 
 function ThemedApp() {
   const { mode } = useThemeMode();
@@ -172,30 +178,32 @@ function ThemedApp() {
       }} />
       <Router>
         <EasterEggProvider>
-          <Navbar style={{ position: 'relative', zIndex: 10 }} />
-          <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
-                {/* Routes Publiques */}
-                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-                
-                {/* Routes Protégées */}
-                <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
-                <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
-                <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
-                <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
-                <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
-                <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
-                <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
-                
-                {/* Route par défaut */}
-                <Route path="/" element={<Navigate to="/ventes" />} />
-              </Routes>
-            </Suspense>
-          </main>
-          <SnakeGameWrapper />
+          <Suspense fallback={null}>
+            <Navbar style={{ position: 'relative', zIndex: 10 }} />
+            <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  {/* Routes Publiques */}
+                  <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                  <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+                  
+                  {/* Routes Protégées */}
+                  <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+                  <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
+                  <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
+                  <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
+                  <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
+                  <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
+                  <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
+                  
+                  {/* Route par défaut */}
+                  <Route path="/" element={<Navigate to="/ventes" />} />
+                </Routes>
+              </Suspense>
+            </main>
+            <SnakeGameWrapper />
+          </Suspense>
         </EasterEggProvider>
       </Router>
     </MuiThemeProvider>
