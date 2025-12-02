@@ -250,9 +250,9 @@ const Navbar = memo(() => {
       </Toolbar>
     </AppBar>
   );
-}
+});
 
-// Optimisation des performances avec React.memo et displayName
+// Configuration de displayName pour le débogage
 Navbar.displayName = 'Navbar';
 
 export default Navbar;
