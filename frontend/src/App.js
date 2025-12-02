@@ -150,8 +150,8 @@ function ThemedApp() {
       <Snowflakes count={30} />
       <Router>
         <EasterEggProvider>
-          <Navbar />
-          <main style={{ padding: '20px' }}>
+          <Navbar style={{ position: 'relative', zIndex: 10 }} />
+          <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Routes Publiques */}

@@ -9,14 +9,16 @@ const fallAnimation = keyframes`
 
 const Snowflake = styled('div')({
   position: 'fixed',
-  color: '#fff',
+  color: 'rgba(255, 255, 255, 0.7)',
   pointerEvents: 'none',
   userSelect: 'none',
-  zIndex: 1000,
+  zIndex: 1, // Réduit le z-index pour être en arrière du contenu
   animation: `${fallAnimation} linear forwards`,
+  textShadow: '0 0 5px rgba(255, 255, 255, 0.5)',
+  willChange: 'transform',
 });
 
-const Snowflakes = ({ count = 50 }) => {
+const Snowflakes = ({ count = 30 }) => {
   const snowflakesRef = useRef([]);
 
   useEffect(() => {
@@ -74,13 +76,17 @@ const Snowflakes = ({ count = 50 }) => {
               top: `${top}%`,
               width: `${size}px`,
               height: `${size}px`,
-              opacity,
+              opacity: opacity * 0.7, // Réduit légèrement l'opacité
               animationDuration: `${duration}s`,
               animationDelay: `${delay}s`,
               fontSize: `${size}px`,
+              pointerEvents: 'none',
+              mixBlendMode: 'screen', // Meilleur mélange avec le fond
+              zIndex: 1, // S'assure que c'est en arrière du contenu
             }}
+            aria-hidden="true"
           >
-            ❄
+            {['❄', '❅', '❆'][Math.floor(Math.random() * 3)]}
           </Snowflake>
         );
       })}
