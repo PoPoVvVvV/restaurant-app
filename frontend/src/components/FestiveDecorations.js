@@ -111,50 +111,98 @@ const Ornament = styled(({ className, color = '#2196f3', size = 30, style }) => 
   },
 });
 
+// Génère une position aléatoire
+const getRandomPosition = (min, max) => Math.random() * (max - min) + min;
+
+// Génère une taille aléatoire
+const getRandomSize = (min, max) => Math.random() * (max - min) + min;
+
 // Composant principal
 const FestiveDecorations = () => {
   const colors = ['#2196f3', '#f44336', '#4caf50', '#ff9800', '#9c27b0'];
   
+  // Générer des positions aléatoires pour les décorations
+  const decorations = [
+    // Grands éléments (sapins, Père Noël)
+    {
+      component: ChristmasTree,
+      props: { 
+        size: getRandomSize(80, 120),
+        style: {
+          top: `${getRandomPosition(5, 20)}%`,
+          left: `${getRandomPosition(5, 20)}%`,
+          zIndex: 1,
+          animationDuration: `${getRandomSize(8, 12)}s`,
+          position: 'fixed'
+        }
+      }
+    },
+    {
+      component: SantaClaus,
+      props: {
+        size: getRandomSize(60, 90),
+        style: {
+          top: `${getRandomPosition(5, 20)}%`,
+          right: `${getRandomPosition(5, 20)}%`,
+          zIndex: 10,
+          animationDuration: `${getRandomSize(10, 15)}s`,
+          position: 'fixed'
+        }
+      }
+    },
+    // Ajouter des sapins supplémentaires
+    ...Array(2).fill().map((_, i) => ({
+      component: ChristmasTree,
+      props: {
+        size: getRandomSize(50, 80),
+        style: {
+          top: `${getRandomPosition(20, 80)}%`,
+          left: `${getRandomPosition(70, 90)}%`,
+          zIndex: 1,
+          animationDuration: `${getRandomSize(10, 15)}s`,
+          position: 'fixed',
+          opacity: 0.8
+        }
+      }
+    })),
+    // Ajouter des cadeaux
+    ...Array(5).fill().map((_, i) => ({
+      component: Gift,
+      props: {
+        size: getRandomSize(40, 70),
+        style: {
+          top: `${getRandomPosition(20, 80)}%`,
+          left: `${getRandomPosition(5, 95)}%`,
+          zIndex: 2,
+          animationDuration: `${getRandomSize(5, 10)}s`,
+          position: 'fixed',
+          transform: `rotate(${getRandomPosition(0, 45)}deg)`
+        }
+      }
+    })),
+    // Ajouter des boules de Noël
+    ...Array(15).fill().map((_, i) => ({
+      component: Ornament,
+      props: {
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: getRandomSize(20, 50),
+        style: {
+          top: `${getRandomPosition(5, 95)}%`,
+          left: `${getRandomPosition(5, 95)}%`,
+          zIndex: 2,
+          animationDuration: `${getRandomSize(5, 15)}s`,
+          animationDelay: `${getRandomSize(0, 5)}s`,
+          position: 'fixed',
+          opacity: getRandomSize(0.7, 1)
+        }
+      }
+    }))
+  ];
+  
   return (
     <>
-      {/* Grand sapin en bas à gauche */}
-      <ChristmasTree 
-        style={{ 
-          bottom: '20px', 
-          left: '20px',
-          zIndex: 1,
-          animationDuration: '8s'
-        }} 
-        size={100} 
-      />
-      
-      {/* Père Noël en haut à droite */}
-      <SantaClaus 
-        style={{ 
-          top: '10px', 
-          right: '20px',
-          zIndex: 10,
-          animationDuration: '10s'
-        }} 
-      />
-      
-      {/* Cadeaux éparpillés */}
-      <Gift style={{ bottom: '30px', right: '30px', zIndex: 2 }} />
-      <Gift style={{ bottom: '40px', right: '15%', zIndex: 2, transform: 'rotate(15deg)' }} />
-      
-      {/* Boules de Noël flottantes */}
-      {colors.map((color, index) => (
-        <Ornament 
-          key={index}
-          color={color}
-          style={{
-            top: `${15 + index * 15}%`,
-            left: `${10 + index * 15}%`,
-            zIndex: 2,
-            animationDuration: `${5 + index * 2}s`,
-            animationDelay: `${index * 0.5}s`
-          }}
-        />
+      {decorations.map(({ component: Component, props }, index) => (
+        <Component key={index} {...props} />
       ))}
     </>
   );
