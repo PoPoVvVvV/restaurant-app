@@ -1,12 +1,13 @@
 import React, { useContext } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider, styled } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import { useEasterEgg } from '../context/EasterEggContext';
 import logo from '../assets/Popov.png'; // Assurez-vous que le chemin vers votre logo est correct
+import ChristmasGarland from './ChristmasGarland';
 
 const NavButton = ({ to, icon, text, clickType }) => {
   const location = useLocation();
@@ -58,8 +59,9 @@ function Navbar() {
   };
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" color="primary" elevation={0} sx={{ position: 'relative' }}>
       <Toolbar>
+        <ChristmasGarland />
         <Box 
           component="img"
           sx={{ height: 40, mr: 2, cursor: 'pointer' }}
