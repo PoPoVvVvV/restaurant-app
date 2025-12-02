@@ -4,6 +4,7 @@ import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/st
 import CssBaseline from '@mui/material/CssBaseline';
 import { CircularProgress, Box } from '@mui/material';
 import Snowflakes from './components/Snowflakes';
+import ChristmasDecorations from './components/ChristmasDecorations';
 
 import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
@@ -147,7 +148,28 @@ function ThemedApp() {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <Snowflakes count={30} />
+      <Snowflakes count={100} />
+      <ChristmasDecorations />
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '20px',
+        background: 'linear-gradient(90deg, #c62828, #2e7d32, #c62828)',
+        zIndex: 1000,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '30px',
+        background: 'linear-gradient(90deg, #2e7d32, #c62828, #2e7d32)',
+        zIndex: 1000,
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.2)'
+      }} />
       <Router>
         <EasterEggProvider>
           <Navbar style={{ position: 'relative', zIndex: 10 }} />

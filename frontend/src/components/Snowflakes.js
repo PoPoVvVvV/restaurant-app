@@ -20,16 +20,16 @@ const fallAnimation = keyframes`
 
 const Snowflake = styled('div')({
   position: 'fixed',
-  color: 'rgba(255, 255, 255, 0.7)',
+  color: 'rgba(255, 255, 255, 0.9)',
   pointerEvents: 'none',
   userSelect: 'none',
-  zIndex: 1, // Réduit le z-index pour être en arrière du contenu
-  animation: `${fallAnimation} linear forwards`,
-  textShadow: '0 0 5px rgba(255, 255, 255, 0.5)',
-  willChange: 'transform',
+  zIndex: 1,
+  textShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
+  willChange: 'transform, opacity',
+  filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.7))',
 });
 
-const Snowflakes = ({ count = 100 }) => {
+const Snowflakes = ({ count = 150 }) => {
   const snowflakesRef = useRef([]);
   const animationFrameId = useRef(null);
 
@@ -72,12 +72,13 @@ const Snowflakes = ({ count = 100 }) => {
   return (
     <>
       {Array.from({ length: count }).map((_, index) => {
-        const size = Math.random() * 20 + 5; // Taille plus variable
+        const size = Math.random() * 25 + 10; // Taille plus grande
         const left = Math.random() * 100;
-        const top = Math.random() * 100 - 20; // Commence légèrement au-dessus de l'écran
-        const opacity = Math.random() * 0.7 + 0.3; // Opacité plus visible
-        const duration = Math.random() * 15 + 15; // Durée plus longue
-        const delay = Math.random() * -30; // Délai plus aléatoire
+        const top = Math.random() * 100 - 20;
+        const opacity = Math.random() * 0.8 + 0.2;
+        const duration = Math.random() * 10 + 10; // Chute plus rapide
+        const delay = Math.random() * -20;
+        const drift = (Math.random() - 0.5) * 100; // Dérive horizontale
         
         return (
           <Snowflake
@@ -88,7 +89,7 @@ const Snowflakes = ({ count = 100 }) => {
               top: `${top}%`,
               width: `${size}px`,
               height: `${size}px`,
-              opacity: 0, // L'animation gère l'opacité
+              opacity: 1,
               animation: `
                 ${fallAnimation} ${duration}s linear ${delay}s infinite
               `,
@@ -97,7 +98,8 @@ const Snowflakes = ({ count = 100 }) => {
               mixBlendMode: 'screen',
               zIndex: 1,
               willChange: 'transform, opacity',
-              filter: 'blur(1px)'
+              filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
+              transform: `translateX(${drift}px)`
             }}
             aria-hidden="true"
           >
