@@ -4,7 +4,7 @@ import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/st
 import CssBaseline from '@mui/material/CssBaseline';
 import { CircularProgress, Box } from '@mui/material';
 import Snowflakes from './components/Snowflakes';
-import ChristmasDecorations from './components/ChristmasDecorations';
+import FestiveDecorations from './components/FestiveDecorations';
 
 import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
@@ -149,7 +149,7 @@ function ThemedApp() {
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <Snowflakes count={100} />
-      <ChristmasDecorations />
+      <FestiveDecorations />
       <div style={{
         position: 'fixed',
         top: 0,

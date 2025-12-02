@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { keyframes, styled } from '@mui/material/styles';
 
-const fallAnimation = keyframes`
+const createFallAnimation = (drift) => keyframes`
   0% {
     transform: translateY(-10%) translateX(0) rotate(0deg);
     opacity: 0;
@@ -13,12 +13,12 @@ const fallAnimation = keyframes`
     opacity: 1;
   }
   100% {
-    transform: translateY(110vh) translateX(50px) rotate(360deg);
+    transform: translateY(110vh) translateX(${drift}px) rotate(360deg);
     opacity: 0;
   }
 `;
 
-const Snowflake = styled('div')({
+const SnowflakeBase = styled('div')({
   position: 'fixed',
   color: 'rgba(255, 255, 255, 0.9)',
   pointerEvents: 'none',
@@ -72,16 +72,22 @@ const Snowflakes = ({ count = 150 }) => {
   return (
     <>
       {Array.from({ length: count }).map((_, index) => {
-        const size = Math.random() * 25 + 10; // Taille plus grande
+        const size = Math.random() * 25 + 10;
         const left = Math.random() * 100;
-        const top = Math.random() * 100 - 20;
+        const top = -20;
         const opacity = Math.random() * 0.8 + 0.2;
-        const duration = Math.random() * 10 + 10; // Chute plus rapide
+        const duration = Math.random() * 10 + 10;
         const delay = Math.random() * -20;
-        const drift = (Math.random() - 0.5) * 100; // Dérive horizontale
+        const drift = (Math.random() - 0.5) * 200;
+        const rotation = Math.random() * 360;
+        
+        // Créer une animation unique pour chaque flocon
+        const FallAnimation = styled(SnowflakeBase)(() => ({
+          animation: `${createFallAnimation(drift)} ${duration}s linear ${delay}s infinite`,
+        }));
         
         return (
-          <Snowflake
+          <FallAnimation
             key={index}
             ref={el => snowflakesRef.current[index] = el}
             style={{
@@ -90,21 +96,18 @@ const Snowflakes = ({ count = 150 }) => {
               width: `${size}px`,
               height: `${size}px`,
               opacity: 1,
-              animation: `
-                ${fallAnimation} ${duration}s linear ${delay}s infinite
-              `,
               fontSize: `${size}px`,
               pointerEvents: 'none',
               mixBlendMode: 'screen',
               zIndex: 1,
               willChange: 'transform, opacity',
               filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
-              transform: `translateX(${drift}px)`
+              transform: `rotate(${rotation}deg)`
             }}
             aria-hidden="true"
           >
             {['❄', '❅', '❆'][Math.floor(Math.random() * 3)]}
-          </Snowflake>
+          </FallAnimation>
         );
       })}
     </>
