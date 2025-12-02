@@ -2,8 +2,19 @@ import React, { useEffect, useRef } from 'react';
 import { keyframes, styled } from '@mui/material/styles';
 
 const fallAnimation = keyframes`
-  to {
-    transform: translateY(100vh);
+  0% {
+    transform: translateY(-10%) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(50px) rotate(360deg);
+    opacity: 0;
   }
 `;
 
@@ -18,8 +29,9 @@ const Snowflake = styled('div')({
   willChange: 'transform',
 });
 
-const Snowflakes = ({ count = 30 }) => {
+const Snowflakes = ({ count = 100 }) => {
   const snowflakesRef = useRef([]);
+  const animationFrameId = useRef(null);
 
   useEffect(() => {
     const snowflakes = snowflakesRef.current;
@@ -28,44 +40,40 @@ const Snowflakes = ({ count = 30 }) => {
       snowflakes.forEach(snowflake => {
         if (!snowflake) return;
         
-        const x = parseFloat(snowflake.style.left);
-        const y = parseFloat(snowflake.style.top);
-        const size = parseFloat(snowflake.style.width);
-        
-        // Mouvement de chute avec oscillation latérale
-        const xOffset = Math.sin((y / 100) + (size * 10)) * 2;
-        
-        snowflake.style.transform = `translate(${xOffset}px, ${y + 1}px)`;
-        
         // Réinitialiser la position si le flocon est sorti de l'écran
-        if (y > window.innerHeight) {
+        const rect = snowflake.getBoundingClientRect();
+        if (rect.top > window.innerHeight) {
           snowflake.style.top = `${-10}px`;
           snowflake.style.left = `${Math.random() * 100}%`;
-        } else {
-          snowflake.style.top = `${y + 1}px`;
-          snowflake.style.left = `${x + xOffset}px`;
+          snowflake.style.animation = 'none';
+          snowflake.offsetHeight; // Trigger reflow
+          snowflake.style.animation = null;
         }
       });
       
-      requestAnimationFrame(updateSnowflakes);
+      animationFrameId.current = requestAnimationFrame(updateSnowflakes);
     };
     
-    const animationId = requestAnimationFrame(updateSnowflakes);
+    // Démarrer l'animation
+    animationFrameId.current = requestAnimationFrame(updateSnowflakes);
     
+    // Nettoyer l'animation lors du démontage
     return () => {
-      cancelAnimationFrame(animationId);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
     };
   }, []);
 
   return (
     <>
       {Array.from({ length: count }).map((_, index) => {
-        const size = Math.random() * 10 + 5;
+        const size = Math.random() * 20 + 5; // Taille plus variable
         const left = Math.random() * 100;
-        const top = Math.random() * 100;
-        const opacity = Math.random() * 0.5 + 0.5;
-        const duration = Math.random() * 10 + 10;
-        const delay = Math.random() * -20;
+        const top = Math.random() * 100 - 20; // Commence légèrement au-dessus de l'écran
+        const opacity = Math.random() * 0.7 + 0.3; // Opacité plus visible
+        const duration = Math.random() * 15 + 15; // Durée plus longue
+        const delay = Math.random() * -30; // Délai plus aléatoire
         
         return (
           <Snowflake
@@ -76,13 +84,16 @@ const Snowflakes = ({ count = 30 }) => {
               top: `${top}%`,
               width: `${size}px`,
               height: `${size}px`,
-              opacity: opacity * 0.7, // Réduit légèrement l'opacité
-              animationDuration: `${duration}s`,
-              animationDelay: `${delay}s`,
+              opacity: 0, // L'animation gère l'opacité
+              animation: `
+                ${fallAnimation} ${duration}s linear ${delay}s infinite
+              `,
               fontSize: `${size}px`,
               pointerEvents: 'none',
-              mixBlendMode: 'screen', // Meilleur mélange avec le fond
-              zIndex: 1, // S'assure que c'est en arrière du contenu
+              mixBlendMode: 'screen',
+              zIndex: 1,
+              willChange: 'transform, opacity',
+              filter: 'blur(1px)'
             }}
             aria-hidden="true"
           >
