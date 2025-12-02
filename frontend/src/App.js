@@ -15,7 +15,6 @@ import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 const Navbar = lazy(() => import('./components/Navbar'));
 const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
 const PublicRoute = lazy(() => import('./components/PublicRoute'));
-const SnakeGame = lazy(() => import('./components/SnakeGame'));
 const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
 
 // Pages (lazy loaded avec prefetch)
