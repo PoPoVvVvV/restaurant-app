@@ -5,6 +5,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 1.1rem; /* Augmentation de la taille de police de base */
+  line-height: 1.6; /* Amélioration de l'espacement des lignes pour une meilleure lisibilité */
 }
 
 code {
