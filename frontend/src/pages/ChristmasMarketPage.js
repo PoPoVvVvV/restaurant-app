@@ -144,7 +144,7 @@ function ChristmasMarketPage() {
       
       <Grid container spacing={2}>
         {/* Liste des produits */}
-        <Grid item xs={12} md={7} sx={{ pr: { md: 3 } }}>
+        <Grid item xs={12} md={8} lg={9} sx={{ pr: { md: 3 } }}>
           {Object.entries(productsByCategory).map(([category, products]) => (
             products.length > 0 && (
               <Box key={category} mb={4}>
@@ -184,8 +184,8 @@ function ChristmasMarketPage() {
         </Grid>
 
         {/* Panier - Position fixe à droite */}
-        <Grid item xs={12} md={5} sx={{ position: 'sticky', top: 20, height: 'fit-content', pr: 0 }}>
-          <Paper elevation={3} sx={{ p: 3, position: 'sticky', top: 20, minWidth: '350px', maxWidth: '100%', ml: 'auto' }}>
+        <Grid item xs={12} md={4} lg={3} sx={{ position: 'sticky', top: 20, height: 'fit-content', pr: 0 }}>
+          <Paper elevation={3} sx={{ p: 3, position: 'sticky', top: 20, minWidth: '380px', maxWidth: '100%', ml: 'auto' }}>
             <Typography variant="h6" gutterBottom>
               Votre panier
             </Typography>
@@ -201,12 +201,12 @@ function ChristmasMarketPage() {
                     <React.Fragment key={item._id}>
                       <ListItem 
                         secondaryAction={
-                          <Box display="flex" alignItems="center" sx={{ gap: 0.5, flexWrap: 'nowrap' }}>
+                          <Box display="flex" alignItems="center" sx={{ gap: 0.5, flexWrap: 'nowrap', minWidth: '180px', justifyContent: 'flex-end' }}>
                             <IconButton 
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
-                              sx={{ p: 0.5, minWidth: '32px' }}
+                              sx={{ p: 0.5, minWidth: '28px', height: '28px' }}
                             >
                               <RemoveCircleOutlineIcon fontSize="small" />
                             </IconButton>
@@ -221,20 +221,24 @@ function ChristmasMarketPage() {
                                 style: { 
                                   padding: '4px 0',
                                   textAlign: 'center',
-                                  width: '30px',
+                                  width: '24px',
                                   WebkitAppearance: 'none',
-                                  margin: 0
+                                  margin: 0,
+                                  fontSize: '0.875rem'
                                 }
                               }}
                               variant="outlined"
                               sx={{ 
-                                width: '60px',
+                                width: '50px',
                                 '& .MuiOutlinedInput-root': { 
-                                  height: '32px',
-                                  padding: '0 4px'
+                                  height: '28px',
+                                  padding: '0 2px',
+                                  '& fieldset': {
+                                    padding: '0 4px'
+                                  }
                                 },
                                 '& input': {
-                                  padding: '6px 0',
+                                  padding: '4px 0',
                                   textAlign: 'center'
                                 }
                               }}
@@ -243,7 +247,7 @@ function ChristmasMarketPage() {
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity + 1)}
                               disabled={item.quantity >= item.stock}
-                              sx={{ p: 0.5, minWidth: '32px' }}
+                              sx={{ p: 0.5, minWidth: '28px', height: '28px' }}
                             >
                               <AddCircleOutlineIcon fontSize="small" />
                             </IconButton>
@@ -251,7 +255,7 @@ function ChristmasMarketPage() {
                               size="small" 
                               color="error"
                               onClick={() => removeFromCart(item._id)}
-                              sx={{ p: 0.5, minWidth: '32px' }}
+                              sx={{ p: 0.5, minWidth: '28px', height: '28px' }}
                             >
                               <CloseIcon fontSize="small" />
                             </IconButton>
@@ -260,17 +264,23 @@ function ChristmasMarketPage() {
                       >
                         <ListItemText 
                           primary={
-                            <Typography variant="body1" fontWeight="medium">
+                            <Typography variant="body1" fontWeight="medium" noWrap sx={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.name}
                             </Typography>
                           }
                           secondary={
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                              <span>${item.price.toFixed(2)} x {item.quantity}</span>
-                              <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5, fontSize: '0.875rem' }}>
+                              <span>${item.price.toFixed(2)} × {item.quantity}</span>
+                              <span style={{ fontWeight: 500, marginLeft: '8px' }}>${(item.price * item.quantity).toFixed(2)}</span>
                             </Box>
                           }
-                          sx={{ mr: 2 }}
+                          sx={{ 
+                            mr: 2,
+                            '& .MuiListItemText-secondary': {
+                              overflow: 'visible',
+                              whiteSpace: 'nowrap'
+                            }
+                          }}
                         />
                       </ListItem>
                       <Divider component="li" />
