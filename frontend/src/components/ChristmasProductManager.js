@@ -6,7 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   TextField, Button, Select, MenuItem, Dialog, DialogTitle, DialogContent,
-  DialogActions, Box, IconButton
+  DialogActions, Box, IconButton, Typography, Grid
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
