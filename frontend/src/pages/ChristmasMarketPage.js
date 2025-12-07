@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 
 function ChristmasMarketPage() {
   const [products, setProducts] = useState([]);
@@ -143,7 +144,7 @@ function ChristmasMarketPage() {
       
       <Grid container spacing={2}>
         {/* Liste des produits */}
-        <Grid item xs={12} md={9}>
+        <Grid item xs={12} md={8} sx={{ pr: { md: 3 } }}>
           {Object.entries(productsByCategory).map(([category, products]) => (
             products.length > 0 && (
               <Box key={category} mb={4}>
@@ -183,8 +184,8 @@ function ChristmasMarketPage() {
         </Grid>
 
         {/* Panier - Position fixe à droite */}
-        <Grid item xs={12} md={3} sx={{ position: 'sticky', top: 20, height: 'fit-content' }}>
-          <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: 20 }}>
+        <Grid item xs={12} md={4} sx={{ position: 'sticky', top: 20, height: 'fit-content', pr: 0 }}>
+          <Paper elevation={3} sx={{ p: 3, position: 'sticky', top: 20, minWidth: '320px', maxWidth: '100%', ml: 'auto' }}>
             <Typography variant="h6" gutterBottom>
               Votre panier
             </Typography>
@@ -200,43 +201,66 @@ function ChristmasMarketPage() {
                     <React.Fragment key={item._id}>
                       <ListItem 
                         secondaryAction={
-                          <Box display="flex" alignItems="center">
+                          <Box display="flex" alignItems="center" sx={{ gap: 1 }}>
                             <IconButton 
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
+                              sx={{ p: 0.5 }}
                             >
-                              <RemoveCircleOutlineIcon />
+                              <RemoveCircleOutlineIcon fontSize="small" />
                             </IconButton>
                             <TextField
                               size="small"
                               type="number"
                               value={item.quantity}
                               onChange={(e) => updateCartQuantity(item._id, e.target.value)}
-                              inputProps={{ min: 1, max: item.stock, style: { textAlign: 'center', width: '50px' } }}
-                              variant="standard"
+                              inputProps={{ 
+                                min: 1, 
+                                max: item.stock, 
+                                style: { 
+                                  textAlign: 'center', 
+                                  width: '40px',
+                                  padding: '4px 0',
+                                  WebkitAppearance: 'none',
+                                  margin: 0
+                                } 
+                              }}
+                              variant="outlined"
+                              sx={{ width: '60px', '& .MuiOutlinedInput-root': { height: '32px' } }}
                             />
                             <IconButton 
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity + 1)}
                               disabled={item.quantity >= item.stock}
+                              sx={{ p: 0.5 }}
                             >
-                              <AddCircleOutlineIcon />
+                              <AddCircleOutlineIcon fontSize="small" />
                             </IconButton>
                             <IconButton 
                               size="small" 
                               color="error"
                               onClick={() => removeFromCart(item._id)}
-                              sx={{ ml: 1 }}
+                              sx={{ p: 0.5 }}
                             >
-                              ×
+                              <CloseIcon fontSize="small" />
                             </IconButton>
                           </Box>
                         }
                       >
-                        <ListItemText
-                          primary={`${item.name}`}
-                          secondary={`$${(item.price * item.quantity).toFixed(2)}`}
+                        <ListItemText 
+                          primary={
+                            <Typography variant="body1" fontWeight="medium">
+                              {item.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                              <span>${item.price.toFixed(2)} x {item.quantity}</span>
+                              <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            </Box>
+                          }
+                          sx={{ mr: 2 }}
                         />
                       </ListItem>
                       <Divider component="li" />
