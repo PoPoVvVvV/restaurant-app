@@ -9,7 +9,7 @@ const christmasProductSchema = mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Charcuteries', 'Fromages', 'Boissons', 'Desserts']
+    enum: ['Charcuteries', 'Fromages', 'Boissons', 'Desserts', 'Plateaux']
   },
   price: {
     type: Number,

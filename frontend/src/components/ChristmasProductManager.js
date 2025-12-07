@@ -151,6 +151,7 @@ const ChristmasProductManager = () => {
               <MenuItem value="Fromages">Fromage</MenuItem>
               <MenuItem value="Boissons">Boisson</MenuItem>
               <MenuItem value="Desserts">Dessert</MenuItem>
+              <MenuItem value="Plateaux">Plateau</MenuItem>
             </Select>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
@@ -285,6 +286,7 @@ const ChristmasProductManager = () => {
                     <MenuItem value="Fromages">Fromage</MenuItem>
                     <MenuItem value="Boissons">Boisson</MenuItem>
                     <MenuItem value="Desserts">Dessert</MenuItem>
+                    <MenuItem value="Plateaux">Plateau</MenuItem>
                   </Select>
                 </Grid>
                 <Grid item xs={12} sm={4}>

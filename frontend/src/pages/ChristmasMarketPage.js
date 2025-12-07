@@ -46,7 +46,7 @@ function ChristmasMarketPage() {
   }, [fetchProducts]);
 
   const productsByCategory = useMemo(() => {
-    const grouped = { 'Charcuteries': [], 'Fromages': [], 'Boissons': [], 'Desserts': [] };
+    const grouped = { 'Charcuteries': [], 'Fromages': [], 'Boissons': [], 'Desserts': [], 'Plateaux': [] };
     const sortedProducts = [...products].sort((a, b) => a.price - b.price);
     sortedProducts.forEach(product => {
       if (grouped[product.category]) {
