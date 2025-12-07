@@ -144,7 +144,7 @@ function ChristmasMarketPage() {
       
       <Grid container spacing={2}>
         {/* Liste des produits */}
-        <Grid item xs={12} md={8} sx={{ pr: { md: 3 } }}>
+        <Grid item xs={12} md={7} sx={{ pr: { md: 3 } }}>
           {Object.entries(productsByCategory).map(([category, products]) => (
             products.length > 0 && (
               <Box key={category} mb={4}>
@@ -184,8 +184,8 @@ function ChristmasMarketPage() {
         </Grid>
 
         {/* Panier - Position fixe à droite */}
-        <Grid item xs={12} md={4} sx={{ position: 'sticky', top: 20, height: 'fit-content', pr: 0 }}>
-          <Paper elevation={3} sx={{ p: 3, position: 'sticky', top: 20, minWidth: '320px', maxWidth: '100%', ml: 'auto' }}>
+        <Grid item xs={12} md={5} sx={{ position: 'sticky', top: 20, height: 'fit-content', pr: 0 }}>
+          <Paper elevation={3} sx={{ p: 3, position: 'sticky', top: 20, minWidth: '350px', maxWidth: '100%', ml: 'auto' }}>
             <Typography variant="h6" gutterBottom>
               Votre panier
             </Typography>
@@ -201,12 +201,12 @@ function ChristmasMarketPage() {
                     <React.Fragment key={item._id}>
                       <ListItem 
                         secondaryAction={
-                          <Box display="flex" alignItems="center" sx={{ gap: 1 }}>
+                          <Box display="flex" alignItems="center" sx={{ gap: 0.5, flexWrap: 'nowrap' }}>
                             <IconButton 
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
-                              sx={{ p: 0.5 }}
+                              sx={{ p: 0.5, minWidth: '32px' }}
                             >
                               <RemoveCircleOutlineIcon fontSize="small" />
                             </IconButton>
@@ -217,23 +217,33 @@ function ChristmasMarketPage() {
                               onChange={(e) => updateCartQuantity(item._id, e.target.value)}
                               inputProps={{ 
                                 min: 1, 
-                                max: item.stock, 
+                                max: item.stock,
                                 style: { 
-                                  textAlign: 'center', 
-                                  width: '40px',
                                   padding: '4px 0',
+                                  textAlign: 'center',
+                                  width: '30px',
                                   WebkitAppearance: 'none',
                                   margin: 0
-                                } 
+                                }
                               }}
                               variant="outlined"
-                              sx={{ width: '60px', '& .MuiOutlinedInput-root': { height: '32px' } }}
+                              sx={{ 
+                                width: '60px',
+                                '& .MuiOutlinedInput-root': { 
+                                  height: '32px',
+                                  padding: '0 4px'
+                                },
+                                '& input': {
+                                  padding: '6px 0',
+                                  textAlign: 'center'
+                                }
+                              }}
                             />
                             <IconButton 
                               size="small" 
                               onClick={() => updateCartQuantity(item._id, item.quantity + 1)}
                               disabled={item.quantity >= item.stock}
-                              sx={{ p: 0.5 }}
+                              sx={{ p: 0.5, minWidth: '32px' }}
                             >
                               <AddCircleOutlineIcon fontSize="small" />
                             </IconButton>
@@ -241,7 +251,7 @@ function ChristmasMarketPage() {
                               size="small" 
                               color="error"
                               onClick={() => removeFromCart(item._id)}
-                              sx={{ p: 0.5 }}
+                              sx={{ p: 0.5, minWidth: '32px' }}
                             >
                               <CloseIcon fontSize="small" />
                             </IconButton>
