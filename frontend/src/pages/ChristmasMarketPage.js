@@ -107,7 +107,7 @@ function ChristmasMarketPage() {
         name: item.name
       }));
 
-      await api.post('/christmas-transactions', { items });
+      await api.post('/api/christmas-transactions', { items });
       
       showNotification("Commande passée avec succès!", "success");
       setCart([]);
