@@ -9,13 +9,13 @@ const christmasTransactionSchema = new mongoose.Schema({
     name: { type: String, required: true },
     category: { type: String, required: true }
   }],
-  total: { type: Number, required: true, min: 0 },
-  cost: { type: Number, required: true, min: 0 },
+  totalAmount: { type: Number, required: true, min: 0 },
+  totalCost: { type: Number, required: true, min: 0 },
   margin: { type: Number, required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   weekId: { type: Number, required: true },
-  transactionIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' }],
-  createdAt: { type: Date, default: Date.now }
+  transactionIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' }]
 }, {
   timestamps: true
 });
