@@ -74,12 +74,12 @@ const Navbar = memo(() => {
       { path: '/recettes', label: 'Recettes', icon: '📖' },
       { path: '/absences', label: 'Absences', icon: '📅' },
       { path: '/comptabilite', label: 'Ma Compta', icon: '📊' },
+      { path: '/marche-noel', label: 'Marché de Noël', icon: '🎄' },
     ];
 
     if (user?.role === 'admin') {
       return [
         ...baseItems,
-        { path: '/marche-noel', label: 'Marché de Noël', icon: '🎄' },
         { path: '/admin', label: 'Admin', icon: '⚙️' }
       ];
     }
