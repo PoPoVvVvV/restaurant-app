@@ -31,8 +31,28 @@ const clientURL = process.env.CLIENT_URL || 'https://restaurant-app-coral-six.ve
 
 const corsOptions = {
   origin: clientURL,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  credentials: true,
   optionsSuccessStatus: 200
 };
+
+// Middleware CORS personnalisé pour gérer les requêtes pré-vol (preflight)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', clientURL);
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-auth-token');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Répondre directement aux requêtes OPTIONS (pré-vol)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Utiliser le middleware CORS standard
 app.use(cors(corsOptions));
 
 // Compression des réponses pour améliorer les performances
