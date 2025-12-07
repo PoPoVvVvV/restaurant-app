@@ -159,10 +159,16 @@ function ChristmasMarketPage() {
                             <Typography variant="h6" component="div">
                               {product.name}
                             </Typography>
-                            <Typography color="text.secondary">
+                            <Typography variant="h6" color="error" fontWeight="bold" sx={{ mt: 1, textShadow: '0 0 2px rgba(0,0,0,0.2)' }}>
                               ${product.price.toFixed(2)}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="warning.main" fontWeight="medium" sx={{ 
+                              backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                              display: 'inline-block',
+                              px: 1,
+                              borderRadius: 1,
+                              mt: 0.5
+                            }}>
                               Stock: {product.stock}
                             </Typography>
                           </CardContent>
