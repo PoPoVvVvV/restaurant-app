@@ -143,7 +143,7 @@ function ChristmasMarketPage() {
       
       <Grid container spacing={3}>
         {/* Liste des produits */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12}>
           {Object.entries(productsByCategory).map(([category, products]) => (
             products.length > 0 && (
               <Box key={category} mb={4}>
@@ -152,7 +152,7 @@ function ChristmasMarketPage() {
                 </Typography>
                 <Grid container spacing={2}>
                   {products.map((product) => (
-                    <Grid item xs={12} sm={6} md={4} key={product._id}>
+                    <Grid item xs={12} sm={6} md={2.4} key={product._id} sx={{ minWidth: '150px' }}>
                       <Card variant="outlined">
                         <CardActionArea onClick={() => addToCart(product)}>
                           <CardContent>
