@@ -10,10 +10,33 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user;
+    
+    // Vérifier si le token a la structure attendue
+    if (decoded && decoded.user) {
+      // Si le token contient un objet user, l'utiliser directement
+      req.user = decoded.user;
+    } else if (decoded.id) {
+      // Si le token contient directement les propriétés de l'utilisateur
+      req.user = {
+        _id: decoded.id,
+        role: decoded.role,
+        username: decoded.username,
+        grade: decoded.grade
+      };
+    } else {
+      // Si la structure du token n'est pas reconnue
+      console.error('Structure de token non reconnue:', decoded);
+      return res.status(400).json({ message: 'Structure de token invalide.' });
+    }
+    
+    console.log('Utilisateur authentifié:', { userId: req.user._id, role: req.user.role });
     next();
   } catch (e) {
-    res.status(400).json({ message: 'Token invalide.' });
+    console.error('Erreur de vérification du token:', e.message);
+    res.status(401).json({ 
+      message: 'Session expirée ou invalide. Veuillez vous reconnecter.',
+      error: process.env.NODE_ENV === 'development' ? e.message : undefined
+    });
   }
 };
 
