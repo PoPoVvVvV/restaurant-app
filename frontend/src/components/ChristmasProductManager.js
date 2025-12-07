@@ -56,7 +56,8 @@ const ChristmasProductManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/christmas-products', formData);
+      const response = await api.post('/api/christmas-products', formData);
+      console.log('Réponse du serveur:', response);
       fetchProducts();
       setFormData({ 
         name: '', 
@@ -68,8 +69,22 @@ const ChristmasProductManager = () => {
       });
       showNotification('Produit ajouté avec succès', 'success');
     } catch (err) {
-      console.error('Erreur lors de l\'ajout du produit:', err);
-      showNotification('Erreur lors de l\'ajout du produit', 'error');
+      console.error('Erreur détaillée:', {
+        message: err.message,
+        response: err.response ? {
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data
+        } : 'Pas de réponse du serveur',
+        request: err.request,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method,
+          headers: err.config?.headers,
+          data: err.config?.data
+        }
+      });
+      showNotification(`Erreur lors de l'ajout du produit: ${err.message}`, 'error');
     }
   };
 
