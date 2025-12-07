@@ -100,22 +100,42 @@ function ChristmasMarketPage() {
 
   const handleCheckout = async () => {
     try {
+      // Préparer les données de la transaction
       const items = cart.map(item => ({
         product: item._id,
         quantity: item.quantity,
         price: item.price,
-        name: item.name
+        name: item.name,
+        category: item.category
       }));
 
-      await api.post('/christmas-transactions', { items });
+      // Envoyer la requête avec les données complètes
+      const response = await api.post('/api/christmas-transactions', { 
+        items,
+        employeeIds: [] // Peut être utilisé pour les ventes en équipe
+      });
       
-      showNotification("Commande passée avec succès!", "success");
+      // Afficher le message de succès
+      showNotification(response.data.message || "Commande passée avec succès!", "success");
+      
+      // Vider le panier
       setCart([]);
       
-      // Mettre à jour les stocks
-      socket.emit('data-updated', { type: 'CHRISTMAS_TRANSACTIONS_UPDATED' });
+      // Mettre à jour les données en temps réel
+      socket.emit('data-updated', { 
+        type: 'CHRISTMAS_TRANSACTIONS_UPDATED',
+        transactionIds: response.data.transactions?.map(t => t._id) || []
+      });
+      
+      // Recharger les produits pour mettre à jour les stocks
+      fetchProducts();
+      
     } catch (err) {
-      showNotification("Erreur lors de la commande: " + (err.response?.data?.message || err.message), "error");
+      console.error('Erreur lors de la commande:', err);
+      showNotification(
+        `Erreur: ${err.response?.data?.message || err.message}`, 
+        "error"
+      );
     }
   };
 
