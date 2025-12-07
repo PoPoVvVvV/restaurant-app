@@ -195,7 +195,7 @@ function ThemedApp() {
                   <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
                   <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
                   <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
-                  <Route path="/marche-noel" element={<ProtectedRoute adminOnly={false}><ChristmasMarketPage /></ProtectedRoute>} />
+                  <Route path="/marche-noel" element={<ProtectedRoute><ChristmasMarketPage /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
                   
                   {/* Route par défaut */}
