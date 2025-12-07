@@ -73,18 +73,22 @@ export const createTransaction = async (req, res) => {
     const transactions = await Promise.all(
       targetEmployeeIds.map(employeeId => 
         Transaction.create([{
-          type: 'income',
-          amount: dividedAmount,
-          cost: dividedCost,
-          margin: dividedMargin,
-          description: `Vente Marché de Noël - ${transactionProducts.length} articles`,
-          category: 'Vente',
-          user: employeeId,
           weekId: currentWeekId,
-          details: {
-            products: transactionProducts,
-            isChristmasSale: true
-          }
+          employeeId: employeeId,
+          products: transactionProducts.map(p => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            priceAtSale: p.priceAtSale,
+            costAtSale: p.costAtSale,
+            name: p.name,
+            category: p.category
+          })),
+          totalAmount: dividedAmount,
+          totalCost: dividedCost,
+          margin: dividedMargin,
+          saleType: isCorporateSale ? 'entreprise' : 'particulier',
+          // Ajouter des champs supplémentaires si nécessaire
+          description: `Vente Marché de Noël - ${transactionProducts.length} articles`
         }], { session })
       )
     );
@@ -103,9 +107,9 @@ export const createTransaction = async (req, res) => {
       totalCost: totalCost,
       margin: totalMargin,
       user: userId,
-      employeeId: employeeId, // Ajout de l'ID de l'employé
+      employeeId: employeeId,
       weekId: currentWeekId,
-      transactionIds: transactions.map(t => t[0]._id)
+      transactionIds: transactions.flatMap(t => t).map(t => t._id) // Aplatir le tableau de tableaux
     });
 
     console.log('Tentative de sauvegarde de la transaction', { 
@@ -125,15 +129,16 @@ export const createTransaction = async (req, res) => {
     console.log('Transaction validée en base de données');
 
     // Notifier les clients de la mise à jour
+    const transactionIds = transactions.flatMap(t => t).map(t => t._id);
     req.io.emit('data-updated', { 
       type: 'CHRISTMAS_PRODUCTS_UPDATED',
-      transactionIds: transactions.map(t => t[0]._id)
+      transactionIds: transactionIds
     });
 
     res.status(201).json({
       message: 'Transaction enregistrée avec succès',
       transaction: christmasTransaction,
-      transactions: transactions.map(t => t[0])
+      transactions: transactions.flat()
     });
 
   } catch (error) {
