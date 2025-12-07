@@ -141,18 +141,18 @@ function ChristmasMarketPage() {
         Marché de Noël
       </Typography>
       
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* Liste des produits */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={9}>
           {Object.entries(productsByCategory).map(([category, products]) => (
             products.length > 0 && (
               <Box key={category} mb={4}>
                 <Typography variant="h5" component="h2" gutterBottom>
                   {category}
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={1} sx={{ justifyContent: 'space-between' }}>
                   {products.map((product) => (
-                    <Grid item xs={12} sm={4} md={2.4} key={product._id} sx={{ minWidth: '150px' }}>
+                    <Grid item xs={12} sm={4} md={2.2} key={product._id} sx={{ minWidth: '150px', flexGrow: 1 }}>
                       <Card variant="outlined">
                         <CardActionArea onClick={() => addToCart(product)}>
                           <CardContent>
@@ -183,7 +183,7 @@ function ChristmasMarketPage() {
         </Grid>
 
         {/* Panier - Position fixe à droite */}
-        <Grid item xs={12} md={4} sx={{ position: 'sticky', top: 20, height: 'fit-content' }}>
+        <Grid item xs={12} md={3} sx={{ position: 'sticky', top: 20, height: 'fit-content' }}>
           <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>
               Votre panier
