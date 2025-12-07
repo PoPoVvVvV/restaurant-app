@@ -17,6 +17,7 @@ export const createTransaction = async (req, res) => {
     // 1. Vérifier les stocks et calculer les totaux
     let totalAmount = 0;
     let totalCost = 0;
+    const employeeId = req.user._id; // Récupérer l'ID de l'employé connecté
     const transactionProducts = [];
     const isCorporateSale = employeeIds && employeeIds.length > 0;
 
@@ -88,10 +89,11 @@ export const createTransaction = async (req, res) => {
         name: item.name,
         category: item.category
       })),
-      total: totalAmount,
-      cost: totalCost,
+      totalAmount: totalAmount,
+      totalCost: totalCost,
       margin: totalMargin,
       user: userId,
+      employeeId: employeeId, // Ajout de l'ID de l'employé
       weekId: currentWeekId,
       transactionIds: transactions.map(t => t[0]._id)
     });
