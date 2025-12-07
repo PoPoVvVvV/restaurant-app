@@ -160,7 +160,7 @@ function ChristmasMarketPage() {
                               {product.name}
                             </Typography>
                             <Typography color="text.secondary">
-                              {product.price.toFixed(2)} €
+                              ${product.price.toFixed(2)}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               Stock: {product.stock}
@@ -230,7 +230,7 @@ function ChristmasMarketPage() {
                       >
                         <ListItemText
                           primary={`${item.name}`}
-                          secondary={`${(item.price * item.quantity).toFixed(2)} €`}
+                          secondary={`$${(item.price * item.quantity).toFixed(2)}`}
                         />
                       </ListItem>
                       <Divider component="li" />
@@ -240,7 +240,7 @@ function ChristmasMarketPage() {
                 
                 <Box mt={2} textAlign="right">
                   <Typography variant="h6">
-                    Total: {total} €
+                    Total: ${total}
                   </Typography>
                   <Button 
                     variant="contained" 

@@ -156,7 +156,7 @@ const ChristmasProductManager = () => {
           <Grid item xs={12} sm={6} md={2}>
             <TextField
               fullWidth
-              label="Prix (€)"
+              label="Prix ($)"
               name="price"
               type="number"
               value={formData.price}
@@ -169,7 +169,7 @@ const ChristmasProductManager = () => {
           <Grid item xs={12} sm={6} md={2}>
             <TextField
               fullWidth
-              label="Coût (€)"
+              label="Coût ($)"
               name="cost"
               type="number"
               value={formData.cost}
@@ -217,8 +217,8 @@ const ChristmasProductManager = () => {
             <TableRow>
               <TableCell>Nom</TableCell>
               <TableCell>Catégorie</TableCell>
-              <TableCell align="right">Prix (€)</TableCell>
-              <TableCell align="right">Coût (€)</TableCell>
+              <TableCell align="right">Prix ($)</TableCell>
+              <TableCell align="right">Coût ($)</TableCell>
               <TableCell align="right">Stock</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -228,8 +228,8 @@ const ChristmasProductManager = () => {
               <TableRow key={product._id}>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>{product.category}</TableCell>
-                <TableCell align="right">{product.price?.toFixed(2)} €</TableCell>
-                <TableCell align="right">{product.cost?.toFixed(2)} €</TableCell>
+                <TableCell align="right">${product.price?.toFixed(2)}</TableCell>
+                <TableCell align="right">${product.cost?.toFixed(2)}</TableCell>
                 <TableCell align="right">{product.stock}</TableCell>
                 <TableCell align="right">
                   <IconButton 
@@ -290,7 +290,7 @@ const ChristmasProductManager = () => {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label="Prix (€)"
+                    label="Prix ($)"
                     name="price"
                     type="number"
                     value={editingProduct.price}
@@ -304,7 +304,7 @@ const ChristmasProductManager = () => {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label="Coût (€)"
+                    label="Coût ($)"
                     name="cost"
                     type="number"
                     value={editingProduct.cost}
