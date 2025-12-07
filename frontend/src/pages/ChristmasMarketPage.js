@@ -221,15 +221,16 @@ function ChristmasMarketPage() {
                                 style: { 
                                   padding: '4px 0',
                                   textAlign: 'center',
-                                  width: '24px',
+                                  width: '40px',
                                   WebkitAppearance: 'none',
+                                  MozAppearance: 'textfield',
                                   margin: 0,
                                   fontSize: '0.875rem'
                                 }
                               }}
                               variant="outlined"
                               sx={{ 
-                                width: '50px',
+                                width: '60px',
                                 '& .MuiOutlinedInput-root': { 
                                   height: '28px',
                                   padding: '0 2px',
@@ -239,7 +240,11 @@ function ChristmasMarketPage() {
                                 },
                                 '& input': {
                                   padding: '4px 0',
-                                  textAlign: 'center'
+                                  textAlign: 'center',
+                                  '&::-webkit-inner-spin-button, &::-webkit-outer-spin-button': {
+                                    WebkitAppearance: 'none',
+                                    margin: 0
+                                  }
                                 }
                               }}
                             />
