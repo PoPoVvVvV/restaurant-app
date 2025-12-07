@@ -110,7 +110,7 @@ function ChristmasMarketPage() {
       }));
 
       // Envoyer la requête avec les données complètes
-      const response = await api.post('/api/christmas-transactions', { 
+      const response = await api.post('/christmas-transactions', { 
         items,
         employeeIds: [] // Peut être utilisé pour les ventes en équipe
       });
