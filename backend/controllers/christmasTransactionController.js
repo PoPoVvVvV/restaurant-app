@@ -5,12 +5,22 @@ import Transaction from '../models/Transaction.js';
 import Setting from '../models/Setting.js';
 
 export const createTransaction = async (req, res) => {
+  console.log('Début de la création de transaction', { body: req.body, user: req.user });
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { items, employeeIds } = req.body;
+    const { items = [], employeeIds = [] } = req.body;
     const userId = req.user?._id;
+    
+    // Validation des entrées
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('Aucun article dans la commande');
+    }
+    
+    if (!userId) {
+      throw new Error('Utilisateur non authentifié');
+    }
     const weekSetting = await Setting.findOne({ key: 'currentWeekId' }).session(session);
     const currentWeekId = weekSetting?.value || 1;
 
@@ -98,9 +108,21 @@ export const createTransaction = async (req, res) => {
       transactionIds: transactions.map(t => t[0]._id)
     });
 
-    await christmasTransaction.save({ session });
+    console.log('Tentative de sauvegarde de la transaction', { 
+      itemsCount: items.length,
+      totalAmount,
+      totalCost,
+      userId,
+      employeeId,
+      weekId: currentWeekId
+    });
+    
+    const savedTransaction = await christmasTransaction.save({ session });
+    console.log('Transaction sauvegardée avec succès', { transactionId: savedTransaction._id });
+    
     await session.commitTransaction();
     session.endSession();
+    console.log('Transaction validée en base de données');
 
     // Notifier les clients de la mise à jour
     req.io.emit('data-updated', { 
@@ -115,12 +137,35 @@ export const createTransaction = async (req, res) => {
     });
 
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Erreur lors de la création de la transaction:', error);
+    console.error('ErROR DÉTAILLÉE:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      errors: error.errors
+    });
+    
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+      session.endSession();
+    }
+    
+    console.error('Erreur lors de la création de la transaction:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      errors: error.errors
+    });
+    
     res.status(500).json({ 
       message: error.message || 'Erreur lors de la création de la transaction',
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: error.name,
+        code: error.code,
+        errors: error.errors
+      } : undefined
     });
   }
 };
