@@ -29,7 +29,7 @@ const ChristmasProductManager = () => {
   // Charger les produits du Marché de Noël
   const fetchProducts = async () => {
     try {
-      const { data } = await api.get('/christmas-products');
+      const { data } = await api.get('/api/christmas-products');
       setProducts(data);
     } catch (err) {
       console.error('Erreur lors du chargement des produits:', err);
@@ -56,7 +56,7 @@ const ChristmasProductManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/christmas-products', formData);
+      await api.post('/api/christmas-products', formData);
       fetchProducts();
       setFormData({ 
         name: '', 
@@ -88,7 +88,7 @@ const ChristmasProductManager = () => {
   // Mettre à jour un produit
   const handleUpdateProduct = async () => {
     try {
-      await api.put(`/christmas-products/${editingProduct._id}`, editingProduct);
+      await api.put(`/api/christmas-products/${editingProduct._id}`, editingProduct);
       fetchProducts();
       handleCloseModal();
       showNotification('Produit mis à jour avec succès', 'success');
@@ -102,7 +102,7 @@ const ChristmasProductManager = () => {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
       try {
-        await api.delete(`/christmas-products/${id}`);
+        await api.delete(`/api/christmas-products/${id}`);
         fetchProducts();
         showNotification('Produit supprimé avec succès', 'info');
       } catch (err) {
