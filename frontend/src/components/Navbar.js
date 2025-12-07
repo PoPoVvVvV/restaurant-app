@@ -77,7 +77,11 @@ const Navbar = memo(() => {
     ];
 
     if (user?.role === 'admin') {
-      return [...baseItems, { path: '/admin', label: 'Admin', icon: '⚙️' }];
+      return [
+        ...baseItems,
+        { path: '/marche-noel', label: 'Marché de Noël', icon: '🎄' },
+        { path: '/admin', label: 'Admin', icon: '⚙️' }
+      ];
     }
 
     return baseItems;

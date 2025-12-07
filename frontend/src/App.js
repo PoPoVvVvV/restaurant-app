@@ -34,6 +34,7 @@ const AbsencePage = withLazy(() => import('./pages/AbsencePage'));
 const MaComptabilitePage = withLazy(() => import('./pages/MaComptabilitePage'));
 const EasterEggsPage = withLazy(() => import('./pages/EasterEggsPage'));
 const AdminPage = withLazy(() => import('./pages/AdminPage'));
+const ChristmasMarketPage = withLazy(() => import('./pages/ChristmasMarketPage'));
 
 // Composant de chargement
 const LoadingFallback = React.memo(() => (
@@ -194,6 +195,7 @@ function ThemedApp() {
                   <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
                   <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
                   <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
+                  <Route path="/marche-noel" element={<ProtectedRoute adminOnly={false}><ChristmasMarketPage /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
                   
                   {/* Route par défaut */}
