@@ -115,6 +115,13 @@ function ChristmasMarketPage() {
         employeeIds: [] // Peut être utilisé pour les ventes en équipe
       });
       
+      console.log('Réponse du serveur:', response);
+      
+      // Vérifier si la réponse contient des données
+      if (!response || !response.data) {
+        throw new Error('Réponse invalide du serveur');
+      }
+      
       // Afficher le message de succès
       showNotification(response.data.message || "Commande passée avec succès!", "success");
       
@@ -124,7 +131,8 @@ function ChristmasMarketPage() {
       // Mettre à jour les données en temps réel
       socket.emit('data-updated', { 
         type: 'CHRISTMAS_TRANSACTIONS_UPDATED',
-        transactionIds: response.data.transactions?.map(t => t._id) || []
+        // Utiliser un tableau vide si transactions n'existe pas
+        transactionIds: (response.data.transaction || response.data.transactions || []).map(t => t._id || t)
       });
       
       // Recharger les produits pour mettre à jour les stocks
