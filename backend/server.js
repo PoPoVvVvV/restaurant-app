@@ -32,20 +32,35 @@ const clientURL = process.env.CLIENT_URL || 'https://restaurant-app-coral-six.ve
 const corsOptions = {
   origin: clientURL,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  allowedHeaders: ['Content-Type', 'x-auth-token', 'authorization', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
 // Middleware CORS personnalisé pour gérer les requêtes pré-vol (preflight)
 app.use((req, res, next) => {
+  // Liste des en-têtes autorisés
+  const allowedHeaders = [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'x-auth-token',
+    'authorization',
+    'Authorization'
+  ];
+
+  // Définir les en-têtes CORS
   res.header('Access-Control-Allow-Origin', clientURL);
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-auth-token');
+  res.header('Access-Control-Allow-Headers', allowedHeaders.join(', '));
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Credentials', 'true');
   
   // Répondre directement aux requêtes OPTIONS (pré-vol)
   if (req.method === 'OPTIONS') {
+    // Ajouter l'en-tête Access-Control-Allow-Headers à la réponse OPTIONS
+    res.header('Access-Control-Allow-Headers', allowedHeaders.join(', '));
     return res.status(200).end();
   }
   
