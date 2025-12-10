@@ -1,13 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { SnackbarProvider } from 'notistack';
 import { CacheProvider } from '@emotion/react';
+import { BrowserRouter } from 'react-router-dom';
 import createCache from '@emotion/cache';
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { theme } from './theme';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
@@ -41,9 +39,9 @@ const sendToAnalytics = ({ id, name, value }) => {
 // Rendu de l'application avec les fournisseurs optimisés
 root.render(
   <React.StrictMode>
-    <CacheProvider value={cache}>
-      <HelmetProvider>
-        <ThemeProvider theme={theme}>
+    <BrowserRouter>
+      <CacheProvider value={cache}>
+        <HelmetProvider>
           <CssBaseline />
           <SnackbarProvider
             maxSnack={3}
@@ -55,9 +53,9 @@ root.render(
           >
             <App />
           </SnackbarProvider>
-        </ThemeProvider>
-      </HelmetProvider>
-    </CacheProvider>
+        </HelmetProvider>
+      </CacheProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
