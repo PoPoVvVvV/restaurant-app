@@ -1,19 +1,7 @@
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
-import { keyframes, styled } from '@mui/material/styles';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { styled } from '@mui/material/styles';
 
-// Animation simplifiée pour éviter les erreurs de syntaxe
-const fallAnimation = keyframes`
-  from {
-    transform: translateY(-10%) translateX(0) rotate(0deg);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(110vh) translateX(50px) rotate(360deg);
-    opacity: 0;
-  }
-`;
-
-// Styles de base optimisés
+// Style de base pour les flocons
 const SnowflakeBase = styled('div')({
   position: 'fixed',
   color: 'rgba(255, 255, 255, 0.9)',
@@ -29,13 +17,20 @@ const SnowflakeBase = styled('div')({
   WebkitTransform: 'translateZ(0)'
 });
 
-// Mémorisation du composant Snowflake avec une fonction de comparaison personnalisée
-const Snowflake = React.memo(({ left, top, size, opacity, duration, delay, drift, rotation, index }) => {
-  // Pas besoin de mémoriser séparément l'animation
-  // car elle est maintenant directement dans le style
+// Composant Snowflake simplifié
+const Snowflake = React.memo(({ left, top, size, opacity, index }) => {
+  const snowflakeRef = useRef(null);
+  const animationRef = useRef({
+    x: 0,
+    y: top,
+    rotation: 0,
+    speed: Math.random() * 2 + 1,
+    drift: (Math.random() - 0.5) * 2
+  });
 
-  // Styles mémorisés
+  // Style du flocon
   const snowflakeStyle = useMemo(() => ({
+    position: 'absolute',
     left: `${left}%`,
     top: `${top}%`,
     width: `${size}px`,
@@ -44,100 +39,59 @@ const Snowflake = React.memo(({ left, top, size, opacity, duration, delay, drift
     fontSize: `${size}px`,
     mixBlendMode: 'screen',
     filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
-    transform: `rotate(${rotation}deg)`,
-    animation: `${fallAnimation} ${duration}s linear ${delay}s infinite`
-  }), [left, top, size, opacity, rotation, duration, delay]);
+    transform: `rotate(${animationRef.current.rotation}deg)`
+  }), [left, top, size, opacity]);
+
+  // Animation du flocon
+  useEffect(() => {
+    let animationId;
+    const animate = () => {
+      const anim = animationRef.current;
+      anim.y += anim.speed;
+      anim.x += Math.sin(anim.y * 0.01) * 0.5;
+      anim.rotation += 0.5;
+
+      if (snowflakeRef.current) {
+        snowflakeRef.current.style.transform = `translate3d(${anim.x}px, ${anim.y}px, 0) rotate(${anim.rotation}deg)`;
+      }
+
+      // Réinitialiser la position si le flocon sort de l'écran
+      if (anim.y > window.innerHeight) {
+        anim.y = -20;
+        anim.x = Math.random() * window.innerWidth;
+      }
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationId);
+  }, []);
 
   return (
-    <SnowflakeBase style={snowflakeStyle} aria-hidden="true">
+    <SnowflakeBase ref={snowflakeRef} style={snowflakeStyle} aria-hidden="true">
       {['❄', '❅', '❆'][index % 3]}
     </SnowflakeBase>
   );
-}, (prevProps, nextProps) => {
-  // Optimisation: ne pas re-rendre si les props n'ont pas changé
-  return (
-    prevProps.left === nextProps.left &&
-    prevProps.top === nextProps.top &&
-    prevProps.size === nextProps.size &&
-    prevProps.opacity === nextProps.opacity &&
-    prevProps.duration === nextProps.duration &&
-    prevProps.delay === nextProps.delay &&
-    prevProps.drift === nextProps.drift &&
-    prevProps.rotation === nextProps.rotation &&
-    prevProps.index === nextProps.index
-  );
 });
 
-const Snowflakes = React.memo(({ count = 100 }) => {
-  const snowflakesRef = useRef([]);
-  const animationFrameId = useRef(null);
-  const lastUpdateTime = useRef(0);
-  const updateInterval = 16; // ~60fps
-
-  // Fonction simplifiée pour réinitialiser un flocon
-  const resetSnowflake = useCallback((snowflake) => {
-    if (!snowflake) return;
-    
-    snowflake.style.top = `${-10}px`;
-    snowflake.style.left = `${Math.random() * 100}%`;
-  }, []);
-
-  // Fonction de mise à jour simplifiée
-  const updateSnowflakes = useCallback(() => {
-    if (!snowflakesRef.current.length) return;
-    
-    const viewportHeight = window.innerHeight;
-    const snowflakes = snowflakesRef.current;
-    
-    for (let i = 0; i < snowflakes.length; i++) {
-      const snowflake = snowflakes[i];
-      if (!snowflake) continue;
-      
-      const rect = snowflake.getBoundingClientRect();
-      if (rect.top > viewportHeight) {
-        resetSnowflake(snowflake);
-      }
-    }
-    
-    animationFrameId.current = requestAnimationFrame(updateSnowflakes);
-  }, [resetSnowflake]);
-
-  useEffect(() => {
-    // Démarrer l'animation
-    animationFrameId.current = requestAnimationFrame(updateSnowflakes);
-    
-    // Nettoyage
-    return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
-    };
-  }, [updateSnowflakes]);
-  
-  // Réduire le nombre de flocons pour les performances
-  const flakeCount = Math.min(count, 50);
-
-  // Génération des flocons avec useMemo pour éviter les recréations inutiles
+const Snowflakes = React.memo(({ count = 30 }) => {
+  // Génération des flocons
   const snowflakes = useMemo(() => {
-    return Array.from({ length: flakeCount }).map((_, index) => {
+    return Array.from({ length: count }).map((_, index) => {
       const size = Math.random() * 20 + 5;
       return (
         <Snowflake
           key={`snowflake-${index}`}
-          ref={(el) => (snowflakesRef.current[index] = el)}
           left={Math.random() * 100}
           top={Math.random() * 100}
           size={size}
           opacity={Math.random() * 0.5 + 0.5}
-          duration={Math.random() * 10 + 5}
-          delay={Math.random() * 5}
-          drift={Math.random() * 100 - 50}
-          rotation={Math.random() * 360}
           index={index % 3}
         />
       );
     });
-  }, [flakeCount]);
+  }, [count]);
 
   // Utilisation de React.Fragment pour éviter un nœud DOM supplémentaire
   return <>{snowflakes}</>;

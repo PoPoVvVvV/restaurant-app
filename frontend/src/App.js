@@ -92,14 +92,16 @@ function ThemedApp({ children }) {
         },
       },
       typography: {
-        fontFamily: '"Mountains of Christmas", "Roboto", "Helvetica", "Arial", sans-serif',
+        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
         h1: {
-          fontFamily: '"Mountains of Christmas", cursive',
           fontWeight: 700,
+          fontSize: '2.5rem',
+          lineHeight: 1.2,
         },
         h2: {
-          fontFamily: '"Mountains of Christmas", cursive',
           fontWeight: 600,
+          fontSize: '2rem',
+          lineHeight: 1.3,
         },
       },
     };
@@ -128,34 +130,22 @@ function ThemedApp({ children }) {
   useEffect(() => {
     // Chargement optimisé de la police
     const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap';
     link.rel = 'stylesheet';
     link.crossOrigin = 'anonymous';
-    link.as = 'style';
-    
-    // Préchargement des polices critiques
-    const preloadLink = document.createElement('link');
-    preloadLink.href = 'https://fonts.gstatic.com/s/mountainsofchristmas/v20/3y9D6b4xCq1CvPoXnRopK6e9APZ7xQEBQ.woff2';
-    preloadLink.rel = 'preload';
-    preloadLink.as = 'font';
-    preloadLink.crossOrigin = 'anonymous';
     
     // Application du style de fond optimisé
     const isDark = mode === 'dark';
     document.body.style.background = isDark ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
     document.documentElement.style.setProperty('--bg-color', isDark ? '#0a1a1e' : '#f5f5f5');
     
-    // Ajout des éléments au DOM
+    // Ajout de la police au DOM
     document.head.appendChild(link);
-    document.head.appendChild(preloadLink);
     
     // Nettoyage
     return () => {
       if (document.head.contains(link)) {
         document.head.removeChild(link);
-      }
-      if (preloadLink && document.head.contains(preloadLink)) {
-        document.head.removeChild(preloadLink);
       }
     };
   }, [mode]);
