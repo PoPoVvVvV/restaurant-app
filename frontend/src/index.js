@@ -43,21 +43,19 @@ root.render(
   <React.StrictMode>
     <CacheProvider value={cache}>
       <HelmetProvider>
-        <BrowserRouter>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <SnackbarProvider
-              maxSnack={3}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              autoHideDuration={3000}
-            >
-              <App />
-            </SnackbarProvider>
-          </ThemeProvider>
-        </BrowserRouter>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <SnackbarProvider
+            maxSnack={3}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            autoHideDuration={3000}
+          >
+            <App />
+          </SnackbarProvider>
+        </ThemeProvider>
       </HelmetProvider>
     </CacheProvider>
   </React.StrictMode>
