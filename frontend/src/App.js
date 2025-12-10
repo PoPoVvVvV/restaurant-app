@@ -1,35 +1,29 @@
-import React, { useMemo, Suspense, lazy, useEffect } from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
-import { CircularProgress, ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import React, { useMemo, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { CircularProgress, Box } from '@mui/material';
 import Snowflakes from './components/Snowflakes';
 import FestiveDecorations from './components/FestiveDecorations';
 
 import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { EasterEggProvider } from './context/EasterEggContext';
+import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 
-// Fonction de chargement optimisé avec mémoïsation
+// Composants UI
+const Navbar = lazy(() => import('./components/Navbar'));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+const PublicRoute = lazy(() => import('./components/PublicRoute'));
+const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
+
+// Pages (lazy loaded avec prefetch)
 const withLazy = (importFn) => {
-  let Component = null;
-  
-  return React.memo((props) => {
-    const LazyComponent = React.useMemo(
-      () => lazy(importFn),
-      [] // Ne se recrée jamais
-    );
-    
-    return <LazyComponent {...props} />;
-  });
+  const Component = lazy(importFn);
+  Component.preload = importFn;
+  return Component;
 };
 
-// Composants UI avec chargement optimisé
-const Navbar = withLazy(() => import('./components/Navbar'));
-const ProtectedRoute = withLazy(() => import('./components/ProtectedRoute'));
-const PublicRoute = withLazy(() => import('./components/PublicRoute'));
-const SnakeGameWrapper = withLazy(() => import('./components/SnakeGameWrapper'));
-
-// Pages avec chargement optimisé
 const LoginPage = withLazy(() => import('./pages/LoginPage'));
 const RegisterPage = withLazy(() => import('./pages/RegisterPage'));
 const SalesPage = withLazy(() => import('./pages/SalesPage'));
@@ -40,50 +34,42 @@ const AbsencePage = withLazy(() => import('./pages/AbsencePage'));
 const MaComptabilitePage = withLazy(() => import('./pages/MaComptabilitePage'));
 const EasterEggsPage = withLazy(() => import('./pages/EasterEggsPage'));
 const AdminPage = withLazy(() => import('./pages/AdminPage'));
+const ChristmasMarketPage = withLazy(() => import('./pages/ChristmasMarketPage'));
 
-// Composant de chargement optimisé
-const LoadingFallback = React.memo(() => {
-  const styles = useMemo(() => ({
-    container: { 
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '50vh',
-      backgroundColor: 'transparent'
-    }
-  }), []);
+// Composant de chargement
+const LoadingFallback = React.memo(() => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    minHeight: '50vh' 
+  }}>
+    <CircularProgress />
+  </div>
+));
 
-  return (
-    <div style={styles.container}>
-      <CircularProgress disableShrink />
-    </div>
-  );
-});
-
-function ThemedApp({ children }) {
+function ThemedApp() {
   const { mode } = useThemeMode();
-  
-  // Création du thème basé sur le mode
-  const theme = useMemo(() => {
-    const isDark = mode === 'dark';
-    return {
+
+  const theme = useMemo(
+    () => createTheme({
       palette: {
         mode,
         primary: {
-          main: '#c62828',
+          main: '#c62828', // Rouge de Noël
           light: '#ff5f52',
           dark: '#8e0000',
           contrastText: '#fff',
         },
         secondary: {
-          main: '#2e7d32',
+          main: '#2e7d32', // Vert de Noël
           light: '#60ad5e',
           dark: '#005005',
           contrastText: '#fff',
         },
         background: {
-          default: isDark ? '#0a1a1e' : '#f5f5f5',
-          paper: isDark ? '#1e2b2e' : '#ffffff',
+          default: mode === 'dark' ? '#0a1a1e' : '#f5f5f5',
+          paper: mode === 'dark' ? '#1e2b2e' : '#ffffff',
         },
         christmas: {
           gold: '#ffd700',
@@ -92,69 +78,81 @@ function ThemedApp({ children }) {
         },
       },
       typography: {
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+        fontFamily: '"Mountains of Christmas", "Roboto", "Helvetica", "Arial", sans-serif',
         h1: {
+          fontFamily: '"Mountains of Christmas", cursive',
           fontWeight: 700,
-          fontSize: '2.5rem',
-          lineHeight: 1.2,
         },
         h2: {
+          fontFamily: '"Mountings of Christmas", cursive',
           fontWeight: 600,
-          fontSize: '2rem',
-          lineHeight: 1.3,
         },
       },
-    };
-  }, [mode]);
-  
-  // Styles pour le chargement
-  const styles = useMemo(() => ({
-    container: { 
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: theme.palette.background.default
-    },
-    heading1: {
-      fontFamily: '"Mountains of Christmas", cursive',
-      fontWeight: 700,
-    },
-    heading2: {
-      fontFamily: '"Mountains of Christmas", cursive',
-      fontWeight: 600,
-    }
-  }), [theme]);
+      components: {
+        MuiAppBar: {
+          styleOverrides: {
+            root: {
+              background: 'linear-gradient(45deg, #c62828 30%, #2e7d32 90%)',
+              boxShadow: '0 4px 20px rgba(198, 40, 40, 0.3)',
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              borderRadius: 20,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 8px rgba(0, 0, 0, 0.15)',
+              },
+            },
+            containedPrimary: {
+              background: 'linear-gradient(45deg, #c62828 30%, #8e0000 90%)',
+            },
+            containedSecondary: {
+              background: 'linear-gradient(45deg, #2e7d32 30%, #005005 90%)',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              borderRadius: 12,
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29-22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z\' fill=\'%23c62828\' fill-opacity=\'0.03\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+              },
+              transition: 'all 0.3s ease-in-out',
+            },
+          },
+        },
+      },
+    }),
+    [mode]
+  );
 
-  // Gestion des ressources externes
-  useEffect(() => {
-    // Chargement optimisé de la police
+  // Ajout de la police Mountains of Christmas
+  React.useEffect(() => {
     const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap';
     link.rel = 'stylesheet';
-    link.crossOrigin = 'anonymous';
-    
-    // Application du style de fond optimisé
-    const isDark = mode === 'dark';
-    document.body.style.background = isDark ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
-    document.documentElement.style.setProperty('--bg-color', isDark ? '#0a1a1e' : '#f5f5f5');
-    
-    // Ajout de la police au DOM
     document.head.appendChild(link);
     
-    // Nettoyage
+    // Effet de neige
+    document.body.style.background = mode === 'dark' ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
+    
     return () => {
-      if (document.head.contains(link)) {
-        document.head.removeChild(link);
-      }
+      document.head.removeChild(link);
     };
   }, [mode]);
 
-  // Création du thème mémorisé
-  const currentTheme = useMemo(() => createTheme(theme), [theme]);
-
   return (
-    <ThemeProvider theme={currentTheme}>
+    <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <Snowflakes count={100} />
       <FestiveDecorations />
@@ -178,117 +176,52 @@ function ThemedApp({ children }) {
         zIndex: 1000,
         boxShadow: '0 -2px 10px rgba(0,0,0,0.2)'
       }} />
-      <Suspense fallback={<LoadingFallback />}>
-        <Navbar style={{ position: 'relative', zIndex: 10 }} />
-        <main style={{ 
-          padding: '20px', 
-          position: 'relative', 
-          zIndex: 2,
-          minHeight: 'calc(100vh - 100px)',
-          backgroundColor: theme.palette.background.default
-        }}>
-          {children}
-        </main>
-        <SnakeGameWrapper />
-      </Suspense>
-    </ThemeProvider>
+      <Router>
+        <EasterEggProvider>
+          <Suspense fallback={null}>
+            <Navbar style={{ position: 'relative', zIndex: 10 }} />
+            <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  {/* Routes Publiques */}
+                  <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                  <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+                  
+                  {/* Routes Protégées */}
+                  <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+                  <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
+                  <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
+                  <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
+                  <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
+                  <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
+                  <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
+                  <Route path="/marche-noel" element={<ProtectedRoute><ChristmasMarketPage /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
+                  
+                  {/* Route par défaut */}
+                  <Route path="/" element={<Navigate to="/ventes" />} />
+                </Routes>
+              </Suspense>
+            </main>
+            <SnakeGameWrapper />
+          </Suspense>
+        </EasterEggProvider>
+      </Router>
+    </MuiThemeProvider>
   );
 }
 
-// Composant App optimisé avec React.memo
-const App = () => {
-  return (
-    <ThemeModeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <EasterEggProvider>
-            <ThemedApp>
-              <Routes>
-                {/* Routes Publiques */}
-                <Route path="/login" element={
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LoginPage />
-                  </Suspense>
-                } />
-                <Route path="/register" element={
-                  <Suspense fallback={<LoadingFallback />}>
-                    <RegisterPage />
-                  </Suspense>
-                } />
-                
-                {/* Routes Protégées */}
-                <Route path="/ventes" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <SalesPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/ventes-entreprises" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <CorporateSalesPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/stocks" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <StockPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/recettes" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <RecipePage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/absences" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <AbsencePage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/comptabilite" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <MaComptabilitePage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/easter-eggs" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <EasterEggsPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                  <ProtectedRoute adminOnly={true}>
-                    <Suspense fallback={<LoadingFallback />}>
-                      <AdminPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                
-                {/* Route par défaut */}
-                <Route path="/" element={<Navigate to="/ventes" replace />} />
-                
-                {/* Route 404 */}
-                <Route path="*" element={<Navigate to="/ventes" replace />} />
-              </Routes>
-            </ThemedApp>
-          </EasterEggProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </ThemeModeProvider>
-  );
-};
 
-// Ajout du displayName pour le débogage
-App.displayName = 'App';
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeModeProvider>
+        <NotificationProvider>
+          <ThemedApp />
+        </NotificationProvider>
+      </ThemeModeProvider>
+    </AuthProvider>
+  );
+}
 
 export default App;
