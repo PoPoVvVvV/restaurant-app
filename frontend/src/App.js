@@ -62,7 +62,7 @@ const LoadingFallback = React.memo(() => {
   );
 });
 
-function ThemedApp() {
+function ThemedApp({ children }) {
   const { mode } = useThemeMode();
 
   // Configuration du thème optimisée
@@ -226,36 +226,17 @@ function ThemedApp() {
         zIndex: 1000,
         boxShadow: '0 -2px 10px rgba(0,0,0,0.2)'
       }} />
-      <Router>
-        <EasterEggProvider>
-          <Suspense fallback={null}>
-            <Navbar style={{ position: 'relative', zIndex: 10 }} />
-            <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Routes Publiques */}
-                  <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                  <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-                  
-                  {/* Routes Protégées */}
-                  <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
-                  <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
-                  <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
-                  <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
-                  <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
-                  <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
-                  <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
-                  <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
-                  
-                  {/* Route par défaut */}
-                  <Route path="/" element={<Navigate to="/ventes" />} />
-                </Routes>
-              </Suspense>
-            </main>
-            <SnakeGameWrapper />
-          </Suspense>
-        </EasterEggProvider>
-      </Router>
+      <EasterEggProvider>
+        <Suspense fallback={null}>
+          <Navbar style={{ position: 'relative', zIndex: 10 }} />
+          <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
+            <Suspense fallback={<LoadingFallback />}>
+              {children}
+            </Suspense>
+          </main>
+          <SnakeGameWrapper />
+        </Suspense>
+      </EasterEggProvider>
     </MuiThemeProvider>
   );
 }
@@ -281,7 +262,26 @@ const App = React.memo(() => {
     <Router>
       <Suspense fallback={<LoadingFallback />}>
         <Providers providers={providers}>
-          <ThemedApp />
+          <ThemedApp>
+            <Routes>
+              {/* Routes Publiques */}
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+              
+              {/* Routes Protégées */}
+              <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+              <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
+              <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
+              <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
+              <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
+              <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
+              <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
+              
+              {/* Route par défaut */}
+              <Route path="/" element={<Navigate to="/ventes" />} />
+            </Routes>
+          </ThemedApp>
         </Providers>
       </Suspense>
     </Router>
