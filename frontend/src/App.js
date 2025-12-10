@@ -267,7 +267,7 @@ const App = React.memo(() => {
     { component: ThemeModeProvider },
     { component: AuthProvider },
     { component: NotificationProvider },
-    { component: EasterEggProvider, children: <ThemedApp /> }
+    { component: EasterEggProvider }
   ], []);
 
   // Fonction pour composer les fournisseurs de contexte
