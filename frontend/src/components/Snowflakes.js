@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { keyframes, styled } from '@mui/material/styles';
 
+// Mémorisation de la fonction de création d'animation
 const createFallAnimation = (drift) => keyframes`
   0% {
     transform: translateY(-10%) translateX(0) rotate(0deg);
@@ -18,6 +19,7 @@ const createFallAnimation = (drift) => keyframes`
   }
 `;
 
+// Styles de base optimisés
 const SnowflakeBase = styled('div')({
   position: 'fixed',
   color: 'rgba(255, 255, 255, 0.9)',
@@ -27,106 +29,144 @@ const SnowflakeBase = styled('div')({
   textShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
   willChange: 'transform, opacity',
   filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.7))',
+  backfaceVisibility: 'hidden',
+  WebkitBackfaceVisibility: 'hidden',
+  transform: 'translateZ(0)',
+  WebkitTransform: 'translateZ(0)'
 });
 
-// Composant de flocon individuel mémorisé
+// Mémorisation du composant Snowflake avec une fonction de comparaison personnalisée
 const Snowflake = React.memo(({ left, top, size, opacity, duration, delay, drift, rotation, index }) => {
-  const FallAnimation = React.useMemo(() => {
-    return styled(SnowflakeBase)(() => ({
-      animation: `${createFallAnimation(drift)} ${duration}s linear ${delay}s infinite`,
-    }));
-  }, [drift, duration, delay]);
+  // Création de l'animation mémorisée
+  const animation = useMemo(() => 
+    `${createFallAnimation(drift)} ${duration}s linear ${delay}s infinite`
+  , [drift, duration, delay]);
+
+  // Styles mémorisés
+  const snowflakeStyle = useMemo(() => ({
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    opacity,
+    fontSize: `${size}px`,
+    mixBlendMode: 'screen',
+    filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
+    transform: `rotate(${rotation}deg)`,
+    animation
+  }), [left, top, size, opacity, rotation, animation]);
 
   return (
-    <FallAnimation
-      style={{
-        left: `${left}%`,
-        top: `${top}%`,
-        width: `${size}px`,
-        height: `${size}px`,
-        opacity,
-        fontSize: `${size}px`,
-        pointerEvents: 'none',
-        mixBlendMode: 'screen',
-        zIndex: 1,
-        willChange: 'transform, opacity',
-        filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
-        transform: `rotate(${rotation}deg)`
-      }}
-      aria-hidden="true"
-    >
+    <SnowflakeBase style={snowflakeStyle} aria-hidden="true">
       {['❄', '❅', '❆'][index % 3]}
-    </FallAnimation>
+    </SnowflakeBase>
+  );
+}, (prevProps, nextProps) => {
+  // Optimisation: ne pas re-rendre si les props n'ont pas changé
+  return (
+    prevProps.left === nextProps.left &&
+    prevProps.top === nextProps.top &&
+    prevProps.size === nextProps.size &&
+    prevProps.opacity === nextProps.opacity &&
+    prevProps.duration === nextProps.duration &&
+    prevProps.delay === nextProps.delay &&
+    prevProps.drift === nextProps.drift &&
+    prevProps.rotation === nextProps.rotation &&
+    prevProps.index === nextProps.index
   );
 });
 
 const Snowflakes = React.memo(({ count = 100 }) => {
   const snowflakesRef = useRef([]);
   const animationFrameId = useRef(null);
+  const lastUpdateTime = useRef(0);
+  const updateInterval = 16; // ~60fps
+
+  // Fonction optimisée pour réinitialiser un flocon
+  const resetSnowflake = useCallback((snowflake) => {
+    if (!snowflake) return;
+    
+    snowflake.style.top = `${-10}px`;
+    snowflake.style.left = `${Math.random() * 100}%`;
+    
+    // Utilisation de requestAnimationFrame pour la réinitialisation
+    requestAnimationFrame(() => {
+      snowflake.style.animation = 'none';
+      // Utilisation de requestAnimationFrame pour forcer un reflow
+      requestAnimationFrame(() => {
+        snowflake.style.animation = '';
+      });
+    });
+  }, []);
+
+  // Fonction de mise à jour optimisée
+  const updateSnowflakes = useCallback((timestamp) => {
+    if (!snowflakesRef.current.length) return;
+    
+    // Limiter les mises à jour à 60fps
+    if (timestamp - lastUpdateTime.current < updateInterval) {
+      animationFrameId.current = requestAnimationFrame(updateSnowflakes);
+      return;
+    }
+    
+    lastUpdateTime.current = timestamp;
+    
+    const viewportHeight = window.innerHeight;
+    
+    // Utilisation d'une boucle for classique pour de meilleures performances
+    const snowflakes = snowflakesRef.current;
+    for (let i = 0; i < snowflakes.length; i++) {
+      const snowflake = snowflakes[i];
+      if (!snowflake) continue;
+      
+      const rect = snowflake.getBoundingClientRect();
+      if (rect.top > viewportHeight) {
+        resetSnowflake(snowflake);
+      }
+    }
+    
+    animationFrameId.current = requestAnimationFrame(updateSnowflakes);
+  }, [resetSnowflake]);
 
   useEffect(() => {
-    const snowflakes = snowflakesRef.current;
-    
-    const updateSnowflakes = () => {
-      snowflakes.forEach(snowflake => {
-        if (!snowflake) return;
-        
-        // Réinitialiser la position si le flocon est sorti de l'écran
-        const rect = snowflake.getBoundingClientRect();
-        if (rect.top > window.innerHeight) {
-          snowflake.style.top = `${-10}px`;
-          snowflake.style.left = `${Math.random() * 100}%`;
-          // Forcer un reflow avant de réinitialiser l'animation
-          const resetAnimation = () => {
-            snowflake.style.animation = 'none';
-            void snowflake.offsetHeight; // Utilisation de void pour éviter l'avertissement
-            snowflake.style.animation = '';
-          };
-          resetAnimation();
-        }
-      });
-      
-      animationFrameId.current = requestAnimationFrame(updateSnowflakes);
-    };
-    
     // Démarrer l'animation
     animationFrameId.current = requestAnimationFrame(updateSnowflakes);
     
-    // Nettoyer l'animation lors du démontage
+    // Nettoyage
     return () => {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, []);
+  }, [updateSnowflakes]);
 
-  // Génération des données des flocons une seule fois avec useMemo
-  const snowflakesData = useMemo(() => {
-    return Array.from({ length: count }).map((_, index) => ({
-      id: index,
-      size: Math.random() * 25 + 10,
-      left: Math.random() * 100,
-      top: -20,
-      opacity: Math.random() * 0.8 + 0.2,
-      duration: Math.random() * 10 + 10,
-      delay: Math.random() * -20,
-      drift: (Math.random() - 0.5) * 200,
-      rotation: Math.random() * 360,
-    }));
+  // Génération des flocons avec useMemo pour éviter les recréations inutiles
+  const snowflakes = useMemo(() => {
+    return Array.from({ length: count }).map((_, index) => {
+      const size = Math.random() * 20 + 5;
+      return (
+        <Snowflake
+          key={`snowflake-${index}`}
+          ref={(el) => (snowflakesRef.current[index] = el)}
+          left={Math.random() * 100}
+          top={Math.random() * 100}
+          size={size}
+          opacity={Math.random() * 0.5 + 0.5}
+          duration={Math.random() * 10 + 5}
+          delay={Math.random() * 5}
+          drift={Math.random() * 100 - 50}
+          rotation={Math.random() * 360}
+          index={index % 3}
+        />
+      );
+    });
   }, [count]);
 
-  return (
-    <>
-      {snowflakesData.map((flake, index) => (
-        <Snowflake
-          key={flake.id}
-          ref={el => snowflakesRef.current[index] = el}
-          index={index % 3}
-          {...flake}
-        />
-      ))}
-    </>
-  );
+  // Utilisation de React.Fragment pour éviter un nœud DOM supplémentaire
+  return <>{snowflakes}</>;
+}, (prevProps, nextProps) => {
+  // Ne pas re-rendre si le nombre de flocons n'a pas changé
+  return prevProps.count === nextProps.count;
 });
 
 // Désactiver les logs en production
@@ -135,5 +175,8 @@ if (process.env.NODE_ENV === 'production') {
   console.warn = () => {};
   console.error = () => {};
 }
+
+// Ajout d'un displayName pour le débogage
+Snowflakes.displayName = 'Snowflakes';
 
 export default Snowflakes;

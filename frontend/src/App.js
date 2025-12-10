@@ -1,4 +1,4 @@
-import React, { useMemo, Suspense, lazy } from 'react';
+import React, { useMemo, Suspense, lazy, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -11,19 +11,27 @@ import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 
-// Composants UI
-const Navbar = lazy(() => import('./components/Navbar'));
-const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
-const PublicRoute = lazy(() => import('./components/PublicRoute'));
-const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
-
-// Pages (lazy loaded avec prefetch)
+// Fonction de chargement optimisé avec mémoïsation
 const withLazy = (importFn) => {
-  const Component = lazy(importFn);
-  Component.preload = importFn;
-  return Component;
+  let Component = null;
+  
+  return React.memo((props) => {
+    const LazyComponent = React.useMemo(
+      () => lazy(importFn),
+      [] // Ne se recrée jamais
+    );
+    
+    return <LazyComponent {...props} />;
+  });
 };
 
+// Composants UI avec chargement optimisé
+const Navbar = withLazy(() => import('./components/Navbar'));
+const ProtectedRoute = withLazy(() => import('./components/ProtectedRoute'));
+const PublicRoute = withLazy(() => import('./components/PublicRoute'));
+const SnakeGameWrapper = withLazy(() => import('./components/SnakeGameWrapper'));
+
+// Pages avec chargement optimisé
 const LoginPage = withLazy(() => import('./pages/LoginPage'));
 const RegisterPage = withLazy(() => import('./pages/RegisterPage'));
 const SalesPage = withLazy(() => import('./pages/SalesPage'));
@@ -34,47 +42,58 @@ const AbsencePage = withLazy(() => import('./pages/AbsencePage'));
 const MaComptabilitePage = withLazy(() => import('./pages/MaComptabilitePage'));
 const EasterEggsPage = withLazy(() => import('./pages/EasterEggsPage'));
 const AdminPage = withLazy(() => import('./pages/AdminPage'));
-const ChristmasMarketPage = withLazy(() => import('./pages/ChristmasMarketPage'));
 
-// Composant de chargement
-const LoadingFallback = React.memo(() => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    minHeight: '50vh' 
-  }}>
-    <CircularProgress />
-  </div>
-));
+// Composant de chargement optimisé
+const LoadingFallback = React.memo(() => {
+  const styles = useMemo(() => ({
+    container: { 
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '50vh',
+      backgroundColor: 'transparent'
+    }
+  }), []);
+
+  return (
+    <div style={styles.container}>
+      <CircularProgress disableShrink />
+    </div>
+  );
+});
 
 function ThemedApp() {
   const { mode } = useThemeMode();
 
-  const theme = useMemo(
-    () => createTheme({
+  // Configuration du thème optimisée
+  const theme = useMemo(() => {
+    const isDark = mode === 'dark';
+    const primaryColor = '#c62828';
+    const secondaryColor = '#2e7d32';
+    
+    return createTheme({
       palette: {
         mode,
         primary: {
-          main: '#c62828', // Rouge de Noël
+          main: primaryColor,
           light: '#ff5f52',
           dark: '#8e0000',
           contrastText: '#fff',
         },
         secondary: {
-          main: '#2e7d32', // Vert de Noël
+          main: secondaryColor,
           light: '#60ad5e',
           dark: '#005005',
           contrastText: '#fff',
         },
         background: {
-          default: mode === 'dark' ? '#0a1a1e' : '#f5f5f5',
-          paper: mode === 'dark' ? '#1e2b2e' : '#ffffff',
+          default: isDark ? '#0a1a1e' : '#f5f5f5',
+          paper: isDark ? '#1e2b2e' : '#ffffff',
         },
         christmas: {
           gold: '#ffd700',
-          red: '#c62828',
-          green: '#2e7d32',
+          red: primaryColor,
+          green: secondaryColor,
         },
       },
       typography: {
@@ -84,70 +103,101 @@ function ThemedApp() {
           fontWeight: 700,
         },
         h2: {
-          fontFamily: '"Mountings of Christmas", cursive',
+          fontFamily: '"Mountains of Christmas", cursive',
           fontWeight: 600,
         },
       },
       components: {
         MuiAppBar: {
+          defaultProps: {
+            elevation: 0,
+          },
           styleOverrides: {
             root: {
-              background: 'linear-gradient(45deg, #c62828 30%, #2e7d32 90%)',
+              background: `linear-gradient(45deg, ${primaryColor} 30%, ${secondaryColor} 90%)`,
               boxShadow: '0 4px 20px rgba(198, 40, 40, 0.3)',
+              willChange: 'transform',
+              transition: 'transform 0.2s ease-in-out',
             },
           },
         },
         MuiButton: {
+          defaultProps: {
+            disableRipple: true,
+            disableElevation: true,
+          },
           styleOverrides: {
             root: {
               borderRadius: 20,
               textTransform: 'none',
               fontWeight: 'bold',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              willChange: 'transform, box-shadow',
+              transition: 'all 0.2s ease-in-out',
               '&:hover': {
                 transform: 'translateY(-2px)',
                 boxShadow: '0 6px 8px rgba(0, 0, 0, 0.15)',
               },
             },
             containedPrimary: {
-              background: 'linear-gradient(45deg, #c62828 30%, #8e0000 90%)',
+              background: `linear-gradient(45deg, ${primaryColor} 30%, #8e0000 90%)`,
             },
             containedSecondary: {
-              background: 'linear-gradient(45deg, #2e7d32 30%, #005005 90%)',
+              background: `linear-gradient(45deg, ${secondaryColor} 30%, #005005 90%)`,
             },
           },
         },
         MuiCard: {
+          defaultProps: {
+            elevation: 0,
+          },
           styleOverrides: {
             root: {
               borderRadius: 12,
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29-22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z\' fill=\'%23c62828\' fill-opacity=\'0.03\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+              willChange: 'transform, box-shadow',
+              transition: 'all 0.3s ease-in-out',
               '&:hover': {
                 transform: 'translateY(-4px)',
                 boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
               },
-              transition: 'all 0.3s ease-in-out',
             },
           },
         },
       },
-    }),
-    [mode]
-  );
+    });
+  }, [mode]);
 
-  // Ajout de la police Mountains of Christmas
-  React.useEffect(() => {
+  // Gestion des ressources externes
+  useEffect(() => {
+    // Chargement optimisé de la police
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap';
     link.rel = 'stylesheet';
+    link.crossOrigin = 'anonymous';
+    link.as = 'style';
+    link.onload = () => document.body.classList.add('font-loaded');
+    
+    // Préchargement des polices critiques
+    const preloadLink = document.createElement('link');
+    preloadLink.href = 'https://fonts.gstatic.com/s/mountainsofchristmas/v20/3y9D6b4xCq1CvPoXnRopK6e9APZ7xQEBQ.woff2';
+    preloadLink.rel = 'preload';
+    preloadLink.as = 'font';
+    preloadLink.crossOrigin = 'anonymous';
+    
+    // Application du style de fond optimisé
+    const isDark = mode === 'dark';
+    document.body.style.background = isDark ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
+    document.documentElement.style.setProperty('--bg-color', isDark ? '#0a1a1e' : '#f5f5f5');
+    
+    // Ajout des éléments au DOM
     document.head.appendChild(link);
+    document.head.appendChild(preloadLink);
     
-    // Effet de neige
-    document.body.style.background = mode === 'dark' ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
-    
+    // Nettoyage
     return () => {
       document.head.removeChild(link);
+      if (document.head.contains(preloadLink)) {
+        document.head.removeChild(preloadLink);
+      }
     };
   }, [mode]);
 
@@ -195,7 +245,6 @@ function ThemedApp() {
                   <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
                   <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
                   <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
-                  <Route path="/marche-noel" element={<ProtectedRoute><ChristmasMarketPage /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
                   
                   {/* Route par défaut */}
@@ -211,17 +260,35 @@ function ThemedApp() {
   );
 }
 
+// Composant App optimisé avec React.memo
+const App = React.memo(() => {
+  // Mémoïsation des fournisseurs de contexte
+  const providers = useMemo(() => [
+    { component: ThemeModeProvider },
+    { component: AuthProvider },
+    { component: NotificationProvider },
+    { component: EasterEggProvider, children: <ThemedApp /> }
+  ], []);
 
-function App() {
+  // Fonction pour composer les fournisseurs de contexte
+  const Providers = useCallback(({ providers, children }) => {
+    return providers.reduceRight((acc, { component: Provider, props = {} }, index) => {
+      return <Provider {...props}>{acc}</Provider>;
+    }, children);
+  }, []);
+
   return (
-    <AuthProvider>
-      <ThemeModeProvider>
-        <NotificationProvider>
+    <Router>
+      <Suspense fallback={<LoadingFallback />}>
+        <Providers providers={providers}>
           <ThemedApp />
-        </NotificationProvider>
-      </ThemeModeProvider>
-    </AuthProvider>
+        </Providers>
+      </Suspense>
+    </Router>
   );
-}
+});
+
+// Ajout du displayName pour le débogage
+App.displayName = 'App';
 
 export default App;
