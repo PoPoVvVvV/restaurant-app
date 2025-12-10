@@ -1,20 +1,14 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { keyframes, styled } from '@mui/material/styles';
 
-// Mémorisation de la fonction de création d'animation
-const createFallAnimation = (drift) => keyframes`
-  0% {
+// Animation simplifiée pour éviter les erreurs de syntaxe
+const fallAnimation = keyframes`
+  from {
     transform: translateY(-10%) translateX(0) rotate(0deg);
     opacity: 0;
   }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(110vh) translateX(${drift}px) rotate(360deg);
+  to {
+    transform: translateY(110vh) translateX(50px) rotate(360deg);
     opacity: 0;
   }
 `;
@@ -37,10 +31,8 @@ const SnowflakeBase = styled('div')({
 
 // Mémorisation du composant Snowflake avec une fonction de comparaison personnalisée
 const Snowflake = React.memo(({ left, top, size, opacity, duration, delay, drift, rotation, index }) => {
-  // Création de l'animation mémorisée
-  const animation = useMemo(() => 
-    `${createFallAnimation(drift)} ${duration}s linear ${delay}s infinite`
-  , [drift, duration, delay]);
+  // Pas besoin de mémoriser séparément l'animation
+  // car elle est maintenant directement dans le style
 
   // Styles mémorisés
   const snowflakeStyle = useMemo(() => ({
@@ -53,8 +45,8 @@ const Snowflake = React.memo(({ left, top, size, opacity, duration, delay, drift
     mixBlendMode: 'screen',
     filter: `blur(${size > 20 ? '1.5px' : '0.5px'})`,
     transform: `rotate(${rotation}deg)`,
-    animation
-  }), [left, top, size, opacity, rotation, animation]);
+    animation: `${fallAnimation} ${duration}s linear ${delay}s infinite`
+  }), [left, top, size, opacity, rotation, duration, delay]);
 
   return (
     <SnowflakeBase style={snowflakeStyle} aria-hidden="true">
@@ -82,39 +74,21 @@ const Snowflakes = React.memo(({ count = 100 }) => {
   const lastUpdateTime = useRef(0);
   const updateInterval = 16; // ~60fps
 
-  // Fonction optimisée pour réinitialiser un flocon
+  // Fonction simplifiée pour réinitialiser un flocon
   const resetSnowflake = useCallback((snowflake) => {
     if (!snowflake) return;
     
     snowflake.style.top = `${-10}px`;
     snowflake.style.left = `${Math.random() * 100}%`;
-    
-    // Utilisation de requestAnimationFrame pour la réinitialisation
-    requestAnimationFrame(() => {
-      snowflake.style.animation = 'none';
-      // Utilisation de requestAnimationFrame pour forcer un reflow
-      requestAnimationFrame(() => {
-        snowflake.style.animation = '';
-      });
-    });
   }, []);
 
-  // Fonction de mise à jour optimisée
-  const updateSnowflakes = useCallback((timestamp) => {
+  // Fonction de mise à jour simplifiée
+  const updateSnowflakes = useCallback(() => {
     if (!snowflakesRef.current.length) return;
     
-    // Limiter les mises à jour à 60fps
-    if (timestamp - lastUpdateTime.current < updateInterval) {
-      animationFrameId.current = requestAnimationFrame(updateSnowflakes);
-      return;
-    }
-    
-    lastUpdateTime.current = timestamp;
-    
     const viewportHeight = window.innerHeight;
-    
-    // Utilisation d'une boucle for classique pour de meilleures performances
     const snowflakes = snowflakesRef.current;
+    
     for (let i = 0; i < snowflakes.length; i++) {
       const snowflake = snowflakes[i];
       if (!snowflake) continue;
@@ -139,10 +113,13 @@ const Snowflakes = React.memo(({ count = 100 }) => {
       }
     };
   }, [updateSnowflakes]);
+  
+  // Réduire le nombre de flocons pour les performances
+  const flakeCount = Math.min(count, 50);
 
   // Génération des flocons avec useMemo pour éviter les recréations inutiles
   const snowflakes = useMemo(() => {
-    return Array.from({ length: count }).map((_, index) => {
+    return Array.from({ length: flakeCount }).map((_, index) => {
       const size = Math.random() * 20 + 5;
       return (
         <Snowflake
@@ -160,7 +137,7 @@ const Snowflakes = React.memo(({ count = 100 }) => {
         />
       );
     });
-  }, [count]);
+  }, [flakeCount]);
 
   // Utilisation de React.Fragment pour éviter un nœud DOM supplémentaire
   return <>{snowflakes}</>;

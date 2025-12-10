@@ -132,7 +132,6 @@ function ThemedApp({ children }) {
     link.rel = 'stylesheet';
     link.crossOrigin = 'anonymous';
     link.as = 'style';
-    link.onload = () => document.body.classList.add('font-loaded');
     
     // Préchargement des polices critiques
     const preloadLink = document.createElement('link');
@@ -161,45 +160,11 @@ function ThemedApp({ children }) {
     };
   }, [mode]);
 
-  // Gestion des ressources externes
-  useEffect(() => {
-    // Chargement optimisé de la police
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap';
-    link.rel = 'stylesheet';
-    link.crossOrigin = 'anonymous';
-    link.as = 'style';
-    link.onload = () => document.body.classList.add('font-loaded');
-    
-    // Préchargement des polices critiques
-    const preloadLink = document.createElement('link');
-    preloadLink.href = 'https://fonts.gstatic.com/s/mountainsofchristmas/v20/3y9D6b4xCq1CvPoXnRopK6e9APZ7xQEBQ.woff2';
-    preloadLink.rel = 'preload';
-    preloadLink.as = 'font';
-    preloadLink.crossOrigin = 'anonymous';
-    
-    // Application du style de fond optimisé
-    const isDark = mode === 'dark';
-    document.body.style.background = isDark ? '#0a1a1e' : 'linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%)';
-    document.documentElement.style.setProperty('--bg-color', isDark ? '#0a1a1e' : '#f5f5f5');
-    
-    // Ajout des éléments au DOM
-    document.head.appendChild(link);
-    document.head.appendChild(preloadLink);
-    
-    // Nettoyage
-    return () => {
-      if (document.head.contains(link)) {
-        document.head.removeChild(link);
-      }
-      if (preloadLink && document.head.contains(preloadLink)) {
-        document.head.removeChild(preloadLink);
-      }
-    };
-  }, [mode]);
+  // Création du thème mémorisé
+  const currentTheme = useMemo(() => createTheme(theme), [theme]);
 
   return (
-    <ThemeProvider theme={createTheme(theme)}>
+    <ThemeProvider theme={currentTheme}>
       <CssBaseline />
       <Snowflakes count={100} />
       <FestiveDecorations />
