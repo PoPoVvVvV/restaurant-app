@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import UserManager from '../components/UserManager';
-import ChristmasProductManager from '../components/ChristmasProductManager';
 
 // Imports depuis Material-UI
 import {
@@ -887,7 +886,6 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Utilisateurs</Typography></AccordionSummary><AccordionDetails><UserManager /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Marché de Noël - Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ChristmasProductManager /></AccordionDetails></Accordion>
     </Container>
   );
 }
