@@ -7,7 +7,6 @@ import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import { useEasterEgg } from '../context/EasterEggContext';
 import logo from '../assets/Popov.png';
-import ChristmasGarland from './ChristmasGarland';
 
 const NavButton = memo(({ to, icon, text, clickType }) => {
   const location = useLocation();
@@ -212,7 +211,6 @@ const Navbar = memo(() => {
       }}
     >
       <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
-        <ChristmasGarland />
         {renderLogo}
         <Typography 
           variant="h6" 
