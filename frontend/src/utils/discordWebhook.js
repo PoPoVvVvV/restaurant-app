@@ -1,14 +1,24 @@
 import api from '../services/api';
 
-// Stockage de l'URL du webhook dans localStorage
+// frontend/src/utils/discordWebhook.js
+
+// Clé de stockage pour l'URL du webhook
 const WEBHOOK_STORAGE_KEY = 'tombola_discord_webhook';
+
+// Délai entre les requêtes pour éviter le rate limiting (en ms)
+const RATE_LIMIT_DELAY = 1000;
 
 /**
  * Récupère l'URL du webhook depuis le stockage local
  * @returns {string} L'URL du webhook ou une chaîne vide si non défini
  */
 export const getWebhookUrl = () => {
-  return localStorage.getItem(WEBHOOK_STORAGE_KEY) || '';
+  try {
+    return localStorage.getItem(WEBHOOK_STORAGE_KEY) || '';
+  } catch (error) {
+    console.error('Erreur lors de la récupération du webhook:', error);
+    return '';
+  }
 };
 
 /**
@@ -18,19 +28,67 @@ export const getWebhookUrl = () => {
  */
 export const setWebhookUrl = (url) => {
   try {
+    if (!url) {
+      localStorage.removeItem(WEBHOOK_STORAGE_KEY);
+      return true;
+    }
+
+    // Validation basique de l'URL
+    if (typeof url !== 'string' || !url.startsWith('https://discord.com/api/webhooks/')) {
+      console.error('URL de webhook Discord invalide');
+      return false;
+    }
+
     localStorage.setItem(WEBHOOK_STORAGE_KEY, url);
     return true;
   } catch (error) {
-    console.error('Erreur lors de l\'enregistrement du webhook:', error);
+    console.error('Erreur lors de la sauvegarde du webhook:', error);
     return false;
   }
 };
 
 /**
+ * Envoie une requête au webhook Discord
+ * @param {string} url - URL du webhook
+ * @param {Object} data - Données à envoyer
+ * @returns {Promise<Object>} Réponse du serveur
+ * @private
+ */
+const sendWebhookRequest = async (url, data) => {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    // Gestion du rate limiting
+    if (response.status === 429) {
+      const retryAfter = (await response.json())?.retry_after || 5;
+      console.warn(`Rate limited by Discord. Waiting ${retryAfter} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+      return sendWebhookRequest(url, data);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi au webhook:', error);
+    throw error;
+  }
+};
+
+/**
  * Divise un tableau en plusieurs tableaux plus petits
- * @param {Array} array - Le tableau à diviser
+ * @param {Array} array - Tableau à diviser
  * @param {number} size - Taille maximale de chaque lot
- * @returns {Array[]} Tableau de tableaux contenant les lots
+ * @returns {Array<Array>} Tableau de tableaux contenant les lots
  */
 const chunkArray = (array, size) => {
   const chunks = [];
@@ -42,14 +100,8 @@ const chunkArray = (array, size) => {
 
 /**
  * Envoie une notification de tombola au webhook Discord
- * @param {Object} data - Les données à envoyer
- * @param {string} data.firstName - Prénom du participant
- * @param {string} data.lastName - Nom du participant
- * @param {string} data.phone - Téléphone du participant
- * @param {number} data.ticketCount - Nombre de tickets achetés
- * @param {string[]} data.ticketNumbers - Liste des numéros de tickets
- * @param {number} data.totalAmount - Montant total de l'achat
- * @returns {Promise<{success: boolean, error?: string, batches?: number}>} Résultat de l'opération
+ * @param {Object} data - Données de la notification
+ * @returns {Promise<{success: boolean, error?: string, batches?: number}>}
  */
 export const sendTombolaNotification = async (data) => {
   const webhookUrl = getWebhookUrl();
@@ -58,146 +110,100 @@ export const sendTombolaNotification = async (data) => {
     return { success: false, error: 'Aucune URL de webhook configurée' };
   }
 
-  // Limite de caractères pour un champ Discord (1024)
-  // On divise les tickets en lots de 20 pour éviter de dépasser la limite
-  const TICKETS_PER_BATCH = 20;
-  const ticketBatches = chunkArray(data.ticketNumbers, TICKETS_PER_BATCH);
-  
-  // Créer le message principal
-  const mainEmbed = {
-    title: '🎟️ Nouvel achat de tickets de tombola',
-    color: 0x0099ff,
-    fields: [
-      {
-        name: '👤 Participant',
-        value: `${data.firstName} ${data.lastName}`,
-        inline: true
-      },
-      {
-        name: '📞 Téléphone',
-        value: data.phone,
-        inline: true
-      },
-      {
-        name: '🎫 Nombre de tickets',
-        value: data.ticketCount.toString(),
-        inline: true
-      },
-      {
-        name: '� Montant total',
-        value: `${data.totalAmount} $`,
-        inline: true
-      },
-      {
-        name: '📅 Date',
-        value: new Date().toLocaleString('fr-FR'),
-        inline: true
-      },
-      {
-        name: '� Détail des tickets',
-        value: `Les ${data.ticketCount} tickets sont listés dans les messages suivants.`,
-        inline: false
-      }
-    ],
-    timestamp: new Date().toISOString()
-  };
-
   try {
-    // Envoyer d'abord le message principal
-    let response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'Tombola Bot',
-        avatar_url: 'https://i.imgur.com/4M34hi2.png',
-        embeds: [mainEmbed],
-      }),
-    });
+    // Créer le message principal
+    const mainEmbed = {
+      username: 'Tombola Bot',
+      avatar_url: 'https://i.imgur.com/4M34hi2.png',
+      embeds: [{
+        title: '🎟️ Nouvel achat de tickets de tombola',
+        color: 0x0099ff,
+        fields: [
+          { name: '👤 Participant', value: `${data.firstName} ${data.lastName}`, inline: true },
+          { name: '📞 Téléphone', value: data.phone, inline: true },
+          { name: '🎫 Nombre de tickets', value: data.ticketCount.toString(), inline: true },
+          { name: '💰 Montant total', value: `${data.totalAmount} €`, inline: true },
+          { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true }
+        ],
+        timestamp: new Date().toISOString()
+      }]
+    };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
-    }
+    // Envoyer le message principal
+    await sendWebhookRequest(webhookUrl, mainEmbed);
 
-    // Envoyer les lots de tickets
+    // Envoyer les tickets par lots
+    const TICKETS_PER_BATCH = 10; // Réduit pour éviter les erreurs
+    const ticketBatches = chunkArray(data.ticketNumbers || [], TICKETS_PER_BATCH);
+
     for (let i = 0; i < ticketBatches.length; i++) {
       const batch = ticketBatches[i];
       const batchEmbed = {
-        color: 0x0099ff,
-        title: `🎫 Lot ${i + 1}/${ticketBatches.length}`,
-        description: '```' + batch.join('\n') + '```',
-        footer: {
-          text: `Tickets ${i * TICKETS_PER_BATCH + 1}-${Math.min((i + 1) * TICKETS_PER_BATCH, data.ticketCount)} sur ${data.ticketCount}`
-        },
-        timestamp: new Date().toISOString()
+        username: 'Tombola Bot',
+        avatar_url: 'https://i.imgur.com/4M34hi2.png',
+        embeds: [{
+          color: 0x0099ff,
+          title: `🎫 Lot ${i + 1}/${ticketBatches.length}`,
+          description: '```' + batch.join('\n') + '```',
+          footer: {
+            text: `Tickets ${i * TICKETS_PER_BATCH + 1}-${
+              Math.min((i + 1) * TICKETS_PER_BATCH, data.ticketCount)
+            } sur ${data.ticketCount}`
+          },
+          timestamp: new Date().toISOString()
+        }]
       };
 
-      // Petit délai entre les envois pour éviter le rate limiting
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      await sendWebhookRequest(webhookUrl, batchEmbed);
 
-      response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'Tombola Bot',
-          avatar_url: 'https://i.imgur.com/4M34hi2.png',
-          embeds: [batchEmbed],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur lors de l'envoi du lot ${i + 1}: ${response.status} - ${errorText}`);
+      // Respecter le rate limiting
+      if (i < ticketBatches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
       }
     }
 
-    return { 
-      success: true, 
-      batches: ticketBatches.length 
-    };
+    return { success: true, batches: ticketBatches.length };
   } catch (error) {
-    console.error('Erreur lors de l\'envoi de la notification Discord:', error);
+    console.error('Erreur lors de l\'envoi de la notification:', error);
     return { 
       success: false, 
-      error: error.message,
-      batches: ticketBatches.length
+      error: error.message || 'Erreur lors de l\'envoi à Discord',
+      batches: 0
     };
   }
 };
 
 /**
- * Teste la connexion au webhook Discord en envoyant un message de test
- * @param {string} [customUrl] - URL personnalisée à tester (optionnelle)
- * @returns {Promise<{success: boolean, error?: string}>}
+ * Teste la connexion au webhook Discord
+ * @param {string} [customUrl] - URL personnalisée à tester
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
  */
 export const testWebhook = async (customUrl = null) => {
   const webhookUrl = customUrl || getWebhookUrl();
   
   if (!webhookUrl) {
-    console.error('Aucune URL de webhook fournie');
-    return { success: false, error: 'Aucune URL de webhook fournie' };
+    const error = 'Aucune URL de webhook fournie';
+    console.error(error);
+    return { success: false, error };
   }
 
-  // Vérification basique du format de l'URL
-  if (!webhookUrl.includes('discord.com/api/webhooks/')) {
-    console.error('Format d\'URL de webhook Discord invalide');
-    return { 
-      success: false, 
-      error: 'L\'URL ne semble pas être un webhook Discord valide' 
-    };
+  // Validation du format de l'URL
+  if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+    const error = 'Format d\'URL de webhook Discord invalide. Doit commencer par https://discord.com/api/webhooks/';
+    console.error(error);
+    return { success: false, error };
   }
 
   try {
-    console.log('Envoi d\'une requête de test au webhook...');
+    console.log('Test de connexion au webhook Discord...');
     
-    // Créer un message de test simple
     const testMessage = {
-      content: '✅ Test de connexion au webhook réussi!',
+      username: 'Tombola Bot',
+      avatar_url: 'https://i.imgur.com/4M34hi2.png',
+      content: '🔔 Test de connexion au webhook',
       embeds: [{
-        title: 'Test de webhook',
-        description: 'Ceci est un message de test envoyé depuis l\'application de tombola.',
+        title: '✅ Connexion réussie',
+        description: 'Le webhook est correctement configuré et fonctionne !',
         color: 0x00ff00,
         timestamp: new Date().toISOString()
       }]
@@ -208,97 +214,61 @@ export const testWebhook = async (customUrl = null) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(testMessage)
+      body: JSON.stringify(testMessage),
     });
 
-    console.log('Réponse du serveur:', response.status, response.statusText);
-    
     if (!response.ok) {
-      let errorMessage = `Erreur HTTP: ${response.status} - ${response.statusText}`;
-      
-      // Essayer d'obtenir plus de détails sur l'erreur
-      try {
-        const errorData = await response.json();
-        console.error('Détails de l\'erreur:', errorData);
-        if (errorData.message) {
-          errorMessage += ` - ${errorData.message}`;
-        }
-      } catch (e) {
-        console.error('Impossible de parser la réponse d\'erreur:', e);
-      }
-      
-      return { 
-        success: false, 
-        error: errorMessage
-      };
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
     }
 
-    console.log('Test de webhook réussi!');
-    return { 
-      success: true,
-      message: 'Connexion au webhook établie avec succès!'
-    };
-    
+    const successMsg = 'Connexion au webhook établie avec succès !';
+    console.log(successMsg);
+    return { success: true, message: successMsg };
+
   } catch (error) {
     console.error('Erreur lors du test du webhook:', error);
-    let errorMessage = error.message || 'Erreur inconnue';
-    
-    // Gestion spécifique des erreurs de réseau
-    if (error instanceof TypeError) {
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
-      } else if (error.message.includes('invalid json')) {
-        errorMessage = 'La réponse du serveur est invalide.';
-      }
-    }
-    
     return { 
       success: false, 
-      error: `Échec du test de webhook: ${errorMessage}`
+      error: `Impossible de se connecter au webhook: ${error.message || 'Erreur inconnue'}` 
     };
   }
 };
 
 /**
  * Réinitialise tous les tickets de tombola
- * @returns {Promise<{success: boolean, message: string}>} Résultat de l'opération
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
  */
 export const resetAllTickets = async () => {
   try {
-    console.log('Début de la réinitialisation des tickets...');
-    
-    // Vérifier si l'utilisateur est connecté
     const token = localStorage.getItem('token');
-    console.log('Token récupéré:', token ? 'présent' : 'absent');
-    
     if (!token) {
-      return { 
-        success: false, 
-        message: 'Non autorisé. Veuillez vous reconnecter.' 
-      };
+      throw new Error('Non autorisé. Veuillez vous reconnecter.');
     }
 
-    console.log('Envoi de la requête de réinitialisation...');
-    
-    // Utilisation de l'instance api configurée
-    const response = await api.post('/tombola/reset-tickets', {});
-    
-    console.log('Réponse reçue:', response);
+    const response = await fetch('/api/tombola/reset-tickets', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    // Effacer le stockage local si l'API a réussi
-    localStorage.removeItem('tombolaTickets');
-    console.log('Tickets réinitialisés avec succès');
-    
-    return { 
-      success: true, 
-      message: 'Tous les tickets ont été réinitialisés avec succès.' 
-    };
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Erreur lors de la réinitialisation');
+    }
+
+    const message = 'Tous les tickets ont été réinitialisés avec succès.';
+    console.log(message);
+    return { success: true, message };
+
   } catch (error) {
     console.error('Erreur lors de la réinitialisation des tickets:', error);
-    const errorMessage = error.response?.data?.message || error.message || 'Une erreur est survenue lors de la réinitialisation des tickets.';
     return { 
       success: false, 
-      message: errorMessage
+      error: error.message || 'Erreur inconnue lors de la réinitialisation'
     };
   }
 };
