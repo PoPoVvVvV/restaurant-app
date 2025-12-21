@@ -141,19 +141,49 @@ export const drawWinners = async (req, res) => {
     }
 
     // Récupérer tous les tickets non gagnants
-    const tickets = await TombolaTicket.find({ isWinner: false }).session(session);
+    const tickets = await TombolaTicket.find({ isWinner: false })
+      .populate('user', 'id')
+      .session(session);
     
-    if (tickets.length < 3) {
+    // Grouper les tickets par utilisateur
+    const ticketsByUser = new Map();
+    tickets.forEach(ticket => {
+      if (ticket.user && ticket.user._id) {
+        if (!ticketsByUser.has(ticket.user._id.toString())) {
+          ticketsByUser.set(ticket.user._id.toString(), []);
+        }
+        ticketsByUser.get(ticket.user._id.toString()).push(ticket);
+      }
+    });
+    
+    // Vérifier s'il y a assez de participants uniques
+    if (ticketsByUser.size < 3) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ 
         success: false, 
-        message: 'Pas assez de tickets pour effectuer un tirage. Il doit y avoir au moins 3 tickets.' 
+        message: 'Pas assez de participants uniques pour effectuer un tirage. Il doit y avoir au moins 3 participants différents.' 
       });
     }
-
-    // Mélanger les tickets
-    const shuffledTickets = [...tickets].sort(() => 0.5 - Math.random());
+    
+    // Sélectionner un ticket par utilisateur de manière aléatoire
+    const uniqueTickets = [];
+    ticketsByUser.forEach(userTickets => {
+      const randomIndex = Math.floor(Math.random() * userTickets.length);
+      uniqueTickets.push(userTickets[randomIndex]);
+    });
+    
+    // Mélanger les tickets uniques
+    const shuffledTickets = [...uniqueTickets].sort(() => 0.5 - Math.random());
+    
+    if (shuffledTickets.length < 3) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Erreur lors de la préparation du tirage. Veuillez réessayer.' 
+      });
+    }
     
     // Sélectionner les gagnants
     const firstPrize = shuffledTickets[0]._id;

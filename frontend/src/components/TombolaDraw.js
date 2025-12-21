@@ -17,9 +17,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton
+  IconButton,
+  Snackbar
 } from '@mui/material';
 import { EmojiEvents as PrizeIcon, Close as CloseIcon } from '@mui/icons-material';
+import api from '../services/api';
 
 const prizes = [
   { id: 1, name: '1er Prix', description: 'Grand Prix Principal' },
@@ -31,29 +33,45 @@ const TombolaDraw = ({ tickets, onDrawComplete }) => {
   const [winners, setWinners] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
+  const [error, setError] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [currentDraw, setCurrentDraw] = useState(null);
   const [availableTickets, setAvailableTickets] = useState([...tickets]);
 
   useEffect(() => {
-    // Réinitialiser les gagnants et les tickets disponibles quand la liste des tickets change
-    setWinners([]);
+    // Charger les gagnants existants depuis l'API
+    const fetchWinners = async () => {
+      try {
+        const response = await api.get('/tombola/winners');
+        if (response.data && response.data.success) {
+          const winnersData = [
+            response.data.winners.first,
+            response.data.winners.second,
+            response.data.winners.third
+          ].filter(Boolean);
+          
+          setWinners(winnersData);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des gagnants:', error);
+        setError('Impossible de charger les gagnants');
+      }
+    };
+
+    fetchWinners();
+  }, []);
+
+  useEffect(() => {
+    // Mettre à jour les tickets disponibles quand la liste des tickets change
     setAvailableTickets([...tickets]);
   }, [tickets]);
 
-  const drawWinner = () => {
-    if (availableTickets.length === 0) {
-      alert('Aucun ticket disponible pour le tirage');
-      return null;
-    }
-
-    const randomIndex = Math.floor(Math.random() * availableTickets.length);
-    const winner = availableTickets[randomIndex];
-    
-    // Retirer le gagnant des tickets disponibles
-    const newAvailableTickets = availableTickets.filter((_, index) => index !== randomIndex);
-    setAvailableTickets(newAvailableTickets);
-    
-    return winner;
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
   };
 
   const handleDraw = () => {
@@ -64,45 +82,41 @@ const TombolaDraw = ({ tickets, onDrawComplete }) => {
     setOpenConfirm(true);
   };
 
-  const confirmDraw = () => {
+  const confirmDraw = async () => {
     setOpenConfirm(false);
     setIsDrawing(true);
-    
-    // Simulation d'animation de tirage
-    setTimeout(() => {
-      const winner = drawWinner();
-      if (winner) {
-        const newWinner = {
-          ...winner,
-          prize: currentPrize.name,
-          prizeId: currentPrize.id,
-          drawDate: new Date().toISOString()
-        };
-        
-        setWinners(prev => [...prev, newWinner]);
-        
-        // Sauvegarder les gagnants dans le localStorage
-        const savedWinners = JSON.parse(localStorage.getItem('tombolaWinners') || '[]');
-        localStorage.setItem('tombolaWinners', JSON.stringify([...savedWinners, newWinner]));
-        
-        // Mettre à jour les tickets dans le localStorage pour marquer les gagnants
-        const allTickets = JSON.parse(localStorage.getItem('tombolaTickets') || '[]');
-        const updatedTickets = allTickets.map(ticket => 
-          ticket.id === newWinner.id ? { ...ticket, isWinner: true, prize: newWinner.prize } : ticket
-        );
-        localStorage.setItem('tombolaTickets', JSON.stringify(updatedTickets));
-        
-        if (onDrawComplete) {
-          onDrawComplete(updatedTickets);
-        }
-      }
+    setError(null);
+
+    try {
+      // Appel à l'API pour effectuer le tirage
+      const response = await api.post('/tombola/draw');
       
+      if (response.data && response.data.success) {
+        const { first, second, third } = response.data.winners;
+        const newWinners = [first, second, third].filter(Boolean);
+        
+        setWinners(newWinners);
+        showSnackbar('Tirage effectué avec succès !', 'success');
+        
+        // Mettre à jour la liste des tickets si une fonction de callback est fournie
+        if (onDrawComplete) {
+          onDrawComplete();
+        }
+      } else {
+        throw new Error(response.data?.message || 'Erreur lors du tirage');
+      }
+    } catch (error) {
+      console.error('Erreur lors du tirage:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Une erreur est survenue';
+      setError(errorMessage);
+      showSnackbar(errorMessage, 'error');
+    } finally {
       setIsDrawing(false);
-    }, 2000);
+    }
   };
 
   const currentPrize = prizes[winners.length];
-  const canDrawMore = winners.length < prizes.length && availableTickets.length > 0;
+  const canDrawMore = winners.length < prizes.length && availableTickets.length > 0 && !isDrawing;
 
   return (
     <Card sx={{ mt: 4, mb: 4 }}>
@@ -185,6 +199,21 @@ const TombolaDraw = ({ tickets, onDrawComplete }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 };
