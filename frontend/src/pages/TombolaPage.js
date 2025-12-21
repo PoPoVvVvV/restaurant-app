@@ -21,7 +21,8 @@ import {
   Tab
 } from '@mui/material';
 import { Save as SaveIcon, Receipt as ReceiptIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
+import AuthContext from '../context/AuthContext';
+import { useContext } from 'react';
 import TombolaDraw from '../components/TombolaDraw';
 
 // Fonction pour générer un code aléatoire de 12 caractères (lettres majuscules et chiffres)
@@ -73,7 +74,7 @@ const TombolaPage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [tabValue, setTabValue] = useState(0);
-  const { user } = useAuth();
+  const { user } = useContext(AuthContext);
   const isAdmin = user?.role === 'admin';
 
   // Charger les tickets existants depuis le localStorage
