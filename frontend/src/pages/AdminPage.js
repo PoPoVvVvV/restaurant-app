@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import UserManager from '../components/UserManager';
+import { resetAllTickets } from '../utils/discordWebhook';
 
 // Imports depuis Material-UI
 import {
@@ -381,8 +382,34 @@ const GeneralSettings = () => {
     const handleGradeChange = async (userId, newGrade) => { try { await api.put(`/users/${userId}/grade`, { grade: newGrade }); setUsers(users.map(u => u._id === userId ? { ...u, grade: newGrade } : u)); showNotification("Grade mis à jour !", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
     return (
         <Paper elevation={3} sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Typography>Prime sur marge :</Typography><TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} /><Typography>%</Typography><Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button></Box>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}><Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>{newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}</Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+              <Typography>Prime sur marge :</Typography>
+              <TextField size="small" type="number" value={bonusPercentage} onChange={e => setBonusPercentage(e.target.value)} sx={{ width: '80px' }} />
+              <Typography>%</Typography>
+              <Button variant="contained" onClick={handleSaveBonus}>Enregistrer</Button>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+              <Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>
+              {newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+              <Button 
+                variant="contained" 
+                color="error" 
+                onClick={async () => {
+                  if (window.confirm('Êtes-vous sûr de vouloir réinitialiser TOUS les tickets de tombola ? Cette action est irréversible.')) {
+                    const result = await resetAllTickets();
+                    if (result.success) {
+                      showNotification(result.message, 'success');
+                    } else {
+                      showNotification(result.message || 'Erreur lors de la réinitialisation des tickets', 'error');
+                    }
+                  }
+                }}
+              >
+                Réinitialiser tous les tickets de tombola
+              </Button>
+            </Box>
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                     <TableHead><TableRow><TableCell>Nom d'utilisateur</TableCell><TableCell>Rôle</TableCell><TableCell>Grade</TableCell><TableCell>Statut</TableCell><TableCell align="center">Actions</TableCell></TableRow></TableHead>
