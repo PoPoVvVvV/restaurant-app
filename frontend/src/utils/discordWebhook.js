@@ -25,6 +25,20 @@ export const setWebhookUrl = (url) => {
 };
 
 /**
+ * Divise un tableau en plusieurs tableaux plus petits
+ * @param {Array} array - Le tableau à diviser
+ * @param {number} size - Taille maximale de chaque lot
+ * @returns {Array[]} Tableau de tableaux contenant les lots
+ */
+const chunkArray = (array, size) => {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+/**
  * Envoie une notification de tombola au webhook Discord
  * @param {Object} data - Les données à envoyer
  * @param {string} data.firstName - Prénom du participant
@@ -33,7 +47,7 @@ export const setWebhookUrl = (url) => {
  * @param {number} data.ticketCount - Nombre de tickets achetés
  * @param {string[]} data.ticketNumbers - Liste des numéros de tickets
  * @param {number} data.totalAmount - Montant total de l'achat
- * @returns {Promise<Object>} Réponse du serveur Discord
+ * @returns {Promise<{success: boolean, error?: string, batches?: number}>} Résultat de l'opération
  */
 export const sendTombolaNotification = async (data) => {
   const webhookUrl = getWebhookUrl();
@@ -42,7 +56,13 @@ export const sendTombolaNotification = async (data) => {
     return { success: false, error: 'Aucune URL de webhook configurée' };
   }
 
-  const embed = {
+  // Limite de caractères pour un champ Discord (1024)
+  // On divise les tickets en lots de 20 pour éviter de dépasser la limite
+  const TICKETS_PER_BATCH = 20;
+  const ticketBatches = chunkArray(data.ticketNumbers, TICKETS_PER_BATCH);
+  
+  // Créer le message principal
+  const mainEmbed = {
     title: '🎟️ Nouvel achat de tickets de tombola',
     color: 0x0099ff,
     fields: [
@@ -62,12 +82,7 @@ export const sendTombolaNotification = async (data) => {
         inline: true
       },
       {
-        name: '🔢 Numéros de tickets',
-        value: data.ticketNumbers.join('\n') || 'Aucun numéro',
-        inline: false
-      },
-      {
-        name: '💰 Montant total',
+        name: '� Montant total',
         value: `${data.totalAmount} $`,
         inline: true
       },
@@ -75,21 +90,25 @@ export const sendTombolaNotification = async (data) => {
         name: '📅 Date',
         value: new Date().toLocaleString('fr-FR'),
         inline: true
+      },
+      {
+        name: '� Détail des tickets',
+        value: `Les ${data.ticketCount} tickets sont listés dans les messages suivants.`,
+        inline: false
       }
     ],
     timestamp: new Date().toISOString()
   };
 
   try {
-    const response = await fetch(webhookUrl, {
+    // Envoyer d'abord le message principal
+    let response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Tombola Bot',
         avatar_url: 'https://i.imgur.com/4M34hi2.png',
-        embeds: [embed],
+        embeds: [mainEmbed],
       }),
     });
 
@@ -98,10 +117,51 @@ export const sendTombolaNotification = async (data) => {
       throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
     }
 
-    return { success: true };
+    // Envoyer les lots de tickets
+    for (let i = 0; i < ticketBatches.length; i++) {
+      const batch = ticketBatches[i];
+      const batchEmbed = {
+        color: 0x0099ff,
+        title: `🎫 Lot ${i + 1}/${ticketBatches.length}`,
+        description: '```' + batch.join('\n') + '```',
+        footer: {
+          text: `Tickets ${i * TICKETS_PER_BATCH + 1}-${Math.min((i + 1) * TICKETS_PER_BATCH, data.ticketCount)} sur ${data.ticketCount}`
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Petit délai entre les envois pour éviter le rate limiting
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'Tombola Bot',
+          avatar_url: 'https://i.imgur.com/4M34hi2.png',
+          embeds: [batchEmbed],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erreur lors de l'envoi du lot ${i + 1}: ${response.status} - ${errorText}`);
+      }
+    }
+
+    return { 
+      success: true, 
+      batches: ticketBatches.length 
+    };
   } catch (error) {
     console.error('Erreur lors de l\'envoi de la notification Discord:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: error.message,
+      batches: ticketBatches.length
+    };
   }
 };
 
@@ -143,6 +203,51 @@ export const testWebhook = async (customUrl = null) => {
     return { 
       success: false, 
       error: error.message || 'Erreur inconnue lors du test du webhook' 
+    };
+  }
+};
+
+/**
+ * Réinitialise tous les tickets de tombola
+ * @returns {Promise<{success: boolean, message: string}>} Résultat de l'opération
+ */
+export const resetAllTickets = async () => {
+  try {
+    // Vérifier si l'utilisateur est admin (vérification côté serveur)
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      return { 
+        success: false, 
+        message: 'Non autorisé. Veuillez vous reconnecter.' 
+      };
+    }
+
+    // Appel API pour réinitialiser les tickets
+    const response = await fetch('/api/tombola/reset-tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erreur lors de la réinitialisation des tickets');
+    }
+
+    // Effacer le stockage local si l'API a réussi
+    localStorage.removeItem('tombolaTickets');
+    
+    return { 
+      success: true, 
+      message: 'Tous les tickets ont été réinitialisés avec succès.' 
+    };
+  } catch (error) {
+    console.error('Erreur lors de la réinitialisation des tickets:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Une erreur est survenue lors de la réinitialisation des tickets.'
     };
   }
 };

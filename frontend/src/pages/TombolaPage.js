@@ -30,12 +30,13 @@ import {
   AdminPanelSettings as AdminIcon,
   Link as LinkIcon,
   Check as CheckIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
 import { useContext } from 'react';
 import TombolaDraw from '../components/TombolaDraw';
-import { getWebhookUrl, setWebhookUrl, sendTombolaNotification, testWebhook } from '../utils/discordWebhook';
+import { getWebhookUrl, setWebhookUrl, sendTombolaNotification, testWebhook, resetAllTickets } from '../utils/discordWebhook';
 
 // Fonction pour générer un code aléatoire de 12 caractères (lettres majuscules et chiffres)
 const generateRandomCode = () => {
@@ -253,6 +254,27 @@ const TombolaPage = () => {
     }));
   };
 
+  const handleResetTickets = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir réinitialiser tous les tickets ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      const result = await resetAllTickets();
+      if (result.success) {
+        // Réinitialiser l'état local des tickets
+        setTickets([]);
+        // Afficher un message de succès
+        showSnackbar(result.message, 'success');
+      } else {
+        showSnackbar(result.message || 'Erreur lors de la réinitialisation', 'error');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation des tickets:', error);
+      showSnackbar('Une erreur est survenue lors de la réinitialisation', 'error');
+    }
+  };
+
   const showSnackbar = (message, severity = 'success') => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
@@ -343,6 +365,17 @@ const TombolaPage = () => {
               }
             >
               {webhookConfig.isTesting ? 'Test en cours...' : 'Tester'}
+            </Button>
+            
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleResetTickets}
+              disabled={tickets.length === 0}
+              startIcon={<DeleteIcon />}
+              title="Réinitialiser tous les tickets"
+            >
+              Réinitialiser
             </Button>
           </Box>
           
