@@ -214,7 +214,7 @@ export const testWebhook = async (customUrl = null) => {
 export const resetAllTickets = async () => {
   try {
     // Vérifier si l'utilisateur est admin (vérification côté serveur)
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (!token) {
       return { 
         success: false, 
