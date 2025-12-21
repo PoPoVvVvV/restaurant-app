@@ -1,3 +1,5 @@
+import api from '../services/api';
+
 // Stockage de l'URL du webhook dans localStorage
 const WEBHOOK_STORAGE_KEY = 'tombola_discord_webhook';
 
@@ -206,8 +208,6 @@ export const testWebhook = async (customUrl = null) => {
     };
   }
 };
-
-import api from '../services/api';
 
 /**
  * Réinitialise tous les tickets de tombola
