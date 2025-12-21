@@ -140,10 +140,22 @@ export const drawWinners = async (req, res) => {
       });
     }
 
-    // Récupérer tous les tickets non gagnants
+    // Récupérer tous les tickets non gagnants avec les utilisateurs peuplés
     const tickets = await TombolaTicket.find({ isWinner: false })
-      .populate('user', 'id')
+      .populate({
+        path: 'user',
+        select: '_id',
+        options: { lean: true }
+      })
       .session(session);
+    
+    console.log('Tickets trouvés:', tickets.length);
+    console.log('Premier ticket:', {
+      id: tickets[0]?._id,
+      user: tickets[0]?.user,
+      firstName: tickets[0]?.firstName,
+      lastName: tickets[0]?.lastName
+    });
     
     // Grouper les tickets par utilisateur
     const ticketsByUser = new Map();
