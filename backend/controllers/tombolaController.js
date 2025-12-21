@@ -192,15 +192,19 @@ export const drawWinners = async (req, res) => {
     console.log('Nombre d\'utilisateurs uniques trouvés:', ticketsByUser.size);
     console.log('Utilisateurs uniques:', Array.from(ticketsByUser.keys()));
     
-    // Vérifier s'il y a assez de participants uniques
-    if (ticketsByUser.size < 3) {
+    // Vérifier s'il y a des participants
+    if (ticketsByUser.size === 0) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ 
         success: false, 
-        message: 'Pas assez de participants uniques pour effectuer un tirage. Il doit y avoir au moins 3 participants différents.' 
+        message: 'Aucun participant trouvé pour effectuer un tirage.'
       });
     }
+    
+    // Déterminer le nombre de prix à attribuer (maximum 3, ou moins s'il y a moins de participants)
+    const numberOfPrizes = Math.min(ticketsByUser.size, 3);
+    console.log(`Tirage de ${numberOfPrizes} prix parmi ${ticketsByUser.size} participants uniques`);
     
     // Sélectionner un ticket par utilisateur de manière aléatoire
     const uniqueTickets = [];
@@ -212,42 +216,47 @@ export const drawWinners = async (req, res) => {
     // Mélanger les tickets uniques
     const shuffledTickets = [...uniqueTickets].sort(() => 0.5 - Math.random());
     
-    if (shuffledTickets.length < 3) {
+    if (shuffledTickets.length < numberOfPrizes) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ 
         success: false, 
-        message: 'Erreur lors de la préparation du tirage. Veuillez réessayer.' 
+        message: `Erreur: ${shuffledTickets.length} tickets uniques disponibles pour ${numberOfPrizes} prix.` 
       });
     }
     
-    // Sélectionner les gagnants
-    const firstPrize = shuffledTickets[0]._id;
-    const secondPrize = shuffledTickets[1]._id;
-    const thirdPrize = shuffledTickets[2]._id;
+    // Sélectionner les gagnants en fonction du nombre de prix
+    const winners = [];
+    const prizeTypes = ['first', 'second', 'third'];
+    
+    for (let i = 0; i < numberOfPrizes; i++) {
+      const winner = {
+        ticket: shuffledTickets[i],
+        prize: prizeTypes[i]
+      };
+      winners.push(winner);
+      
+      console.log(`${prizeTypes[i].toUpperCase()} Prix:`, {
+        ticketId: winner.ticket._id,
+        userId: winner.ticket.user?._id,
+        name: `${winner.ticket.firstName} ${winner.ticket.lastName}`
+      });
+    }
 
-    // Mettre à jour les gagnants
-    await TombolaTicket.updateOne(
-      { _id: firstPrize },
-      { $set: { isWinner: true, prize: 'first' } },
-      { session }
-    );
+    // Mettre à jour les gagnants dans la base de données
+    const winnerIds = [];
+    for (let i = 0; i < winners.length; i++) {
+      await TombolaTicket.updateOne(
+        { _id: winners[i].ticket._id },
+        { $set: { isWinner: true, prize: winners[i].prize } },
+        { session }
+      );
+      winnerIds.push(winners[i].ticket._id);
+    }
 
-    await TombolaTicket.updateOne(
-      { _id: secondPrize },
-      { $set: { isWinner: true, prize: 'second' } },
-      { session }
-    );
-
-    await TombolaTicket.updateOne(
-      { _id: thirdPrize },
-      { $set: { isWinner: true, prize: 'third' } },
-      { session }
-    );
-
-    // Récupérer les informations des gagnants
-    const winners = await TombolaTicket.find({
-      _id: { $in: [firstPrize, secondPrize, thirdPrize] }
+    // Récupérer les informations complètes des gagnants
+    const winnersInfo = await TombolaTicket.find({
+      _id: { $in: winnerIds }
     }).session(session);
 
     await session.commitTransaction();
@@ -256,15 +265,18 @@ export const drawWinners = async (req, res) => {
     // Envoyer une notification aux gagnants (à implémenter si nécessaire)
     // await notifyWinners(winners);
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'Tirage au sort effectué avec succès',
-      winners: {
-        first: winners.find(w => w.prize === 'first'),
-        second: winners.find(w => w.prize === 'second'),
-        third: winners.find(w => w.prize === 'third')
-      }
+    // Préparer la réponse avec les gagnants
+    const response = { success: true, message: 'Tirage au sort effectué avec succès', winners: {} };
+    
+    // Ajouter chaque gagnant à la réponse
+    winnersInfo.forEach(winner => {
+      if (winner.prize === 'first') response.winners.first = winner;
+      else if (winner.prize === 'second') response.winners.second = winner;
+      else if (winner.prize === 'third') response.winners.third = winner;
     });
+    
+    console.log('Réponse du tirage:', JSON.stringify(response, null, 2));
+    res.status(200).json(response);
 
   } catch (error) {
     await session.abortTransaction();
