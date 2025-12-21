@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import TombolaTicket from '../models/TombolaTicket.js';
-import { sendTombolaNotification } from '../services/webhookService.js';
+import webhookService from '../services/webhookService.js';
 
 // Créer un nouveau ticket de tombola
 export const createTombolaTicket = async (req, res) => {
