@@ -115,12 +115,19 @@ export const resetAllTickets = async (req, res) => {
 
 // Tirage au sort des gagnants (pour les administrateurs)
 export const drawWinners = async (req, res) => {
+  console.log('Début du tirage au sort - Utilisateur:', {
+    userId: req.user?._id,
+    role: req.user?.role,
+    isAdmin: req.user?.role === 'admin'
+  });
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     // Vérifier si l'utilisateur est administrateur
-    if (req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
+      console.error('Accès refusé - Rôle insuffisant:', req.user?.role);
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ 
