@@ -87,6 +87,9 @@ const TombolaPage = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [tabValue, setTabValue] = useState(0);
   
+  const { user } = useContext(AuthContext);
+  const isAdmin = user?.role === 'admin';
+
   // État pour la configuration du webhook
   const [webhookConfig, setWebhookConfig] = useState({
     url: '',
@@ -106,8 +109,6 @@ const TombolaPage = () => {
       }));
     }
   }, [isAdmin]);
-  const { user } = useContext(AuthContext);
-  const isAdmin = user?.role === 'admin';
 
   // Charger les tickets existants depuis le localStorage
   useEffect(() => {

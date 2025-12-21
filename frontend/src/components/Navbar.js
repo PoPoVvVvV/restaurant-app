@@ -72,6 +72,7 @@ const Navbar = memo(() => {
       { path: '/stocks', label: 'Stocks', icon: '📦' },
       { path: '/recettes', label: 'Recettes', icon: '📖' },
       { path: '/absences', label: 'Absences', icon: '📅' },
+      { path: '/tombola', label: 'Tombola', icon: '🎫' },
       { path: '/comptabilite', label: 'Ma Compta', icon: '📊' },
     ];
 
