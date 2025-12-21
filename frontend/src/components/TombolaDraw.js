@@ -90,42 +90,94 @@ const TombolaDraw = ({ tickets, onDrawComplete }) => {
     // Vérifier si l'utilisateur est connecté
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Vous devez être connecté pour effectuer un tirage');
-      setIsDrawing(false);
+      const errorMsg = 'Aucun token d\'authentification trouvé. Veuillez vous reconnecter.';
+      console.error(errorMsg);
+      setError(errorMsg);
       showSnackbar('Veuillez vous reconnecter', 'error');
+      setIsDrawing(false);
       return;
     }
 
     try {
       console.log('Tentative de tirage avec le token:', token.substring(0, 10) + '...');
       
-      // Appel à l'API pour effectuer le tirage avec le token dans les en-têtes
+      // Appel à l'API pour effectuer le tirage
+      console.log('Envoi de la requête de tirage...');
       const response = await api.post('/tombola/draw', {}, {
         headers: {
           'x-auth-token': token,
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       console.log('Réponse du serveur:', response.data);
       
-      if (response.data && response.data.success) {
-        const { first, second, third } = response.data.winners;
-        const newWinners = [first, second, third].filter(Boolean);
+      if (!response.data) {
+        throw new Error('Aucune donnée reçue du serveur');
+      }
+      
+      if (response.data.success) {
+        const { winners } = response.data;
         
+        if (!winners) {
+          throw new Error('Aucun gagnant trouvé dans la réponse du serveur');
+        }
+        
+        // Filtrer les gagnants nuls et créer un tableau ordonné
+        const newWinners = [
+          winners.first,
+          winners.second,
+          winners.third
+        ].filter(winner => winner !== null && winner !== undefined);
+        
+        console.log('Gagnants du tirage:', newWinners);
         setWinners(newWinners);
-        showSnackbar('Tirage effectué avec succès !', 'success');
+        
+        // Afficher un message de succès avec le nombre de gagnants
+        const winnerCount = newWinners.length;
+        const prizeText = winnerCount > 1 ? 'gagnants ont été tirés' : 'gagnant a été tiré';
+        showSnackbar(`Le tirage a réussi ! ${winnerCount} ${prizeText}.`, 'success');
         
         // Mettre à jour la liste des tickets si une fonction de callback est fournie
-        if (onDrawComplete) {
+        if (onDrawComplete && typeof onDrawComplete === 'function') {
+          console.log('Appel du callback onDrawComplete');
           onDrawComplete();
         }
       } else {
-        throw new Error(response.data?.message || 'Erreur lors du tirage');
+        // Gérer les erreurs spécifiques du serveur
+        const errorMessage = response.data.message || 'Le tirage a échoué pour une raison inconnue';
+        console.error('Erreur du serveur:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Erreur lors du tirage:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Une erreur est survenue';
+      console.error('Erreur lors du tirage:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      // Message d'erreur plus convivial pour l'utilisateur
+      let errorMessage = 'Une erreur est survenue lors du tirage';
+      
+      if (error.response) {
+        // Erreur avec réponse du serveur
+        if (error.response.status === 400) {
+          errorMessage = error.response.data?.message || 'Données de requête invalides';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (error.response.status === 403) {
+          errorMessage = 'Accès refusé. Droits insuffisants.';
+        } else if (error.response.status === 404) {
+          errorMessage = 'Service de tirage non trouvé';
+        } else if (error.response.status >= 500) {
+          errorMessage = 'Erreur du serveur. Veuillez réessayer plus tard.';
+        }
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        errorMessage = 'Le serveur ne répond pas. Vérifiez votre connexion Internet.';
+      }
+      
       setError(errorMessage);
       showSnackbar(errorMessage, 'error');
     } finally {

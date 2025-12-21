@@ -75,12 +75,14 @@ export const getAllTickets = async (req, res) => {
 
 // Réinitialiser tous les tickets (pour les administrateurs)
 export const resetAllTickets = async (req, res) => {
+  console.log('Début de la réinitialisation des tickets...');
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     // Vérifier si l'utilisateur est administrateur
-    if (req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
+      console.log('Accès refusé - Rôle insuffisant:', req.user?.role);
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ 
@@ -89,16 +91,34 @@ export const resetAllTickets = async (req, res) => {
       });
     }
 
-    // Supprimer tous les tickets
-    const result = await TombolaTicket.deleteMany({}).session(session);
+    console.log('Suppression de tous les tickets existants...');
+    
+    // Option 1: Supprimer tous les tickets (décommenter si c'est le comportement souhaité)
+    // const result = await TombolaTicket.deleteMany({}).session(session);
+    
+    // Option 2: Réinitialiser le statut des tickets existants (au lieu de les supprimer)
+    const result = await TombolaTicket.updateMany(
+      {},
+      { $set: { isWinner: false, prize: null } },
+      { session, multi: true }
+    );
+    
+    console.log('Résultat de la réinitialisation:', result);
     
     await session.commitTransaction();
     session.endSession();
 
+    const message = result.matchedCount > 0 
+      ? `${result.matchedCount} tickets ont été réinitialisés avec succès.`
+      : 'Aucun ticket à réinitialiser.';
+    
+    console.log(message);
+    
     res.status(200).json({ 
       success: true, 
-      message: `Tous les tickets (${result.deletedCount}) ont été réinitialisés avec succès.`,
-      deletedCount: result.deletedCount
+      message,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount
     });
 
   } catch (error) {
@@ -156,23 +176,27 @@ export const drawWinners = async (req, res) => {
       })
       .session(session);
     
-    console.log('Tickets trouvés:', tickets.length);
-    console.log('Premier ticket:', {
-      id: tickets[0]?._id,
-      user: tickets[0]?.user,
-      firstName: tickets[0]?.firstName,
-      lastName: tickets[0]?.lastName
-    });
+    console.log('Tickets non gagnants trouvés:', tickets.length);
+    
+    if (tickets.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Aucun ticket éligible trouvé. Tous les tickets ont déjà été tirés au sort.' 
+      });
+    }
     
     // Grouper les tickets par utilisateur
     const ticketsByUser = new Map();
-    console.log('Tickets récupérés:', tickets.length);
+    let validTicketsCount = 0;
     
     tickets.forEach((ticket, index) => {
       console.log(`Ticket ${index + 1}:`, {
-        ticketId: ticket._id,
-        userId: ticket.user?._id?.toString(),
-        userName: ticket.firstName + ' ' + ticket.lastName
+        id: ticket._id,
+        user: ticket.user?._id || 'Aucun utilisateur',
+        firstName: ticket.firstName,
+        lastName: ticket.lastName
       });
       
       if (ticket.user && ticket.user._id) {
