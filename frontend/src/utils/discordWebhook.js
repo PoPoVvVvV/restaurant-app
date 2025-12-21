@@ -207,6 +207,8 @@ export const testWebhook = async (customUrl = null) => {
   }
 };
 
+import api from '../services/api';
+
 /**
  * Réinitialise tous les tickets de tombola
  * @returns {Promise<{success: boolean, message: string}>} Résultat de l'opération
@@ -226,37 +228,12 @@ export const resetAllTickets = async () => {
       };
     }
 
-    const apiUrl = '/api/tombola/reset-tickets';
-    console.log('Envoi de la requête à:', apiUrl);
+    console.log('Envoi de la requête de réinitialisation...');
     
-    // Appel API pour réinitialiser les tickets
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      },
-      credentials: 'include' // Important pour les cookies de session
-    });
-
-    console.log('Réponse reçue, statut:', response.status);
+    // Utilisation de l'instance api configurée
+    const response = await api.post('/tombola/reset-tickets', {});
     
-    // Essayer de parser la réponse en JSON, même en cas d'erreur
-    let responseData;
-    try {
-      const text = await response.text();
-      console.log('Réponse brute:', text);
-      responseData = text ? JSON.parse(text) : {};
-    } catch (parseError) {
-      console.error('Erreur lors du parsing de la réponse:', parseError);
-      throw new Error('Réponse du serveur invalide');
-    }
-
-    if (!response.ok) {
-      console.error('Erreur de l\'API:', responseData);
-      throw new Error(responseData.message || `Erreur ${response.status}: ${response.statusText}`);
-    }
+    console.log('Réponse reçue:', response);
 
     // Effacer le stockage local si l'API a réussi
     localStorage.removeItem('tombolaTickets');
@@ -268,9 +245,10 @@ export const resetAllTickets = async () => {
     };
   } catch (error) {
     console.error('Erreur lors de la réinitialisation des tickets:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Une erreur est survenue lors de la réinitialisation des tickets.';
     return { 
       success: false, 
-      message: error.message || 'Une erreur est survenue lors de la réinitialisation des tickets.'
+      message: errorMessage
     };
   }
 };
