@@ -87,9 +87,27 @@ const TombolaDraw = ({ tickets, onDrawComplete }) => {
     setIsDrawing(true);
     setError(null);
 
+    // Vérifier si l'utilisateur est connecté
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Vous devez être connecté pour effectuer un tirage');
+      setIsDrawing(false);
+      showSnackbar('Veuillez vous reconnecter', 'error');
+      return;
+    }
+
     try {
-      // Appel à l'API pour effectuer le tirage
-      const response = await api.post('/tombola/draw');
+      console.log('Tentative de tirage avec le token:', token.substring(0, 10) + '...');
+      
+      // Appel à l'API pour effectuer le tirage avec le token dans les en-têtes
+      const response = await api.post('/tombola/draw', {}, {
+        headers: {
+          'x-auth-token': token,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Réponse du serveur:', response.data);
       
       if (response.data && response.data.success) {
         const { first, second, third } = response.data.winners;
