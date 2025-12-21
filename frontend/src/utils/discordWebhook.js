@@ -213,8 +213,12 @@ export const testWebhook = async (customUrl = null) => {
  */
 export const resetAllTickets = async () => {
   try {
-    // Vérifier si l'utilisateur est admin (vérification côté serveur)
+    console.log('Début de la réinitialisation des tickets...');
+    
+    // Vérifier si l'utilisateur est connecté
     const token = localStorage.getItem('token');
+    console.log('Token récupéré:', token ? 'présent' : 'absent');
+    
     if (!token) {
       return { 
         success: false, 
@@ -222,22 +226,41 @@ export const resetAllTickets = async () => {
       };
     }
 
+    const apiUrl = '/api/tombola/reset-tickets';
+    console.log('Envoi de la requête à:', apiUrl);
+    
     // Appel API pour réinitialiser les tickets
-    const response = await fetch('/api/tombola/reset-tickets', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      },
+      credentials: 'include' // Important pour les cookies de session
     });
 
+    console.log('Réponse reçue, statut:', response.status);
+    
+    // Essayer de parser la réponse en JSON, même en cas d'erreur
+    let responseData;
+    try {
+      const text = await response.text();
+      console.log('Réponse brute:', text);
+      responseData = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error('Erreur lors du parsing de la réponse:', parseError);
+      throw new Error('Réponse du serveur invalide');
+    }
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur lors de la réinitialisation des tickets');
+      console.error('Erreur de l\'API:', responseData);
+      throw new Error(responseData.message || `Erreur ${response.status}: ${response.statusText}`);
     }
 
     // Effacer le stockage local si l'API a réussi
     localStorage.removeItem('tombolaTickets');
+    console.log('Tickets réinitialisés avec succès');
     
     return { 
       success: true, 
