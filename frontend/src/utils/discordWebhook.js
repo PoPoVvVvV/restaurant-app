@@ -168,7 +168,7 @@ export const sendTombolaNotification = async (data) => {
 };
 
 /**
- * Teste la connexion au webhook Discord
+ * Teste la connexion au webhook Discord en envoyant un message de test
  * @param {string} [customUrl] - URL personnalisée à tester (optionnelle)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
@@ -176,35 +176,85 @@ export const testWebhook = async (customUrl = null) => {
   const webhookUrl = customUrl || getWebhookUrl();
   
   if (!webhookUrl) {
+    console.error('Aucune URL de webhook fournie');
     return { success: false, error: 'Aucune URL de webhook fournie' };
   }
 
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'HEAD'
-    });
-
-    if (!response.ok) {
-      return { 
-        success: false, 
-        error: `Erreur HTTP: ${response.status} - ${response.statusText}`
-      };
-    }
-
-    // Vérifier si l'URL semble être un webhook Discord
-    if (!webhookUrl.includes('discord.com/api/webhooks/')) {
-      return { 
-        success: false, 
-        error: 'L\'URL ne semble pas être un webhook Discord valide' 
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Erreur lors du test du webhook:', error);
+  // Vérification basique du format de l'URL
+  if (!webhookUrl.includes('discord.com/api/webhooks/')) {
+    console.error('Format d\'URL de webhook Discord invalide');
     return { 
       success: false, 
-      error: error.message || 'Erreur inconnue lors du test du webhook' 
+      error: 'L\'URL ne semble pas être un webhook Discord valide' 
+    };
+  }
+
+  try {
+    console.log('Envoi d\'une requête de test au webhook...');
+    
+    // Créer un message de test simple
+    const testMessage = {
+      content: '✅ Test de connexion au webhook réussi!',
+      embeds: [{
+        title: 'Test de webhook',
+        description: 'Ceci est un message de test envoyé depuis l\'application de tombola.',
+        color: 0x00ff00,
+        timestamp: new Date().toISOString()
+      }]
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testMessage)
+    });
+
+    console.log('Réponse du serveur:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      let errorMessage = `Erreur HTTP: ${response.status} - ${response.statusText}`;
+      
+      // Essayer d'obtenir plus de détails sur l'erreur
+      try {
+        const errorData = await response.json();
+        console.error('Détails de l\'erreur:', errorData);
+        if (errorData.message) {
+          errorMessage += ` - ${errorData.message}`;
+        }
+      } catch (e) {
+        console.error('Impossible de parser la réponse d\'erreur:', e);
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage
+      };
+    }
+
+    console.log('Test de webhook réussi!');
+    return { 
+      success: true,
+      message: 'Connexion au webhook établie avec succès!'
+    };
+    
+  } catch (error) {
+    console.error('Erreur lors du test du webhook:', error);
+    let errorMessage = error.message || 'Erreur inconnue';
+    
+    // Gestion spécifique des erreurs de réseau
+    if (error instanceof TypeError) {
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+      } else if (error.message.includes('invalid json')) {
+        errorMessage = 'La réponse du serveur est invalide.';
+      }
+    }
+    
+    return { 
+      success: false, 
+      error: `Échec du test de webhook: ${errorMessage}`
     };
   }
 };
