@@ -25,13 +25,36 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-// Remplacez l'URL ci-dessous par celle de votre site Vercel ou mettez la dans une variable d'environnement
-const clientURL = process.env.CLIENT_URL || 'https://restaurant-app-coral-six.vercel.app';
+// Liste des origines autorisées
+const allowedOrigins = [
+  'https://restaurant-app-coral-six.vercel.app',
+  'https://restaurant-app-production-61c2.up.railway.app',
+  'http://localhost:3000',
+  'http://localhost:5000'
+];
 
+// Configuration CORS
 const corsOptions = {
-  origin: clientURL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-auth-token', 'authorization', 'Authorization'],
+  origin: function (origin, callback) {
+    // Permettre les requêtes sans origine (comme les applications mobiles ou Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-auth-token',
+    'authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
   credentials: true,
   optionsSuccessStatus: 200,
   preflightContinue: false
@@ -39,35 +62,36 @@ const corsOptions = {
 
 // Middleware CORS personnalisé pour gérer les requêtes pré-vol (preflight)
 app.use((req, res, next) => {
-  // Liste des en-têtes autorisés
-  const allowedHeaders = [
-    'Origin',
-    'X-Requested-With',
-    'Content-Type',
-    'Accept',
-    'x-auth-token',
-    'authorization',
-    'Authorization'
-  ];
-
-  // Définir les en-têtes CORS
-  res.header('Access-Control-Allow-Origin', clientURL);
-  res.header('Access-Control-Allow-Headers', allowedHeaders.join(', '));
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
   res.header('Access-Control-Allow-Credentials', 'true');
   
-  // Répondre directement aux requêtes OPTIONS (pré-vol)
+  // Répondre immédiatement aux requêtes OPTIONS (pré-vol)
   if (req.method === 'OPTIONS') {
-    // Ajouter l'en-tête Access-Control-Allow-Headers à la réponse OPTIONS
-    res.header('Access-Control-Allow-Headers', allowedHeaders.join(', '));
     return res.status(200).end();
   }
   
   next();
 });
 
-// Utiliser le middleware CORS standard
+// Activer CORS avec les options configurées
 app.use(cors(corsOptions));
+
+// Gestion des erreurs CORS
+app.use((err, req, res, next) => {
+  if (err.name === 'CorsError') {
+    console.error('Erreur CORS:', err.message);
+    return res.status(403).json({
+      success: false,
+      message: 'Accès non autorisé par la politique CORS'
+    });
+  }
+  next(err);
+});
 
 // Compression des réponses pour améliorer les performances
 app.use(compression());
@@ -78,8 +102,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 const io = new Server(httpServer, {
   cors: {
-    origin: clientURL,
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
   }
 });
 
