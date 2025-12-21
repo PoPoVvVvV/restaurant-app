@@ -16,9 +16,13 @@ import {
   Alert,
   Card,
   CardContent,
-  Divider
+  Divider,
+  Tabs,
+  Tab
 } from '@mui/material';
-import { Save as SaveIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Save as SaveIcon, Receipt as ReceiptIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
+import TombolaDraw from '../components/TombolaDraw';
 
 // Fonction pour générer un code aléatoire de 12 caractères (lettres majuscules et chiffres)
 const generateRandomCode = () => {
@@ -36,6 +40,26 @@ const generateRandomCode = () => {
   return result;
 };
 
+const TabPanel = (props) => {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+};
+
 const TombolaPage = () => {
   const [formData, setFormData] = useState({
     lastName: '',
@@ -48,12 +72,28 @@ const TombolaPage = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [tabValue, setTabValue] = useState(0);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   // Charger les tickets existants depuis le localStorage
   useEffect(() => {
     const savedTickets = JSON.parse(localStorage.getItem('tombolaTickets') || '[]');
     setTickets(savedTickets);
-  }, []);
+    
+    // Précharger le composant de tirage pour les admins
+    if (isAdmin) {
+      import('../components/TombolaDraw');
+    }
+  }, [isAdmin]);
+  
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+  
+  const handleTicketsUpdate = (updatedTickets) => {
+    setTickets(updatedTickets);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -121,10 +161,32 @@ const TombolaPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Tombola
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Tombola
+        </Typography>
+        {isAdmin && (
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange}
+            aria-label="onglets tombola"
+            sx={{ '& .MuiTab-root': { minHeight: 48 } }}
+          >
+            <Tab label="Acheter des tickets" />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AdminIcon fontSize="small" />
+                  <span>Tirage au sort</span>
+                </Box>
+              } 
+              disabled={!isAdmin}
+            />
+          </Tabs>
+        )}
+      </Box>
       
+      <TabPanel value={tabValue} index={0}>
       <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           Acheter des tickets
@@ -188,7 +250,14 @@ const TombolaPage = () => {
           </Box>
         </Box>
       </Paper>
+      </TabPanel>
 
+      {isAdmin && (
+        <TabPanel value={tabValue} index={1}>
+          <TombolaDraw tickets={tickets.filter(t => !t.isWinner)} onDrawComplete={handleTicketsUpdate} />
+        </TabPanel>
+      )}
+      
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
