@@ -147,14 +147,31 @@ export const drawWinners = async (req, res) => {
     
     // Grouper les tickets par utilisateur
     const ticketsByUser = new Map();
-    tickets.forEach(ticket => {
+    console.log('Tickets récupérés:', tickets.length);
+    
+    tickets.forEach((ticket, index) => {
+      console.log(`Ticket ${index + 1}:`, {
+        ticketId: ticket._id,
+        userId: ticket.user?._id?.toString(),
+        userName: ticket.firstName + ' ' + ticket.lastName
+      });
+      
       if (ticket.user && ticket.user._id) {
-        if (!ticketsByUser.has(ticket.user._id.toString())) {
-          ticketsByUser.set(ticket.user._id.toString(), []);
+        const userId = ticket.user._id.toString();
+        if (!ticketsByUser.has(userId)) {
+          ticketsByUser.set(userId, []);
+          console.log('Nouvel utilisateur détecté:', userId);
+        } else {
+          console.log('Utilisateur existant:', userId);
         }
-        ticketsByUser.get(ticket.user._id.toString()).push(ticket);
+        ticketsByUser.get(userId).push(ticket);
+      } else {
+        console.warn('Ticket sans utilisateur valide:', ticket._id);
       }
     });
+    
+    console.log('Nombre d\'utilisateurs uniques trouvés:', ticketsByUser.size);
+    console.log('Utilisateurs uniques:', Array.from(ticketsByUser.keys()));
     
     // Vérifier s'il y a assez de participants uniques
     if (ticketsByUser.size < 3) {
