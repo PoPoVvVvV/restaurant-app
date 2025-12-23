@@ -295,49 +295,51 @@ const Navbar = memo(() => {
           boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
         }}
       >
-      <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
-        {renderLogo}
-        <Typography 
-          variant="h6" 
-          component="div"
-          sx={{
-            mr: 2,
-            fontWeight: 700,
-            background: 'linear-gradient(45deg, #fff 30%, #e0e0e0 90%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            display: { xs: 'none', sm: 'block' }
-          }}
-        >
-          Delight
-        </Typography>
+        <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
+          {renderLogo}
+          <Typography 
+            variant="h6" 
+            component="div"
+            sx={{
+              mr: 2,
+              fontWeight: 700,
+              background: 'linear-gradient(45deg, #fff 30%, #e0e0e0 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              display: { xs: 'none', sm: 'block' }
+            }}
+          >
+            Delight
+          </Typography>
 
-        {renderNavItems}
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
-          {renderAuthButtons}
+          {renderNavItems}
           
-          <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
-            <IconButton 
-              onClick={toggleTheme} 
-              color="inherit"
-              sx={{
-                ml: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  transform: 'rotate(30deg)',
-                  transition: 'transform 0.3s ease-in-out'
-                }
-              }}
-            >
-              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Toolbar>
-    </AppBar>
-  </>
-);
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+            {renderAuthButtons}
+            
+            <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
+              <IconButton 
+                onClick={toggleTheme} 
+                color="inherit"
+                sx={{
+                  ml: 1,
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    transform: 'rotate(30deg)',
+                    transition: 'transform 0.3s ease-in-out'
+                  }
+                }}
+              >
+                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Toolbar>
+      </AppBar>
+    </>
+  );
+
+  });
 
 // Configuration de displayName pour le débogage
 Navbar.displayName = 'Navbar';
