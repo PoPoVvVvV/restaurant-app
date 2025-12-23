@@ -2,7 +2,7 @@ import React, { useMemo, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { CircularProgress, Box, Alert } from '@mui/material';
+import { CircularProgress, Box, Alert, Typography } from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import { AuthProvider } from './context/AuthContext';
