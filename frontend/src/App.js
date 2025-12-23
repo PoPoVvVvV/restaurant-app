@@ -2,7 +2,8 @@ import React, { useMemo, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { CircularProgress, Box } from '@mui/material';
+import { CircularProgress, Box, Alert } from '@mui/material';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
@@ -127,39 +128,115 @@ function ThemedApp() {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <EasterEggProvider>
-          <Suspense fallback={null}>
-            <Navbar style={{ position: 'relative', zIndex: 10 }} />
-            <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Routes Publiques */}
-                  <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                  <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-                  
-                  {/* Routes Protégées */}
-                  <Route path="/ventes" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
-                  <Route path="/ventes-entreprises" element={<ProtectedRoute><CorporateSalesPage /></ProtectedRoute>} />
-                  <Route path="/stocks" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
-                  <Route path="/recettes" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
-                  <Route path="/absences" element={<ProtectedRoute><AbsencePage /></ProtectedRoute>} />
-                  <Route path="/comptabilite" element={<ProtectedRoute><MaComptabilitePage /></ProtectedRoute>} />
-                  <Route path="/easter-eggs" element={<ProtectedRoute><EasterEggsPage /></ProtectedRoute>} />
-                  <Route path="/admin" element={
-                    <ProtectedRoute>
-                      <AdminPage />
-                    </ProtectedRoute>
-                  } />   
-                  {/* Route par défaut */}
-                  <Route path="/" element={<Navigate to="/ventes" />} />
-                </Routes>
-              </Suspense>
-            </main>
-            <SnakeGameWrapper />
-          </Suspense>
-        </EasterEggProvider>
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <EasterEggProvider>
+            <Suspense fallback={null}>
+              <Navbar style={{ position: 'relative', zIndex: 10 }} />
+              <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    {/* Routes Publiques */}
+                    <Route path="/login" element={
+                      <PublicRoute>
+                        <ErrorBoundary>
+                          <LoginPage />
+                        </ErrorBoundary>
+                      </PublicRoute>
+                    } />
+                    <Route path="/register" element={
+                      <PublicRoute>
+                        <ErrorBoundary>
+                          <RegisterPage />
+                        </ErrorBoundary>
+                      </PublicRoute>
+                    } />
+                    
+                    {/* Routes Protégées */}
+                    <Route path="/ventes" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <SalesPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/ventes-entreprises" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <CorporateSalesPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/stocks" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <StockPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/recettes" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <RecipePage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/absences" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <AbsencePage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/comptabilite" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <MaComptabilitePage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/easter-eggs" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <EasterEggsPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin" element={
+                      <ProtectedRoute adminOnly>
+                        <ErrorBoundary>
+                          <AdminPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />   
+                    {/* Route par défaut */}
+                    <Route path="/" element={
+                      <ErrorBoundary>
+                        <Navigate to="/ventes" replace />
+                      </ErrorBoundary>
+                    } />
+                    
+                    {/* Route 404 */}
+                    <Route path="*" element={
+                      <Box p={3} textAlign="center">
+                        <Alert severity="error" sx={{ maxWidth: 600, mx: 'auto' }}>
+                          <Typography variant="h5" gutterBottom>
+                            Page non trouvée
+                          </Typography>
+                          <Typography>
+                            La page que vous recherchez n'existe pas ou a été déplacée.
+                          </Typography>
+                        </Alert>
+                      </Box>
+                    } />
+                  </Routes>
+                </Suspense>
+              </main>
+              <SnakeGameWrapper />
+            </Suspense>
+          </EasterEggProvider>
+        </Router>
+      </ErrorBoundary>
     </MuiThemeProvider>
   );
 }

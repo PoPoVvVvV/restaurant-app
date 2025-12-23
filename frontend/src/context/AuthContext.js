@@ -18,24 +18,37 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (token) {
+    const verifyToken = async () => {
       try {
-        const decodedToken = jwtDecode(token);
-        
-        // Vérifier si le token est expiré
-        if (decodedToken.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          // Si le token est valide, on met à jour l'état et les headers axios
-          setUser(decodedToken.user);
-          api.defaults.headers.common['x-auth-token'] = token;
+        if (token) {
+          const decodedToken = jwtDecode(token);
+          
+          // Vérifier si le token est expiré
+          if (decodedToken.exp * 1000 < Date.now()) {
+            console.log('Token expiré');
+            logout();
+          } else {
+            // Vérifier la validité du token côté serveur
+            try {
+              await api.get('/api/auth/verify-token');
+              // Si le token est valide, on met à jour l'état et les headers axios
+              setUser(decodedToken.user);
+              api.defaults.headers.common['x-auth-token'] = token;
+            } catch (error) {
+              console.error('Erreur de vérification du token:', error);
+              logout();
+            }
+          }
         }
       } catch (error) {
-        // Si le token est invalide
+        console.error('Erreur lors du décodage du token:', error);
         logout();
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    verifyToken();
   }, [token, logout]);
 
   const login = (newToken) => {

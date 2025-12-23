@@ -338,8 +338,7 @@ const Navbar = memo(() => {
       </AppBar>
     </>
   );
-
-  });
+});
 
 // Configuration de displayName pour le débogage
 Navbar.displayName = 'Navbar';
