@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://restaurant-app-production-61c2.up.railway.app', // URL de base de l'API
+  baseURL: 'https://restaurant-app-production-61c2.up.railway.app/api', // L'URL de base de votre API
   withCredentials: true, // Important pour les cookies d'authentification
   headers: {
     'Content-Type': 'application/json',

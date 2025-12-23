@@ -1,9 +1,8 @@
-import React, { useContext, useMemo, useCallback, memo, useState } from 'react';
+import React, { useContext, useMemo, useCallback, memo } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider, Tooltip } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import CloseIcon from '@mui/icons-material/Close';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import { useEasterEgg } from '../context/EasterEggContext';
@@ -66,12 +65,6 @@ const Navbar = memo(() => {
     recordClick('logo');
   }, [recordClick]);
 
-  const [showGoogleScript, setShowGoogleScript] = useState(false);
-
-  const handleGoogleScriptClick = useCallback(() => {
-    setShowGoogleScript(prev => !prev);
-  }, []);
-
   const navItems = useMemo(() => {
     const baseItems = [
       { path: '/ventes', label: 'Ventes', icon: '🛍️' },
@@ -80,12 +73,6 @@ const Navbar = memo(() => {
       { path: '/recettes', label: 'Recettes', icon: '📖' },
       { path: '/absences', label: 'Absences', icon: '📅' },
       { path: '/comptabilite', label: 'Ma Compta', icon: '📊' },
-      { 
-        label: 'Google Script', 
-        icon: '📝',
-        onClick: handleGoogleScriptClick,
-        isExternal: true
-      },
     ];
 
     if (user?.role === 'admin') {
@@ -117,77 +104,48 @@ const Navbar = memo(() => {
     />
   ), [handleLogoClick]);
 
-  const renderNavItems = useMemo(() => {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-        {navItems.map((item, index) => {
-          if (item.isExternal) {
-            return (
-              <Button
-                key={item.label}
-                color="inherit"
-                startIcon={<span>{item.icon}</span>}
-                onClick={item.onClick}
-                sx={{
-                  backgroundColor: 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  },
-                  borderRadius: 2,
-                  mx: 0.5,
-                  fontSize: { xs: '0.65rem', md: '0.875rem' },
-                  px: { xs: 1, md: 2 },
-                  textTransform: 'none',
-                  minWidth: 'auto',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {item.label}
-              </Button>
-            );
-          }
-          
-          return (
+  const renderNavItems = useMemo(() => (
+    <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      {user ? (
+        <>
+          {navItems.map((item, index) => (
             <React.Fragment key={item.path}>
-              <NavButton
-                to={item.path}
-                icon={item.icon}
-                text={item.label}
-                clickType={item.label.toLowerCase()}
+              <NavButton 
+                to={item.path} 
+                icon={item.icon} 
+                text={item.label} 
+                clickType={item.label.toLowerCase()} 
               />
-              {index < navItems.length - 1 && (
-                <Divider 
-                  orientation="vertical" 
-                  flexItem 
-                  sx={{ 
-                    mx: 1, 
-                    my: 1.5, 
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    display: 'flex'
-                  }} 
-                />
-              )}
+              <Divider 
+                orientation="vertical" 
+                flexItem 
+                sx={{ 
+                  mx: 1, 
+                  my: 1.5, 
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  display: index === navItems.length - 1 ? 'none' : 'flex'
+                }} 
+              />
             </React.Fragment>
-          );
-        })}
-        
-        {isEasterEggUnlocked && (
-          <>
-            <Divider 
-              orientation="vertical" 
-              flexItem 
-              sx={{ 
-                mx: 1, 
-                my: 1.5, 
-                borderColor: 'rgba(255, 255, 255, 0.2)' 
-              }} 
-            />
-            <NavButton to="/easter-eggs" icon="🎮" text="Easter-Eggs" />
-          </>
-        )}
-      </Box>
-    );
-  }, [navItems, isEasterEggUnlocked]);
+          ))}
+          {isEasterEggUnlocked && (
+            <>
+              <Divider 
+                orientation="vertical" 
+                flexItem 
+                sx={{ 
+                  mx: 1, 
+                  my: 1.5, 
+                  borderColor: 'rgba(255, 255, 255, 0.2)' 
+                }} 
+              />
+              <NavButton to="/easter-eggs" icon="🎮" text="Easter-Eggs" />
+            </>
+          )}
+        </>
+      ) : null}
+    </Box>
+  ), [user, navItems, isEasterEggUnlocked]);
 
   const renderAuthButtons = useMemo(() => (
     user ? (
@@ -241,102 +199,57 @@ const Navbar = memo(() => {
   ), [user, onLogout]);
 
   return (
-    <>
-      {showGoogleScript && (
-        <Box sx={{ 
-          position: 'fixed',
-          top: 64,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1200,
-          bgcolor: 'background.paper',
-          borderTop: '1px solid',
-          borderColor: 'divider'
-        }}>
-          <Box sx={{ 
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 1
-          }}>
+    <AppBar 
+      position="static" 
+      color="primary" 
+      elevation={0} 
+      sx={{ 
+        position: 'relative',
+        background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
+        boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
+      }}
+    >
+      <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
+        {renderLogo}
+        <Typography 
+          variant="h6" 
+          component="div"
+          sx={{
+            mr: 2,
+            fontWeight: 700,
+            background: 'linear-gradient(45deg, #fff 30%, #e0e0e0 90%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            display: { xs: 'none', sm: 'block' }
+          }}
+        >
+          Delight
+        </Typography>
+
+        {renderNavItems}
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+          {renderAuthButtons}
+          
+          <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
             <IconButton 
-              onClick={() => setShowGoogleScript(false)}
-              color="primary"
-              sx={{ 
-                bgcolor: 'background.paper',
+              onClick={toggleTheme} 
+              color="inherit"
+              sx={{
+                ml: 1,
                 '&:hover': {
-                  bgcolor: 'action.hover'
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  transform: 'rotate(30deg)',
+                  transition: 'transform 0.3s ease-in-out'
                 }
               }}
             >
-              <CloseIcon />
+              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
-          </Box>
-          <iframe
-            src="https://script.google.com/macros/s/AKfycbwruYRD-60p-PaUR3NqjsimOWdMMh7pUPPX01WKrKIf69YP60TIsxCpNBdRjoKxzuRR6Q/exec"
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none'
-            }}
-            title="Google Apps Script"
-            allowFullScreen
-          />
+          </Tooltip>
         </Box>
-      )}
-      <AppBar 
-        position="static" 
-        color="primary" 
-        elevation={0} 
-        sx={{ 
-          position: 'relative',
-          background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
-          boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
-          {renderLogo}
-          <Typography 
-            variant="h6" 
-            component="div"
-            sx={{
-              mr: 2,
-              fontWeight: 700,
-              background: 'linear-gradient(45deg, #fff 30%, #e0e0e0 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              display: { xs: 'none', sm: 'block' }
-            }}
-          >
-            Delight
-          </Typography>
-
-          {renderNavItems}
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
-            {renderAuthButtons}
-            
-            <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
-              <IconButton 
-                onClick={toggleTheme} 
-                color="inherit"
-                sx={{
-                  ml: 1,
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    transform: 'rotate(30deg)',
-                    transition: 'transform 0.3s ease-in-out'
-                  }
-                }}
-              >
-                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Toolbar>
-      </AppBar>
-    </>
+      </Toolbar>
+    </AppBar>
   );
 });
 
