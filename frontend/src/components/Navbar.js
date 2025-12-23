@@ -1,8 +1,9 @@
-import React, { useContext, useMemo, useCallback, memo } from 'react';
+import React, { useContext, useMemo, useCallback, memo, useState } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, IconButton, Box, Divider, Tooltip } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import CloseIcon from '@mui/icons-material/Close';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import { useEasterEgg } from '../context/EasterEggContext';
@@ -65,8 +66,10 @@ const Navbar = memo(() => {
     recordClick('logo');
   }, [recordClick]);
 
+  const [showGoogleScript, setShowGoogleScript] = useState(false);
+
   const handleGoogleScriptClick = useCallback(() => {
-    window.open('https://script.google.com/macros/s/AKfycbwruYRD-60p-PaUR3NqjsimOWdMMh7pUPPX01WKrKIf69YP60TIsxCpNBdRjoKxzuRR6Q/exec', '_blank', 'noopener,noreferrer');
+    setShowGoogleScript(prev => !prev);
   }, []);
 
   const navItems = useMemo(() => {
@@ -238,16 +241,60 @@ const Navbar = memo(() => {
   ), [user, onLogout]);
 
   return (
-    <AppBar 
-      position="static" 
-      color="primary" 
-      elevation={0} 
-      sx={{ 
-        position: 'relative',
-        background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
-        boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
-      }}
-    >
+    <>
+      {showGoogleScript && (
+        <Box sx={{ 
+          position: 'fixed',
+          top: 64,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1200,
+          bgcolor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Box sx={{ 
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 1
+          }}>
+            <IconButton 
+              onClick={() => setShowGoogleScript(false)}
+              color="primary"
+              sx={{ 
+                bgcolor: 'background.paper',
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <iframe
+            src="https://script.google.com/macros/s/AKfycbwruYRD-60p-PaUR3NqjsimOWdMMh7pUPPX01WKrKIf69YP60TIsxCpNBdRjoKxzuRR6Q/exec"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none'
+            }}
+            title="Google Apps Script"
+            allowFullScreen
+          />
+        </Box>
+      )}
+      <AppBar 
+        position="static" 
+        color="primary" 
+        elevation={0} 
+        sx={{ 
+          position: 'relative',
+          background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
+          boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
+        }}
+      >
       <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
         {renderLogo}
         <Typography 
@@ -289,8 +336,8 @@ const Navbar = memo(() => {
         </Box>
       </Toolbar>
     </AppBar>
-  );
-});
+  </>
+);
 
 // Configuration de displayName pour le débogage
 Navbar.displayName = 'Navbar';
