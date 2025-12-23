@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import UserManager from '../components/UserManager';
-import { resetAllTickets } from '../utils/discordWebhook';
 
 // Imports depuis Material-UI
 import {
@@ -391,24 +390,6 @@ const GeneralSettings = () => {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
               <Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>
               {newCode && <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover' }}>{newCode}</Typography>}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-              <Button 
-                variant="contained" 
-                color="error" 
-                onClick={async () => {
-                  if (window.confirm('Êtes-vous sûr de vouloir réinitialiser TOUS les tickets de tombola ? Cette action est irréversible.')) {
-                    const result = await resetAllTickets();
-                    if (result.success) {
-                      showNotification(result.message, 'success');
-                    } else {
-                      showNotification(result.message || 'Erreur lors de la réinitialisation des tickets', 'error');
-                    }
-                  }
-                }}
-              >
-                Réinitialiser tous les tickets de tombola
-              </Button>
             </Box>
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
