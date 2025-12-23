@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           } else {
             // Vérifier la validité du token côté serveur
             try {
-              await api.get('/api/auth/verify-token');
+              await api.get('/auth/verify-token');
               // Si le token est valide, on met à jour l'état et les headers axios
               setUser(decodedToken.user);
               api.defaults.headers.common['x-auth-token'] = token;
