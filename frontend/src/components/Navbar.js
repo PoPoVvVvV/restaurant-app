@@ -65,6 +65,10 @@ const Navbar = memo(() => {
     recordClick('logo');
   }, [recordClick]);
 
+  const handleGoogleScriptClick = useCallback(() => {
+    window.open('https://script.google.com/macros/s/AKfycbwruYRD-60p-PaUR3NqjsimOWdMMh7pUPPX01WKrKIf69YP60TIsxCpNBdRjoKxzuRR6Q/exec', '_blank', 'noopener,noreferrer');
+  }, []);
+
   const navItems = useMemo(() => {
     const baseItems = [
       { path: '/ventes', label: 'Ventes', icon: '🛍️' },
@@ -73,6 +77,12 @@ const Navbar = memo(() => {
       { path: '/recettes', label: 'Recettes', icon: '📖' },
       { path: '/absences', label: 'Absences', icon: '📅' },
       { path: '/comptabilite', label: 'Ma Compta', icon: '📊' },
+      { 
+        label: 'Google Script', 
+        icon: '📝',
+        onClick: handleGoogleScriptClick,
+        isExternal: true
+      },
     ];
 
     if (user?.role === 'admin') {
@@ -104,48 +114,77 @@ const Navbar = memo(() => {
     />
   ), [handleLogoClick]);
 
-  const renderNavItems = useMemo(() => (
-    <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      {user ? (
-        <>
-          {navItems.map((item, index) => (
+  const renderNavItems = useMemo(() => {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+        {navItems.map((item, index) => {
+          if (item.isExternal) {
+            return (
+              <Button
+                key={item.label}
+                color="inherit"
+                startIcon={<span>{item.icon}</span>}
+                onClick={item.onClick}
+                sx={{
+                  backgroundColor: 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  },
+                  borderRadius: 2,
+                  mx: 0.5,
+                  fontSize: { xs: '0.65rem', md: '0.875rem' },
+                  px: { xs: 1, md: 2 },
+                  textTransform: 'none',
+                  minWidth: 'auto',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {item.label}
+              </Button>
+            );
+          }
+          
+          return (
             <React.Fragment key={item.path}>
-              <NavButton 
-                to={item.path} 
-                icon={item.icon} 
-                text={item.label} 
-                clickType={item.label.toLowerCase()} 
+              <NavButton
+                to={item.path}
+                icon={item.icon}
+                text={item.label}
+                clickType={item.label.toLowerCase()}
               />
-              <Divider 
-                orientation="vertical" 
-                flexItem 
-                sx={{ 
-                  mx: 1, 
-                  my: 1.5, 
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  display: index === navItems.length - 1 ? 'none' : 'flex'
-                }} 
-              />
+              {index < navItems.length - 1 && (
+                <Divider 
+                  orientation="vertical" 
+                  flexItem 
+                  sx={{ 
+                    mx: 1, 
+                    my: 1.5, 
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    display: 'flex'
+                  }} 
+                />
+              )}
             </React.Fragment>
-          ))}
-          {isEasterEggUnlocked && (
-            <>
-              <Divider 
-                orientation="vertical" 
-                flexItem 
-                sx={{ 
-                  mx: 1, 
-                  my: 1.5, 
-                  borderColor: 'rgba(255, 255, 255, 0.2)' 
-                }} 
-              />
-              <NavButton to="/easter-eggs" icon="🎮" text="Easter-Eggs" />
-            </>
-          )}
-        </>
-      ) : null}
-    </Box>
-  ), [user, navItems, isEasterEggUnlocked]);
+          );
+        })}
+        
+        {isEasterEggUnlocked && (
+          <>
+            <Divider 
+              orientation="vertical" 
+              flexItem 
+              sx={{ 
+                mx: 1, 
+                my: 1.5, 
+                borderColor: 'rgba(255, 255, 255, 0.2)' 
+              }} 
+            />
+            <NavButton to="/easter-eggs" icon="🎮" text="Easter-Eggs" />
+          </>
+        )}
+      </Box>
+    );
+  }, [navItems, isEasterEggUnlocked]);
 
   const renderAuthButtons = useMemo(() => (
     user ? (
