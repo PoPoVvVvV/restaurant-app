@@ -6,7 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 // Imports depuis Material-UI
 import {
   Box, Grid, Card, CardActionArea, CardContent, Typography, Paper, List, ListItem, ListItemText,
-  Divider, Button, CircularProgress, TextField, IconButton, Alert, AlertTitle
+  Divider, Button, CircularProgress, TextField, IconButton, Alert, AlertTitle, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -16,6 +16,7 @@ function SalesPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [splitPayment, setSplitPayment] = useState(false);
   const { showNotification } = useNotification();
 
   const fetchProducts = useCallback(async () => {
@@ -207,8 +208,39 @@ function SalesPage() {
                   ))}
                 </List>
                 <Divider sx={{ my: 2 }} />
+                <Box sx={{ textAlign: 'left', mb: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={splitPayment} 
+                        onChange={(e) => setSplitPayment(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Décomposer le paiement (max 750$ par versement)"
+                  />
+                </Box>
                 <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
+                  {splitPayment && totalAmount > 0 ? (
+                    <Box sx={{ mb: 2, textAlign: 'left' }}>
+                      <Typography variant="subtitle2" gutterBottom>Décomposition du paiement :</Typography>
+                      {Array.from({ length: Math.ceil(totalAmount / 750) }).map((_, index) => {
+                        const amount = index === Math.ceil(totalAmount / 750) - 1 
+                          ? (totalAmount % 750 || 750).toFixed(2)
+                          : '750.00';
+                        return (
+                          <Typography key={index} variant="body2">
+                            Paiement {index + 1}: ${amount}
+                          </Typography>
+                        );
+                      })}
+                      <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                        Total: ${totalAmount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
+                  )}
                   <Typography variant="body2" color="text.secondary">Marge brute: ${margin.toFixed(2)}</Typography>
                 </Box>
                 <Button variant="contained" color="success" fullWidth sx={{ mt: 2 }} onClick={handleSaveTransaction} disabled={loading || cart.length === 0}>
