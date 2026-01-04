@@ -44,6 +44,7 @@ const Navbar = memo(() => {
       { path: '/recettes', label: 'Recettes', icon: '📖' },
       { path: '/absences', label: 'Absences', icon: '📅' },
       { path: '/comptabilite', label: 'Ma Compta', icon: '📊' },
+      { path: '/notes-de-frais', label: 'Note de Frais', icon: '💰' },
     ];
 
     if (user?.role === 'admin') {

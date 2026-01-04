@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../services/api';
+import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
 import UserManager from '../components/UserManager';
 
@@ -12,6 +13,8 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // --- SOUS-COMPOSANTS DE LA PAGE ADMIN ---
@@ -868,6 +871,217 @@ const ResetTokenManager = () => {
     );
 };
 
+// 13. Gestion des Notes de Frais
+const ExpenseNoteManager = () => {
+    const { showNotification } = useNotification();
+    const [expenseNotes, setExpenseNotes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
+    const [rejectDialog, setRejectDialog] = useState({ open: false, id: null, reason: '' });
+
+    const fetchExpenseNotes = useCallback(async () => {
+        try {
+            const { data } = await api.get('/expense-notes');
+            setExpenseNotes(data);
+        } catch (err) {
+            showNotification("Impossible de charger les notes de frais.", "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [showNotification]);
+
+    useEffect(() => {
+        fetchExpenseNotes();
+
+        const handleDataUpdate = (data) => {
+            if (data.type === 'EXPENSE_NOTES_UPDATED') {
+                fetchExpenseNotes();
+            }
+        };
+
+        socket.on('data-updated', handleDataUpdate);
+        return () => {
+            socket.off('data-updated', handleDataUpdate);
+        };
+    }, [fetchExpenseNotes]);
+
+    const handleApprove = async (id) => {
+        try {
+            await api.put(`/expense-notes/${id}/approve`);
+            showNotification("Note de frais approuvée. La somme sera ajoutée au salaire de l'employé.", "success");
+        } catch (err) {
+            showNotification(err.response?.data?.message || "Erreur lors de l'approbation.", "error");
+        }
+    };
+
+    const handleReject = async () => {
+        try {
+            await api.put(`/expense-notes/${rejectDialog.id}/reject`, {
+                rejectionReason: rejectDialog.reason || 'Non spécifié'
+            });
+            showNotification("Note de frais rejetée.", "success");
+            setRejectDialog({ open: false, id: null, reason: '' });
+        } catch (err) {
+            showNotification(err.response?.data?.message || "Erreur lors du rejet.", "error");
+        }
+    };
+
+    const filteredNotes = filter === 'all' 
+        ? expenseNotes 
+        : expenseNotes.filter(note => note.status === filter);
+
+    const getStatusChip = (status) => {
+        switch (status) {
+            case 'approved':
+                return <Chip icon={<CheckCircleIcon />} label="Approuvée" color="success" size="small" />;
+            case 'rejected':
+                return <Chip icon={<CancelIcon />} label="Rejetée" color="error" size="small" />;
+            default:
+                return <Chip label="En attente" color="warning" size="small" />;
+        }
+    };
+
+    if (loading) {
+        return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
+    }
+
+    return (
+        <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+            <Typography variant="h6" gutterBottom>Gestion des Notes de Frais</Typography>
+            
+            <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button 
+                    variant={filter === 'all' ? 'contained' : 'outlined'} 
+                    size="small"
+                    onClick={() => setFilter('all')}
+                >
+                    Toutes ({expenseNotes.length})
+                </Button>
+                <Button 
+                    variant={filter === 'pending' ? 'contained' : 'outlined'} 
+                    size="small"
+                    onClick={() => setFilter('pending')}
+                >
+                    En attente ({expenseNotes.filter(n => n.status === 'pending').length})
+                </Button>
+                <Button 
+                    variant={filter === 'approved' ? 'contained' : 'outlined'} 
+                    size="small"
+                    onClick={() => setFilter('approved')}
+                >
+                    Approuvées ({expenseNotes.filter(n => n.status === 'approved').length})
+                </Button>
+                <Button 
+                    variant={filter === 'rejected' ? 'contained' : 'outlined'} 
+                    size="small"
+                    onClick={() => setFilter('rejected')}
+                >
+                    Rejetées ({expenseNotes.filter(n => n.status === 'rejected').length})
+                </Button>
+            </Box>
+
+            {filteredNotes.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                    Aucune note de frais {filter !== 'all' ? `(${filter})` : ''}.
+                </Typography>
+            ) : (
+                <TableContainer>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Employé</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Nom / Prénom</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }} align="right">Montant</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }} align="center">Statut</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Image</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredNotes.map((note) => (
+                                <TableRow key={note._id}>
+                                    <TableCell>{note.employeeId?.username || 'Inconnu'}</TableCell>
+                                    <TableCell>{note.firstName} {note.lastName}</TableCell>
+                                    <TableCell>{new Date(note.date).toLocaleDateString('fr-FR')}</TableCell>
+                                    <TableCell align="right">
+                                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                                            ${note.amount.toFixed(2)}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell align="center">{getStatusChip(note.status)}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            size="small"
+                                            href={note.imageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Voir
+                                        </Button>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        {note.status === 'pending' && (
+                                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                                <IconButton
+                                                    color="success"
+                                                    size="small"
+                                                    onClick={() => handleApprove(note._id)}
+                                                    title="Approuver"
+                                                >
+                                                    <CheckCircleIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    color="error"
+                                                    size="small"
+                                                    onClick={() => setRejectDialog({ open: true, id: note._id, reason: '' })}
+                                                    title="Rejeter"
+                                                >
+                                                    <CancelIcon />
+                                                </IconButton>
+                                            </Box>
+                                        )}
+                                        {note.status === 'rejected' && note.rejectionReason && (
+                                            <Typography variant="caption" color="error">
+                                                {note.rejectionReason}
+                                            </Typography>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
+
+            {/* Dialog de rejet */}
+            <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, id: null, reason: '' })}>
+                <DialogTitle>Rejeter la note de frais</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Raison du rejet"
+                        value={rejectDialog.reason}
+                        onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                        sx={{ mt: 1 }}
+                        placeholder="Expliquez pourquoi cette note de frais est rejetée..."
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRejectDialog({ open: false, id: null, reason: '' })}>
+                        Annuler
+                    </Button>
+                    <Button onClick={handleReject} color="error" variant="contained">
+                        Rejeter
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Paper>
+    );
+};
+
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 function AdminPage() {
   const [currentWeek, setCurrentWeek] = useState(1);
@@ -894,6 +1108,7 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Utilisateurs</Typography></AccordionSummary><AccordionDetails><UserManager /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces, Paramètres & Employés</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><GeneralSettings /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Notes de Frais</Typography></AccordionSummary><AccordionDetails><ExpenseNoteManager /></AccordionDetails></Accordion>
     </Container>
   );
 }
