@@ -131,7 +131,7 @@ function ThemedApp() {
       <CssBaseline />
       <Router>
         <EasterEggProvider>
-          <Suspense fallback={null}>
+          <Suspense fallback={<LoadingFallback />}>
             <Navbar style={{ position: 'relative', zIndex: 10 }} />
             <main style={{ padding: '20px', position: 'relative', zIndex: 2 }}>
               <Suspense fallback={<LoadingFallback />}>

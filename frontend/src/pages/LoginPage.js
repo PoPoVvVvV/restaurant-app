@@ -28,11 +28,14 @@ function LoginPage() {
     try {
       const response = await api.post('/auth/login', formData);
       login(response.data.token);
-      navigate('/ventes');
+      // Attendre que le contexte se mette à jour avant la navigation
+      // Le useEffect dans AuthContext va décoder le token et mettre à jour l'utilisateur
+      setTimeout(() => {
+        navigate('/ventes');
+      }, 100);
     } catch (err) {
       setError(err.response?.data?.message || 'Une erreur est survenue.');
-    } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 

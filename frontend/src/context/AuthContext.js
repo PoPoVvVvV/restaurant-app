@@ -17,10 +17,14 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['x-auth-token'];
   }, []);
 
+  // Vérifier le token au chargement initial
   useEffect(() => {
-    if (token) {
+    setLoading(true);
+    
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
       try {
-        const decodedToken = jwtDecode(token);
+        const decodedToken = jwtDecode(storedToken);
         
         // Vérifier si le token est expiré
         if (decodedToken.exp * 1000 < Date.now()) {
@@ -28,20 +32,44 @@ export const AuthProvider = ({ children }) => {
         } else {
           // Si le token est valide, on met à jour l'état et les headers axios
           setUser(decodedToken.user);
-          api.defaults.headers.common['x-auth-token'] = token;
+          setToken(storedToken);
+          api.defaults.headers.common['x-auth-token'] = storedToken;
         }
       } catch (error) {
         // Si le token est invalide
+        console.error('Erreur de décodage du token:', error);
         logout();
       }
+    } else {
+      // Pas de token, utilisateur non connecté
+      setUser(null);
+      setToken(null);
     }
+    
     setLoading(false);
-  }, [token, logout]);
+  }, [logout]); // Seulement au montage initial
 
-  const login = (newToken) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
-  };
+  const login = useCallback((newToken) => {
+    try {
+      // Décoder immédiatement pour vérifier que le token est valide
+      const decodedToken = jwtDecode(newToken);
+      
+      // Vérifier si le token est expiré
+      if (decodedToken.exp * 1000 < Date.now()) {
+        console.error('Token expiré');
+        return;
+      }
+      
+      // Mettre à jour immédiatement l'utilisateur et le token
+      setUser(decodedToken.user);
+      setToken(newToken);
+      localStorage.setItem('token', newToken);
+      api.defaults.headers.common['x-auth-token'] = newToken;
+    } catch (error) {
+      console.error('Erreur lors de la connexion:', error);
+      logout();
+    }
+  }, [logout]);
 
   const contextValue = {
     user,
