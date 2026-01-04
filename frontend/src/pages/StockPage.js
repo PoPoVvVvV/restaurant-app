@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
 import api from '../services/api';
 import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
@@ -45,12 +45,6 @@ const IngredientManager = () => {
   };
 
   const handleSaveStock = useCallback((id) => {
-    // Annuler le timer précédent s'il existe
-    if (saveTimersRef.current[id]) {
-      clearTimeout(saveTimersRef.current[id]);
-      delete saveTimersRef.current[id];
-    }
-
     // Utiliser setIngredients avec une fonction pour obtenir la valeur actuelle
     setIngredients(prevIngredients => {
       const ingredient = prevIngredients.find(i => i._id === id);
@@ -233,9 +227,6 @@ function StockPage() {
     };
   }, [fetchData]);
 
-  // Debounce timers pour éviter trop d'appels API
-  const saveTimersRef = useRef({});
-
   const handleStockChange = (productId, value) => {
     setProducts(prevProducts =>
       prevProducts.map(p =>
@@ -244,13 +235,7 @@ function StockPage() {
     );
   };
 
-  const handleSaveStock = useCallback(async (productId) => {
-    // Annuler le timer précédent s'il existe
-    if (saveTimersRef.current[productId]) {
-      clearTimeout(saveTimersRef.current[productId]);
-      delete saveTimersRef.current[productId];
-    }
-
+  const handleSaveStock = useCallback((productId) => {
     // Utiliser setProducts avec une fonction pour obtenir la valeur actuelle
     setProducts(prevProducts => {
       const product = prevProducts.find(p => p._id === productId);
