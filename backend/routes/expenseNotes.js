@@ -113,11 +113,11 @@ router.put('/:id/approve', [protect, admin], async (req, res) => {
     const weekSetting = await Setting.findOne({ key: 'currentWeekId' }).session(session);
     const currentWeekId = weekSetting?.value || 1;
 
-    // Créer une dépense de type "frais véhicule"
+    // Créer une dépense de type "Frais Véhicule"
     const expense = new Expense({
       weekId: currentWeekId,
       amount: expenseNote.amount,
-      category: 'frais véhicule',
+      category: 'Frais Véhicule',
       description: `Note de frais - ${expenseNote.firstName} ${expenseNote.lastName}`,
       date: expenseNote.date,
       addedBy: req.user.id,
