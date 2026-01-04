@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react';
 import api from '../services/api';
 import socket from '../services/socket';
 import { useNotification } from '../context/NotificationContext';
@@ -44,33 +44,55 @@ const IngredientManager = () => {
     setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: value } : i));
   };
 
-  const handleSaveStock = async (id) => {
-    const ingredient = ingredients.find(i => i._id === id);
-    if (!ingredient) return;
-    
-    const newStock = ingredient.editedStock;
-    const parsedStock = parseFloat(newStock);
-    
-    // Si la valeur n'a pas changé, ne rien faire
-    if (parsedStock === ingredient.stock) return;
-    
-    if (isNaN(parsedStock) || parsedStock < 0) {
+  const handleSaveStock = useCallback((id) => {
+    // Annuler le timer précédent s'il existe
+    if (saveTimersRef.current[id]) {
+      clearTimeout(saveTimersRef.current[id]);
+      delete saveTimersRef.current[id];
+    }
+
+    // Utiliser setIngredients avec une fonction pour obtenir la valeur actuelle
+    setIngredients(prevIngredients => {
+      const ingredient = prevIngredients.find(i => i._id === id);
+      if (!ingredient) return prevIngredients;
+      
+      const newStock = ingredient.editedStock;
+      const parsedStock = parseFloat(newStock);
+      
+      // Validation
+      if (isNaN(parsedStock) || parsedStock < 0) {
         showNotification("Veuillez entrer une valeur de stock valide.", "error");
-        // Restaurer la valeur précédente
-        setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: i.stock } : i));
-        return;
-    }
-    try {
-        await api.put(`/ingredients/${id}/stock`, { stock: parsedStock });
-        showNotification("Stock de l'ingrédient mis à jour.", "success");
-        // Mettre à jour le stock affiché après la sauvegarde
-        setIngredients(prev => prev.map(i => i._id === id ? { ...i, stock: parsedStock, editedStock: parsedStock } : i));
-    } catch (err) {
-        showNotification("Erreur lors de la mise à jour.", "error");
-        // Restaurer la valeur précédente en cas d'erreur
-        setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: i.stock } : i));
-    }
-  };
+        return prevIngredients.map(i =>
+          i._id === id ? { ...i, editedStock: i.stock } : i
+        );
+      }
+      
+      // Si la valeur n'a pas changé, ne rien faire
+      if (parsedStock === ingredient.stock) return prevIngredients;
+      
+      // Mise à jour optimiste immédiate (UI réactive instantanément)
+      const updatedIngredients = prevIngredients.map(i =>
+        i._id === id ? { ...i, stock: parsedStock, editedStock: parsedStock } : i
+      );
+      
+      // Sauvegarde asynchrone en arrière-plan
+      api.put(`/ingredients/${id}/stock`, { stock: parsedStock })
+        .then(() => {
+          showNotification("Stock de l'ingrédient mis à jour.", "success");
+        })
+        .catch(err => {
+          showNotification("Erreur lors de la mise à jour.", "error");
+          // Restaurer la valeur précédente en cas d'erreur
+          setIngredients(prevIngredients =>
+            prevIngredients.map(i =>
+              i._id === id ? { ...i, editedStock: i.stock, stock: i.stock } : i
+            )
+          );
+        });
+      
+      return updatedIngredients;
+    });
+  }, [showNotification]);
 
   const handleSync = async () => {
     if (window.confirm("Voulez-vous vraiment ajouter tous les ingrédients des recettes à cet inventaire ? Les ingrédients existants ne seront pas modifiés.")) {
@@ -211,6 +233,9 @@ function StockPage() {
     };
   }, [fetchData]);
 
+  // Debounce timers pour éviter trop d'appels API
+  const saveTimersRef = useRef({});
+
   const handleStockChange = (productId, value) => {
     setProducts(prevProducts =>
       prevProducts.map(p =>
@@ -219,45 +244,55 @@ function StockPage() {
     );
   };
 
-  const handleSaveStock = async (productId) => {
-    const product = products.find(p => p._id === productId);
-    if (!product) return;
-    
-    const newStock = product.editedStock;
-    const parsedStock = parseInt(newStock, 10);
-    
-    // Si la valeur n'a pas changé, ne rien faire
-    if (parsedStock === product.stock) return;
-    
-    if (isNaN(parsedStock) || parsedStock < 0) {
+  const handleSaveStock = useCallback(async (productId) => {
+    // Annuler le timer précédent s'il existe
+    if (saveTimersRef.current[productId]) {
+      clearTimeout(saveTimersRef.current[productId]);
+      delete saveTimersRef.current[productId];
+    }
+
+    // Utiliser setProducts avec une fonction pour obtenir la valeur actuelle
+    setProducts(prevProducts => {
+      const product = prevProducts.find(p => p._id === productId);
+      if (!product) return prevProducts;
+      
+      const newStock = product.editedStock;
+      const parsedStock = parseInt(newStock, 10);
+      
+      // Validation
+      if (isNaN(parsedStock) || parsedStock < 0) {
         showNotification("Veuillez entrer une valeur de stock valide.", "error");
-        // Restaurer la valeur précédente
-        setProducts(prevProducts =>
-          prevProducts.map(p =>
-            p._id === productId ? { ...p, editedStock: p.stock } : p
-          )
-        );
-        return;
-    }
-    try {
-      await api.put(`/products/restock/${productId}`, { newStock: parsedStock });
-      showNotification(`${product.name} mis à jour !`, 'success');
-      // Mettre à jour le stock affiché après la sauvegarde
-      setProducts(prevProducts =>
-        prevProducts.map(p =>
-          p._id === productId ? { ...p, stock: parsedStock, editedStock: parsedStock } : p
-        )
-      );
-    } catch (err) {
-      showNotification("Erreur lors de la mise à jour du stock.", 'error');
-      // Restaurer la valeur précédente en cas d'erreur
-      setProducts(prevProducts =>
-        prevProducts.map(p =>
+        return prevProducts.map(p =>
           p._id === productId ? { ...p, editedStock: p.stock } : p
-        )
+        );
+      }
+      
+      // Si la valeur n'a pas changé, ne rien faire
+      if (parsedStock === product.stock) return prevProducts;
+      
+      // Mise à jour optimiste immédiate (UI réactive instantanément)
+      const updatedProducts = prevProducts.map(p =>
+        p._id === productId ? { ...p, stock: parsedStock, editedStock: parsedStock } : p
       );
-    }
-  };
+      
+      // Sauvegarde asynchrone en arrière-plan
+      api.put(`/products/restock/${productId}`, { newStock: parsedStock })
+        .then(() => {
+          showNotification(`${product.name} mis à jour !`, 'success');
+        })
+        .catch(err => {
+          showNotification("Erreur lors de la mise à jour du stock.", 'error');
+          // Restaurer la valeur précédente en cas d'erreur
+          setProducts(prevProducts =>
+            prevProducts.map(p =>
+              p._id === productId ? { ...p, editedStock: p.stock, stock: p.stock } : p
+            )
+          );
+        });
+      
+      return updatedProducts;
+    });
+  }, [showNotification]);
 
   const totalStockValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
 

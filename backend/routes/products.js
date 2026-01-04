@@ -102,15 +102,18 @@ router.put('/restock/:id', protect, async (req, res) => {
     product.stock = stockValue;
     await product.save();
 
-    // Envoyer notification webhook si le stock a changé
+    // Répondre immédiatement sans attendre le webhook
+    res.json(product);
+
+    // Envoyer notification webhook de manière asynchrone (ne bloque pas la réponse)
     if (oldStock !== stockValue) {
-      await webhookService.notifyProductStockUpdate(product, oldStock, stockValue, req.user);
+      webhookService.notifyProductStockUpdate(product, oldStock, stockValue, req.user).catch(err => {
+        console.error("Erreur webhook produit:", err.message);
+      });
     }
 
     // Notifier tous les clients que les produits ont changé
     req.io.emit('data-updated', { type: 'PRODUCTS_UPDATED' });
-
-    res.json(product);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erreur du serveur' });
