@@ -8,12 +8,12 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
-
-// Composants UI
-const Navbar = lazy(() => import('./components/Navbar'));
 // ProtectedRoute et PublicRoute ne doivent pas être lazy loaded car ils utilisent le contexte d'authentification
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+
+// Composants UI
+const Navbar = lazy(() => import('./components/Navbar'));
 const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
 
 // Pages (lazy loaded avec prefetch)
