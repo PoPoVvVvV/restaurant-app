@@ -878,6 +878,7 @@ const ExpenseNoteManager = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
     const [rejectDialog, setRejectDialog] = useState({ open: false, id: null, reason: '' });
+    const [imageDialog, setImageDialog] = useState({ open: false, url: null });
 
     const fetchExpenseNotes = useCallback(async () => {
         try {
@@ -1013,9 +1014,7 @@ const ExpenseNoteManager = () => {
                                     <TableCell>
                                         <Button
                                             size="small"
-                                            href={note.imageUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            onClick={() => setImageDialog({ open: true, url: note.imageUrl })}
                                         >
                                             Voir
                                         </Button>
@@ -1076,6 +1075,39 @@ const ExpenseNoteManager = () => {
                     <Button onClick={handleReject} color="error" variant="contained">
                         Rejeter
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog pour afficher l'image */}
+            <Dialog 
+                open={imageDialog.open} 
+                onClose={() => setImageDialog({ open: false, url: null })}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>Image de la note de frais</DialogTitle>
+                <DialogContent>
+                    {imageDialog.url && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
+                            <img 
+                                src={imageDialog.url} 
+                                alt="Note de frais" 
+                                style={{ 
+                                    maxWidth: '100%', 
+                                    maxHeight: '70vh', 
+                                    objectFit: 'contain',
+                                    borderRadius: '8px'
+                                }}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EImage non disponible%3C/text%3E%3C/svg%3E';
+                                }}
+                            />
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setImageDialog({ open: false, url: null })}>Fermer</Button>
                 </DialogActions>
             </Dialog>
         </Paper>

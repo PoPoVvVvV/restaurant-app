@@ -36,6 +36,7 @@ function ExpenseNotePage() {
   const [submitting, setSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
+  const [imageDialog, setImageDialog] = useState({ open: false, url: null });
   const { showNotification } = useNotification();
 
   const [formData, setFormData] = useState({
@@ -202,9 +203,7 @@ function ExpenseNotePage() {
                     <Button
                       size="small"
                       startIcon={<ImageIcon />}
-                      href={note.imageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={() => setImageDialog({ open: true, url: note.imageUrl })}
                     >
                       Voir l'image
                     </Button>
@@ -319,6 +318,39 @@ function ExpenseNotePage() {
           <Button onClick={handleDelete} color="error" variant="contained">
             Supprimer
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog pour afficher l'image */}
+      <Dialog 
+        open={imageDialog.open} 
+        onClose={() => setImageDialog({ open: false, url: null })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Image de la note de frais</DialogTitle>
+        <DialogContent>
+          {imageDialog.url && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
+              <img 
+                src={imageDialog.url} 
+                alt="Note de frais" 
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '70vh', 
+                  objectFit: 'contain',
+                  borderRadius: '8px'
+                }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EImage non disponible%3C/text%3E%3C/svg%3E';
+                }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImageDialog({ open: false, url: null })}>Fermer</Button>
         </DialogActions>
       </Dialog>
     </Container>
