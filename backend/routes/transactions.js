@@ -25,18 +25,75 @@ router.post('/', protect, async (req, res) => {
     const isCorporateSale = employeeIds && employeeIds.length > 0;
 
     // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
+    // D'abord, calculer les menus offerts pour la promotion "5 achetés = 1 offert"
+    const freeMenusMap = new Map(); // Map<productId, freeQuantity>
+    
+    for (const item of cart) {
+      if (item.category === 'Menus' && !isCorporateSale) {
+        const freeCount = Math.floor(item.quantity / 5);
+        if (freeCount > 0) {
+          const currentFree = freeMenusMap.get(item._id) || 0;
+          freeMenusMap.set(item._id, currentFree + freeCount);
+        }
+      }
+    }
+
+    // Vérifier d'abord que tous les stocks sont suffisants (produits achetés + menus offerts)
+    if (!isCorporateSale) {
+      for (const item of cart) {
+        const product = await Product.findById(item._id).session(session);
+        if (!product) {
+          throw new Error(`Produit non trouvé : ${item.name || 'Produit inconnu'}`);
+        }
+        
+        // Calculer la quantité totale nécessaire (achetée + offerte si c'est un menu)
+        let totalQuantityNeeded = item.quantity;
+        if (item.category === 'Menus' && freeMenusMap.has(item._id)) {
+          totalQuantityNeeded += freeMenusMap.get(item._id);
+        }
+        
+        if (product.stock < totalQuantityNeeded) {
+          throw new Error(`Stock insuffisant pour : ${product.name}. Stock disponible: ${product.stock}, Quantité requise: ${totalQuantityNeeded} (${item.quantity} acheté(s)${freeMenusMap.has(item._id) ? ` + ${freeMenusMap.get(item._id)} offert(s)` : ''})`);
+        }
+      }
+    }
+
+    // Déduire les stocks pour les produits achetés
     for (const item of cart) {
       if (!isCorporateSale) {
         const product = await Product.findById(item._id).session(session);
-        if (!product || product.stock < item.quantity) {
-          throw new Error(`Stock insuffisant pour : ${product?.name || 'Produit inconnu'}`);
-        }
         product.stock -= item.quantity;
         await product.save({ session });
       }
       totalAmount += item.price * item.quantity;
       totalCost += item.cost * item.quantity;
       transactionProducts.push({ productId: item._id, quantity: item.quantity, priceAtSale: item.price, costAtSale: item.cost, name: item.name, category: item.category });
+    }
+
+    // Déduire les stocks pour les menus offerts (promotion)
+    if (!isCorporateSale) {
+      for (const [productId, freeQuantity] of freeMenusMap.entries()) {
+        const product = await Product.findById(productId).session(session);
+        if (!product) {
+          throw new Error(`Produit non trouvé pour le menu offert`);
+        }
+        // Le stock a déjà été vérifié ci-dessus, on peut directement déduire
+        product.stock -= freeQuantity;
+        await product.save({ session });
+        
+        // Ajouter les menus offerts à la transaction (avec prix 0)
+        transactionProducts.push({
+          productId: product._id,
+          quantity: freeQuantity,
+          priceAtSale: 0, // Gratuit
+          costAtSale: product.cost, // Le coût reste pour la marge
+          name: product.name,
+          category: product.category
+        });
+        
+        // Ajouter le coût des menus offerts au totalCost (mais pas au totalAmount car c'est gratuit)
+        totalCost += product.cost * freeQuantity;
+      }
     }
     const totalMargin = totalAmount - totalCost;
 
