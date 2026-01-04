@@ -1,9 +1,19 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
+import { CircularProgress, Box } from '@mui/material';
 import AuthContext from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
+
+  // Afficher un loader pendant la vérification du token
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!user) {
     // Si l'utilisateur n'est pas connecté, redirection vers la page de connexion

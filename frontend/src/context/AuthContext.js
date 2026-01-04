@@ -52,10 +52,11 @@ export const AuthProvider = ({ children }) => {
     loading
   };
 
-  // On n'affiche l'application que lorsque la vérification du token est terminée
+  // Toujours rendre le provider, même pendant le chargement
+  // Les composants enfants gèrent eux-mêmes l'état de chargement
   return (
     <AuthContext.Provider value={contextValue}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

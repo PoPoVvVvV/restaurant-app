@@ -11,8 +11,9 @@ import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 
 // Composants UI
 const Navbar = lazy(() => import('./components/Navbar'));
-const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
-const PublicRoute = lazy(() => import('./components/PublicRoute'));
+// ProtectedRoute et PublicRoute ne doivent pas être lazy loaded car ils utilisent le contexte d'authentification
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
 const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
 
 // Pages (lazy loaded avec prefetch)
