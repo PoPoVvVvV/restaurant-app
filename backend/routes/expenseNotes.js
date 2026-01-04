@@ -176,34 +176,65 @@ router.put('/:id/reject', [protect, admin], async (req, res) => {
 });
 
 // @route   DELETE /api/expense-notes/:id
-// @desc    Supprimer une note de frais (seulement si pending)
-// @access  Privé (Employé peut supprimer ses propres notes en attente)
+// @desc    Supprimer une note de frais (Employé peut supprimer ses propres notes en attente, Admin peut supprimer toutes les notes)
+// @access  Privé
 router.delete('/:id', protect, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const expenseNote = await ExpenseNote.findById(req.params.id);
+    const expenseNote = await ExpenseNote.findById(req.params.id).session(session);
     
     if (!expenseNote) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Note de frais non trouvée.' });
     }
 
     // Vérifier que l'utilisateur est le propriétaire ou un admin
-    if (expenseNote.employeeId.toString() !== req.user.id && req.user.role !== 'admin') {
+    const isOwner = expenseNote.employeeId.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      await session.abortTransaction();
       return res.status(403).json({ message: 'Vous n\'avez pas la permission de supprimer cette note de frais.' });
     }
 
-    // Seules les notes en attente peuvent être supprimées
-    if (expenseNote.status !== 'pending') {
+    // Les employés ne peuvent supprimer que leurs propres notes en attente
+    if (!isAdmin && expenseNote.status !== 'pending') {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Seules les notes de frais en attente peuvent être supprimées.' });
     }
 
-    await expenseNote.deleteOne();
+    // Si la note était approuvée, supprimer aussi la dépense associée (admin uniquement)
+    if (isAdmin && expenseNote.status === 'approved') {
+      const weekSetting = await Setting.findOne({ key: 'currentWeekId' }).session(session);
+      const currentWeekId = weekSetting?.value || 1;
+      
+      // Chercher et supprimer la dépense correspondante
+      await Expense.deleteOne({
+        weekId: currentWeekId,
+        category: 'Frais Véhicule',
+        amount: expenseNote.amount,
+        description: `Note de frais - ${expenseNote.firstName} ${expenseNote.lastName}`
+      }).session(session);
+    }
+
+    await expenseNote.deleteOne({ session });
+
+    await session.commitTransaction();
 
     req.io.emit('data-updated', { type: 'EXPENSE_NOTES_UPDATED' });
+    if (isAdmin && expenseNote.status === 'approved') {
+      req.io.emit('data-updated', { type: 'EXPENSES_UPDATED' });
+    }
 
     res.json({ message: 'Note de frais supprimée.' });
   } catch (error) {
+    await session.abortTransaction();
     console.error('Erreur lors de la suppression de la note de frais:', error);
     res.status(500).json({ message: 'Erreur du serveur' });
+  } finally {
+    session.endSession();
   }
 });
 

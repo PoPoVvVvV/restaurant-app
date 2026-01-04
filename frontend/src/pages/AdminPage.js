@@ -927,6 +927,17 @@ const ExpenseNoteManager = () => {
         }
     };
 
+    const handleDelete = async (id) => {
+        if (window.confirm("Êtes-vous sûr de vouloir supprimer cette note de frais ? Si elle était approuvée, la dépense associée sera également supprimée.")) {
+            try {
+                await api.delete(`/expense-notes/${id}`);
+                showNotification("Note de frais supprimée.", "success");
+            } catch (err) {
+                showNotification(err.response?.data?.message || "Erreur lors de la suppression.", "error");
+            }
+        }
+    };
+
     const filteredNotes = filter === 'all' 
         ? expenseNotes 
         : expenseNotes.filter(note => note.status === filter);
@@ -1020,31 +1031,41 @@ const ExpenseNoteManager = () => {
                                         </Button>
                                     </TableCell>
                                     <TableCell align="center">
-                                        {note.status === 'pending' && (
-                                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                                                <IconButton
-                                                    color="success"
-                                                    size="small"
-                                                    onClick={() => handleApprove(note._id)}
-                                                    title="Approuver"
-                                                >
-                                                    <CheckCircleIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    color="error"
-                                                    size="small"
-                                                    onClick={() => setRejectDialog({ open: true, id: note._id, reason: '' })}
-                                                    title="Rejeter"
-                                                >
-                                                    <CancelIcon />
-                                                </IconButton>
-                                            </Box>
-                                        )}
-                                        {note.status === 'rejected' && note.rejectionReason && (
-                                            <Typography variant="caption" color="error">
-                                                {note.rejectionReason}
-                                            </Typography>
-                                        )}
+                                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {note.status === 'pending' && (
+                                                <>
+                                                    <IconButton
+                                                        color="success"
+                                                        size="small"
+                                                        onClick={() => handleApprove(note._id)}
+                                                        title="Approuver"
+                                                    >
+                                                        <CheckCircleIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => setRejectDialog({ open: true, id: note._id, reason: '' })}
+                                                        title="Rejeter"
+                                                    >
+                                                        <CancelIcon />
+                                                    </IconButton>
+                                                </>
+                                            )}
+                                            {note.status === 'rejected' && note.rejectionReason && (
+                                                <Typography variant="caption" color="error" sx={{ mr: 1 }}>
+                                                    {note.rejectionReason}
+                                                </Typography>
+                                            )}
+                                            <IconButton
+                                                color="error"
+                                                size="small"
+                                                onClick={() => handleDelete(note._id)}
+                                                title="Supprimer"
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))}
