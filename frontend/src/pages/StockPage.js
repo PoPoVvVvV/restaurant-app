@@ -10,7 +10,6 @@ import {
   CircularProgress, Box, Chip, TextField, Button, Alert, AlertTitle,
   Accordion, AccordionSummary, AccordionDetails, IconButton
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -45,13 +44,31 @@ const IngredientManager = () => {
     setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: value } : i));
   };
 
-  const handleSaveStock = async (id, newStock) => {
+  const handleSaveStock = async (id) => {
+    const ingredient = ingredients.find(i => i._id === id);
+    if (!ingredient) return;
+    
+    const newStock = ingredient.editedStock;
+    const parsedStock = parseFloat(newStock);
+    
+    // Si la valeur n'a pas changé, ne rien faire
+    if (parsedStock === ingredient.stock) return;
+    
+    if (isNaN(parsedStock) || parsedStock < 0) {
+        showNotification("Veuillez entrer une valeur de stock valide.", "error");
+        // Restaurer la valeur précédente
+        setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: i.stock } : i));
+        return;
+    }
     try {
-        await api.put(`/ingredients/${id}/stock`, { stock: newStock });
-        fetchIngredients();
+        await api.put(`/ingredients/${id}/stock`, { stock: parsedStock });
         showNotification("Stock de l'ingrédient mis à jour.", "success");
+        // Mettre à jour le stock affiché après la sauvegarde
+        setIngredients(prev => prev.map(i => i._id === id ? { ...i, stock: parsedStock, editedStock: parsedStock } : i));
     } catch (err) {
         showNotification("Erreur lors de la mise à jour.", "error");
+        // Restaurer la valeur précédente en cas d'erreur
+        setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: i.stock } : i));
     }
   };
 
@@ -107,9 +124,20 @@ const IngredientManager = () => {
                 <TableCell align="right">{ing.stock}</TableCell>
                 <TableCell align="center">{ing.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
                 <TableCell>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                    <TextField size="small" type="number" value={ing.editedStock} onChange={(e) => handleStockChange(ing._id, e.target.value)} sx={{ width: '100px' }}/>
-                    <Button variant="contained" size="small" onClick={() => handleSaveStock(ing._id, ing.editedStock)}>OK</Button>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <TextField 
+                      size="small" 
+                      type="number" 
+                      value={ing.editedStock} 
+                      onChange={(e) => handleStockChange(ing._id, e.target.value)}
+                      onBlur={() => handleSaveStock(ing._id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.target.blur();
+                        }
+                      }}
+                      sx={{ width: '100px' }} 
+                    />
                   </Box>
                 </TableCell>
                 {user?.role === 'admin' && (
@@ -193,16 +221,41 @@ function StockPage() {
 
   const handleSaveStock = async (productId) => {
     const product = products.find(p => p._id === productId);
+    if (!product) return;
+    
     const newStock = product.editedStock;
-    if (isNaN(parseInt(newStock, 10)) || parseInt(newStock, 10) < 0) {
+    const parsedStock = parseInt(newStock, 10);
+    
+    // Si la valeur n'a pas changé, ne rien faire
+    if (parsedStock === product.stock) return;
+    
+    if (isNaN(parsedStock) || parsedStock < 0) {
         showNotification("Veuillez entrer une valeur de stock valide.", "error");
+        // Restaurer la valeur précédente
+        setProducts(prevProducts =>
+          prevProducts.map(p =>
+            p._id === productId ? { ...p, editedStock: p.stock } : p
+          )
+        );
         return;
     }
     try {
-      await api.put(`/products/restock/${productId}`, { newStock });
+      await api.put(`/products/restock/${productId}`, { newStock: parsedStock });
       showNotification(`${product.name} mis à jour !`, 'success');
+      // Mettre à jour le stock affiché après la sauvegarde
+      setProducts(prevProducts =>
+        prevProducts.map(p =>
+          p._id === productId ? { ...p, stock: parsedStock, editedStock: parsedStock } : p
+        )
+      );
     } catch (err) {
       showNotification("Erreur lors de la mise à jour du stock.", 'error');
+      // Restaurer la valeur précédente en cas d'erreur
+      setProducts(prevProducts =>
+        prevProducts.map(p =>
+          p._id === productId ? { ...p, editedStock: p.stock } : p
+        )
+      );
     }
   };
 
@@ -320,15 +373,18 @@ function StockPage() {
                         </TableCell>
                         <TableCell align="right" sx={{ fontSize: '1rem' }}>{product.stock}</TableCell>
                         <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <TextField
                             type="number" size="small" value={product.editedStock}
                             onChange={(e) => handleStockChange(product._id, e.target.value)}
+                            onBlur={() => handleSaveStock(product._id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.target.blur();
+                              }
+                            }}
                             sx={{ width: '100px' }} inputProps={{ min: 0 }}
                             />
-                            <Button variant="contained" size="small" onClick={() => handleSaveStock(product._id)} startIcon={<CheckCircleIcon />}>
-                            Valider
-                            </Button>
                         </Box>
                         </TableCell>
                     </TableRow>
