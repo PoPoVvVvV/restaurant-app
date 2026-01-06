@@ -21,9 +21,18 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cart
 
 // 1. Gestion de la Semaine
 const WeekManager = ({ onWeekChange, currentWeek, viewedWeek }) => {
-    const { showNotification } = useNotification();
+    const { showNotification, confirm } = useNotification();
     const handleNewWeek = async () => {
-        if (window.confirm(`Êtes-vous sûr de vouloir terminer la semaine ${currentWeek} et commencer une nouvelle semaine ?`)) {
+        const shouldProceed = await confirm(
+            `Êtes-vous sûr de vouloir terminer la semaine ${currentWeek} et commencer une nouvelle semaine ?`,
+            {
+                title: 'Confirmer le changement de semaine',
+                severity: 'warning',
+                confirmText: 'Confirmer',
+                cancelText: 'Annuler'
+            }
+        );
+        if (shouldProceed) {
             try {
                 const { data } = await api.post('/settings/new-week');
                 showNotification(data.message, 'success');
@@ -406,7 +415,7 @@ const GeneralSettings = () => {
 
 // 7. Relevé des Transactions
 const TransactionLog = ({ viewedWeek }) => {
-  const { showNotification } = useNotification();
+  const { showNotification, confirm } = useNotification();
   const [transactions, setTransactions] = useState([]);
   useEffect(() => { 
     api.get(`/transactions?week=${viewedWeek}`).then(res => {
@@ -426,7 +435,25 @@ const TransactionLog = ({ viewedWeek }) => {
   }, [transactions]);
 
   const handleExport = async () => { try { const response = await api.get(`/reports/transactions/export?week=${viewedWeek}`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `transactions-semaine-${viewedWeek}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch (err) { showNotification("Impossible d'exporter.", 'error'); } };
-  const handleDelete = async (id) => { if(window.confirm('Sûr ?')) { try { await api.delete(`/transactions/${id}`); showNotification("Transaction supprimée.", "info"); } catch(err) { showNotification('Erreur.', 'error'); } } };
+  const handleDelete = async (id) => {
+    const shouldDelete = await confirm(
+      'Êtes-vous sûr de vouloir supprimer cette transaction ?',
+      {
+        title: 'Confirmer la suppression',
+        severity: 'error',
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler'
+      }
+    );
+    if (shouldDelete) {
+      try {
+        await api.delete(`/transactions/${id}`);
+        showNotification("Transaction supprimée.", "info");
+      } catch(err) {
+        showNotification('Erreur.', 'error');
+      }
+    }
+  };
   
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
@@ -448,7 +475,7 @@ const TransactionLog = ({ viewedWeek }) => {
 
 // 8. Gestion des Entrées / Sorties
 const IncomeExpenseManager = ({ viewedWeek }) => {
-    const { showNotification } = useNotification();
+    const { showNotification, confirm } = useNotification();
     const [expenses, setExpenses] = useState([]);
     const [formData, setFormData] = useState({ 
         amount: '', 
@@ -512,16 +539,25 @@ const IncomeExpenseManager = ({ viewedWeek }) => {
         } 
     };
 
-    const handleDelete = async (id) => { 
-        if(window.confirm('Sûr ?')) { 
-            try { 
-                await api.delete(`/expenses/${id}`); 
-                fetchExpenses(); 
-                showNotification("Entrée/Sortie supprimée.", "info"); 
-            } catch(err) { 
-                showNotification('Erreur.', 'error'); 
-            } 
-        } 
+    const handleDelete = async (id) => {
+        const shouldDelete = await confirm(
+            'Êtes-vous sûr de vouloir supprimer cette entrée/sortie ?',
+            {
+                title: 'Confirmer la suppression',
+                severity: 'error',
+                confirmText: 'Supprimer',
+                cancelText: 'Annuler'
+            }
+        );
+        if (shouldDelete) {
+            try {
+                await api.delete(`/expenses/${id}`);
+                fetchExpenses();
+                showNotification("Entrée/Sortie supprimée.", "info");
+            } catch(err) {
+                showNotification('Erreur.', 'error');
+            }
+        }
     };
 
     return (
@@ -615,7 +651,7 @@ const IncomeExpenseManager = ({ viewedWeek }) => {
 
 // 9. Gestion des Produits
 const ProductManager = () => {
-  const { showNotification } = useNotification();
+  const { showNotification, confirm } = useNotification();
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({ name: '', category: 'Plats', price: '', corporatePrice: '', cost: '', stock: '' });
   const fetchProducts = async () => { try { const { data } = await api.get('/products'); setProducts(data); } catch (err) { console.error(err); } };
@@ -626,7 +662,26 @@ const ProductManager = () => {
   const handleCloseModal = () => { setIsModalOpen(false); setEditingProduct(null); };
   const handleSaveChanges = async () => { try { await api.put(`/products/${editingProduct._id}`, editingProduct); fetchProducts(); handleCloseModal(); showNotification("Produit mis à jour.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
   const onSubmit = async e => { e.preventDefault(); try { await api.post('/products', formData); fetchProducts(); setFormData({ name: '', category: 'Plats', price: '', corporatePrice: '', cost: '', stock: '' }); showNotification("Produit ajouté.", "success"); } catch (err) { showNotification("Erreur.", "error"); } };
-  const onDelete = async (id) => { if (window.confirm('Sûr ?')) { try { await api.delete(`/products/${id}`); fetchProducts(); showNotification("Produit supprimé.", "info"); } catch (err) { showNotification("Erreur.", "error"); } } };
+  const onDelete = async (id) => {
+    const shouldDelete = await confirm(
+      'Êtes-vous sûr de vouloir supprimer ce produit ?',
+      {
+        title: 'Confirmer la suppression',
+        severity: 'error',
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler'
+      }
+    );
+    if (shouldDelete) {
+      try {
+        await api.delete(`/products/${id}`);
+        fetchProducts();
+        showNotification("Produit supprimé.", "info");
+      } catch (err) {
+        showNotification("Erreur.", "error");
+      }
+    }
+  };
   return (
     <TableContainer component={Paper} variant="outlined">
       <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}><TextField size="small" name="name" value={formData.name} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Nom produit" required /><Select size="small" name="category" value={formData.category} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })}><MenuItem value="Plats">Plat</MenuItem><MenuItem value="Boissons">Boisson</MenuItem><MenuItem value="Desserts">Dessert</MenuItem><MenuItem value="Menus">Menu</MenuItem><MenuItem value="Partenariat">Partenariat</MenuItem></Select><TextField size="small" type="number" name="price" value={formData.price} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Prix ($)" /><TextField size="small" type="number" name="corporatePrice" value={formData.corporatePrice} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Prix Ent. ($)" /><TextField size="small" type="number" name="cost" value={formData.cost} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Coût ($)" /><TextField size="small" type="number" name="stock" value={formData.stock} onChange={e => setFormData({ ...formData, [e.target.name]: e.target.value })} label="Stock" /><Button type="submit" variant="contained">Ajouter</Button></Box>
@@ -873,7 +928,7 @@ const ResetTokenManager = () => {
 
 // 13. Gestion des Notes de Frais
 const ExpenseNoteManager = () => {
-    const { showNotification } = useNotification();
+    const { showNotification, confirm } = useNotification();
     const [expenseNotes, setExpenseNotes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
@@ -928,7 +983,16 @@ const ExpenseNoteManager = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Êtes-vous sûr de vouloir supprimer cette note de frais ? Si elle était approuvée, la dépense associée sera également supprimée.")) {
+        const shouldDelete = await confirm(
+            "Êtes-vous sûr de vouloir supprimer cette note de frais ? Si elle était approuvée, la dépense associée sera également supprimée.",
+            {
+                title: 'Confirmer la suppression',
+                severity: 'error',
+                confirmText: 'Supprimer',
+                cancelText: 'Annuler'
+            }
+        );
+        if (shouldDelete) {
             try {
                 await api.delete(`/expense-notes/${id}`);
                 showNotification("Note de frais supprimée.", "success");

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 // Style rétro pour le jeu
 const GameContainer = styled(Box)(({ theme }) => ({
@@ -64,6 +65,7 @@ const GameOverDisplay = styled(Box)({
 });
 
 const SnakeGame = ({ open, onClose }) => {
+  const { showNotification } = useNotification();
   const [gameState, setGameState] = useState('ready'); // 'ready', 'playing', 'paused', 'gameOver'
   const [snake, setSnake] = useState([{ x: 200, y: 200 }]);
   const [food, setFood] = useState({ x: 100, y: 100 });
@@ -269,21 +271,23 @@ const SnakeGame = ({ open, onClose }) => {
       
       if (isScoreRejected) {
         // Score rejeté - afficher en rouge/orange
-        alert(`❌ ${message}`);
+        showNotification(message, 'warning');
       } else if (isNewRecord) {
         // Nouveau record - afficher en vert avec emoji
-        alert(`✅ ${message}`);
+        showNotification(message, 'success');
         // Mettre à jour le meilleur score local
         setUserBestScore(score);
       } else {
         // Score normal
-        alert(`✅ ${message}`);
+        showNotification(message, 'success');
       }
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du score:', error);
       if (error.response) {
         console.error('Détails de l\'erreur:', error.response.data);
-        alert(`Erreur: ${error.response.data.message}`);
+        showNotification(`Erreur: ${error.response.data.message}`, 'error');
+      } else {
+        showNotification('Erreur lors de l\'enregistrement du score', 'error');
       }
     }
   };

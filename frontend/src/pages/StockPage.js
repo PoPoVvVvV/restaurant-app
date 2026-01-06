@@ -17,7 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 const IngredientManager = () => {
   const { user } = useContext(AuthContext);
   const [ingredients, setIngredients] = useState([]);
-  const { showNotification } = useNotification();
+  const { showNotification, confirm } = useNotification();
   
   const fetchIngredients = useCallback(async () => {
     try {
@@ -89,7 +89,16 @@ const IngredientManager = () => {
   }, [showNotification]);
 
   const handleSync = async () => {
-    if (window.confirm("Voulez-vous vraiment ajouter tous les ingrédients des recettes à cet inventaire ? Les ingrédients existants ne seront pas modifiés.")) {
+    const shouldSync = await confirm(
+      "Voulez-vous vraiment ajouter tous les ingrédients des recettes à cet inventaire ? Les ingrédients existants ne seront pas modifiés.",
+      {
+        title: 'Confirmer la synchronisation',
+        severity: 'warning',
+        confirmText: 'Synchroniser',
+        cancelText: 'Annuler'
+      }
+    );
+    if (shouldSync) {
       try {
         const { data } = await api.post('/ingredients/sync-from-recipes');
         showNotification(data.message, 'success');
@@ -100,7 +109,16 @@ const IngredientManager = () => {
   };
   
   const handleDelete = async (id) => {
-    if (window.confirm("Voulez-vous vraiment supprimer cette matière première ?")) {
+    const shouldDelete = await confirm(
+      "Voulez-vous vraiment supprimer cette matière première ?",
+      {
+        title: 'Confirmer la suppression',
+        severity: 'error',
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler'
+      }
+    );
+    if (shouldDelete) {
       try {
         await api.delete(`/ingredients/${id}`);
         showNotification("Ingrédient supprimé.", "info");

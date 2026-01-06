@@ -5,12 +5,14 @@ import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
-import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress, Grid } from '@mui/material';
+import { Container, Box, Paper, Typography, TextField, Button, Link, CircularProgress, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordUsername, setForgotPasswordUsername] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const { showNotification } = useNotification();
@@ -39,15 +41,22 @@ function LoginPage() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const username = prompt("Veuillez entrer votre nom d'utilisateur pour demander une réinitialisation :");
-    if (username) {
-        try {
-            const res = await api.post('/auth/forgot-password', { username });
-            showNotification(res.data, 'info');
-        } catch (err) {
-            showNotification(err.response?.data || 'Erreur', 'error');
-        }
+  const handleForgotPassword = () => {
+    setForgotPasswordOpen(true);
+  };
+
+  const handleForgotPasswordSubmit = async () => {
+    if (!forgotPasswordUsername.trim()) {
+      showNotification("Veuillez entrer un nom d'utilisateur.", 'warning');
+      return;
+    }
+    try {
+      const res = await api.post('/auth/forgot-password', { username: forgotPasswordUsername });
+      showNotification(res.data, 'info');
+      setForgotPasswordOpen(false);
+      setForgotPasswordUsername('');
+    } catch (err) {
+      showNotification(err.response?.data || 'Erreur', 'error');
     }
   };
 
@@ -152,6 +161,39 @@ function LoginPage() {
           </Grid>
         </Box>
       </Paper>
+
+      {/* Dialog pour mot de passe oublié */}
+      <Dialog open={forgotPasswordOpen} onClose={() => setForgotPasswordOpen(false)}>
+        <DialogTitle>Réinitialisation du mot de passe</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Nom d'utilisateur"
+            fullWidth
+            variant="outlined"
+            value={forgotPasswordUsername}
+            onChange={(e) => setForgotPasswordUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleForgotPasswordSubmit();
+              }
+            }}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setForgotPasswordOpen(false);
+            setForgotPasswordUsername('');
+          }}>
+            Annuler
+          </Button>
+          <Button onClick={handleForgotPasswordSubmit} variant="contained">
+            Envoyer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

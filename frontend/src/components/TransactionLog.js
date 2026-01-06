@@ -1,5 +1,10 @@
 // Composant pour le relevé des transactions
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
+import { useNotification } from '../context/NotificationContext';
+
 const TransactionLog = () => {
+  const { showNotification } = useNotification();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +37,7 @@ const TransactionLog = () => {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Erreur lors de l'export", err);
-      alert("Impossible de générer l'export CSV.");
+      showNotification("Impossible de générer l'export CSV.", 'error');
     }
   };
 

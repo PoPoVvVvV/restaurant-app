@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import api from '../services/api';
 import AuthContext from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { 
   Container, 
   Typography, 
@@ -91,6 +92,7 @@ const EditableIngredient = ({ ingredient, index, onUpdate, onDelete, onAdd, isLa
 
 // Formulaire d'ajout (pour les admins)
 const AddRecipeForm = ({ products, onRecipeAdded }) => {
+  const { showNotification } = useNotification();
   const [selectedProduct, setSelectedProduct] = useState('');
   const [ingredients, setIngredients] = useState([{ name: '', quantity50: '', quantity100: '' }]);
 
@@ -114,17 +116,17 @@ const AddRecipeForm = ({ products, onRecipeAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProduct) {
-      alert('Veuillez sélectionner un produit.');
+      showNotification('Veuillez sélectionner un produit.', 'warning');
       return;
     }
     try {
       await api.post('/recipes', { productId: selectedProduct, ingredients });
-      alert('Recette ajoutée/mise à jour avec succès !');
+      showNotification('Recette ajoutée/mise à jour avec succès !', 'success');
       onRecipeAdded();
       setSelectedProduct('');
       setIngredients([{ name: '', quantity50: '', quantity100: '' }]);
     } catch (err) {
-      alert('Erreur lors de l\'ajout de la recette.');
+      showNotification('Erreur lors de l\'ajout de la recette.', 'error');
       console.error(err);
     }
   };
@@ -179,6 +181,7 @@ const AddRecipeForm = ({ products, onRecipeAdded }) => {
 
 function RecipePage() {
   const { user } = useContext(AuthContext);
+  const { showNotification } = useNotification();
   const [recipes, setRecipes] = useState([]);
   const [products, setProducts] = useState([]);
   const [editingRecipe, setEditingRecipe] = useState(null);
@@ -246,10 +249,10 @@ function RecipePage() {
       });
       setEditingRecipe(null);
       fetchRecipes(); // Rafraîchir les données
-      alert('Recette mise à jour avec succès !');
+      showNotification('Recette mise à jour avec succès !', 'success');
     } catch (err) {
       console.error('Erreur lors de la mise à jour de la recette:', err);
-      alert('Erreur lors de la mise à jour de la recette');
+      showNotification('Erreur lors de la mise à jour de la recette', 'error');
     }
   };
 
