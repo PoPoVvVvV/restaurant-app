@@ -101,9 +101,24 @@ const Navbar = memo(() => {
                     selected={isActive}
                     onClick={() => handleNavItemClick(item.path, item.label.toLowerCase())}
                     sx={{
-                      backgroundColor: isActive ? 'success.dark' : 'transparent',
+                      borderRadius: 2,
+                      mx: 1,
+                      my: 0.5,
+                      backgroundColor: isActive 
+                        ? (theme) => theme.palette.mode === 'dark'
+                          ? 'rgba(99, 102, 241, 0.2)'
+                          : 'rgba(99, 102, 241, 0.1)'
+                        : 'transparent',
+                      border: isActive
+                        ? (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)'}`
+                        : '1px solid transparent',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&:hover': {
-                        backgroundColor: isActive ? 'success.main' : 'rgba(0, 0, 0, 0.04)',
+                        backgroundColor: (theme) => theme.palette.mode === 'dark'
+                          ? 'rgba(99, 102, 241, 0.15)'
+                          : 'rgba(99, 102, 241, 0.08)',
+                        transform: 'translateX(4px)',
+                        border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.15)'}`,
                       },
                     }}
                   >
@@ -121,9 +136,23 @@ const Navbar = memo(() => {
                   selected={location.pathname === '/easter-eggs'}
                   onClick={() => handleNavItemClick('/easter-eggs')}
                   sx={{
-                    backgroundColor: location.pathname === '/easter-eggs' ? 'success.dark' : 'transparent',
+                    borderRadius: 2,
+                    mx: 1,
+                    my: 0.5,
+                    backgroundColor: location.pathname === '/easter-eggs'
+                      ? (theme) => theme.palette.mode === 'dark'
+                        ? 'rgba(236, 72, 153, 0.2)'
+                        : 'rgba(236, 72, 153, 0.1)'
+                      : 'transparent',
+                    border: location.pathname === '/easter-eggs'
+                      ? (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(236, 72, 153, 0.3)' : 'rgba(236, 72, 153, 0.2)'}`
+                      : '1px solid transparent',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
-                      backgroundColor: location.pathname === '/easter-eggs' ? 'success.main' : 'rgba(0, 0, 0, 0.04)',
+                      backgroundColor: (theme) => theme.palette.mode === 'dark'
+                        ? 'rgba(236, 72, 153, 0.15)'
+                        : 'rgba(236, 72, 153, 0.08)',
+                      transform: 'translateX(4px)',
                     },
                   }}
                 >
@@ -199,8 +228,16 @@ const Navbar = memo(() => {
         elevation={0} 
         sx={{ 
           position: 'relative',
-          background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
-          boxShadow: '0 3px 5px 2px rgba(0, 0, 0, 0.1)'
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)'
+            : 'linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: (theme) => theme.palette.mode === 'dark'
+            ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+            : '0 8px 32px rgba(99, 102, 241, 0.25)',
+          borderBottom: (theme) => theme.palette.mode === 'dark'
+            ? '1px solid rgba(148, 163, 184, 0.1)'
+            : '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
         <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2 } }}>
@@ -232,11 +269,19 @@ const Navbar = memo(() => {
               variant="h6" 
               component="div"
               sx={{
-                fontWeight: 700,
-                background: 'linear-gradient(45deg, #fff 30%, #e0e0e0 90%)',
+                fontWeight: 800,
+                fontSize: '1.5rem',
+                background: (theme) => theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)'
+                  : 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                display: { xs: 'none', sm: 'block' }
+                display: { xs: 'none', sm: 'block' },
+                letterSpacing: '-0.02em',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
               }}
             >
               Delight
@@ -272,6 +317,18 @@ const Navbar = memo(() => {
         anchor="left"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
+        PaperProps={{
+          sx: {
+            width: 280,
+            background: (theme) => theme.palette.mode === 'dark'
+              ? 'linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)'
+              : 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+            backdropFilter: 'blur(20px)',
+            borderRight: (theme) => theme.palette.mode === 'dark'
+              ? '1px solid rgba(148, 163, 184, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.05)',
+          },
+        }}
       >
         {renderDrawerContent}
       </Drawer>

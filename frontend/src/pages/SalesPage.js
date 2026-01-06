@@ -126,26 +126,99 @@ function SalesPage() {
   );
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
-      <Grid container spacing={2}>
+    <Box sx={{ width: '100%', p: 3 }}>
+      <Grid container spacing={3}>
         {/* Colonne de gauche : Produits */}
         <Grid item xs={12} md={8}>
-          {loading && <CircularProgress />}
-          {error && <Typography color="error">{error}</Typography>}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+          {error && (
+            <Typography color="error" sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: 'error.light' }}>
+              {error}
+            </Typography>
+          )}
           
           {Object.entries(productsByCategory).map(([category, items]) => (
             items.length > 0 && (
-              <Box key={category} sx={{ mb: 3 }}>
-                <Typography variant="h5" gutterBottom component="h2">{category}</Typography>
-                <Grid container spacing={2}>
-                  {items.map(product => (
+              <Box key={category} sx={{ mb: 4 }}>
+                <Typography 
+                  variant="h5" 
+                  gutterBottom 
+                  component="h2"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 3,
+                    fontSize: '1.75rem',
+                    background: (theme) => theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                      : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {category}
+                </Typography>
+                <Grid container spacing={2.5}>
+                  {items.map((product, index) => (
                     <Grid item key={product._id} xs={6} sm={4} md={3}>
-                      <Card sx={{ height: '100%' }}>
-                        <CardActionArea onClick={() => addToCart(product)} sx={{ height: '100%' }}>
-                          <CardContent>
-                            <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>{product.name}</Typography>
-                            <Typography variant="body2" color="text.secondary">Stock: {product.stock}</Typography>
-                            <Typography variant="h6" color="primary" sx={{ mt: 1 }}>${product.price.toFixed(2)}</Typography>
+                      <Card 
+                        sx={{ 
+                          height: '100%',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          animation: `fadeIn 0.4s ease-out ${index * 0.05}s both`,
+                        }}
+                      >
+                        <CardActionArea 
+                          onClick={() => addToCart(product)} 
+                          sx={{ 
+                            height: '100%',
+                            '&:active': {
+                              transform: 'scale(0.98)',
+                            },
+                          }}
+                        >
+                          <CardContent sx={{ p: 2.5 }}>
+                            <Typography 
+                              variant="subtitle1" 
+                              component="div" 
+                              sx={{ 
+                                fontWeight: 600,
+                                mb: 1,
+                                fontSize: '1rem',
+                              }}
+                            >
+                              {product.name}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary"
+                              sx={{ 
+                                mb: 1.5,
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              Stock: {product.stock}
+                            </Typography>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                mt: 1,
+                                fontWeight: 700,
+                                background: (theme) => theme.palette.mode === 'dark'
+                                  ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                                  : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                              }}
+                            >
+                              ${product.price.toFixed(2)}
+                            </Typography>
                           </CardContent>
                         </CardActionArea>
                       </Card>
@@ -159,15 +232,61 @@ function SalesPage() {
 
         {/* Colonne de droite : Commande */}
         <Grid item xs={12} md={4}>
-          <Paper elevation={3} sx={{ p: 2, position: 'sticky', top: '20px' }}>
-            <Typography variant="h5" gutterBottom>Commande en cours</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              position: 'sticky', 
+              top: '20px',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)'
+                : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(148, 163, 184, 0.1)'
+                : '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: 3,
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 20px 60px rgba(0, 0, 0, 0.4)'
+                : '0 20px 60px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Typography 
+              variant="h5" 
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                mb: 3,
+                fontSize: '1.5rem',
+                background: (theme) => theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                  : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Commande en cours
+            </Typography>
 
             {freeMenus.length > 0 && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                <AlertTitle>Promotion 5 achetés = 1 offert</AlertTitle>
+              <Alert 
+                severity="success" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: 2,
+                  background: (theme) => theme.palette.mode === 'dark'
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : 'rgba(16, 185, 129, 0.1)',
+                  border: (theme) => theme.palette.mode === 'dark'
+                    ? '1px solid rgba(16, 185, 129, 0.3)'
+                    : '1px solid rgba(16, 185, 129, 0.2)',
+                }}
+              >
+                <AlertTitle sx={{ fontWeight: 600 }}>🎉 Promotion 5 achetés = 1 offert</AlertTitle>
                 Vous devez offrir :
                 {freeMenus.map(menu => (
-                  <strong key={menu.name} style={{ display: 'block' }}>
+                  <strong key={menu.name} style={{ display: 'block', marginTop: '8px' }}>
                     {menu.freeCount} x {menu.name}
                   </strong>
                 ))}
@@ -243,7 +362,26 @@ function SalesPage() {
                   )}
                   <Typography variant="body2" color="text.secondary">Marge brute: ${margin.toFixed(2)}</Typography>
                 </Box>
-                <Button variant="contained" color="success" fullWidth sx={{ mt: 2 }} onClick={handleSaveTransaction} disabled={loading || cart.length === 0}>
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  sx={{ 
+                    mt: 3,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    borderRadius: 2,
+                    background: (theme) => theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      : 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                    '&:hover': {
+                      background: (theme) => theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                        : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+                    },
+                  }} 
+                  onClick={handleSaveTransaction} 
+                  disabled={loading || cart.length === 0}
+                >
                   {loading ? <CircularProgress size={24} /> : 'Enregistrer'}
                 </Button>
               </>

@@ -81,6 +81,21 @@ const CustomAlert = ({
       aria-describedby="alert-dialog-description"
       maxWidth="sm"
       fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)'
+            : 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(20px)',
+          border: (theme) => theme.palette.mode === 'dark'
+            ? '1px solid rgba(148, 163, 184, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.05)',
+          boxShadow: (theme) => theme.palette.mode === 'dark'
+            ? '0 20px 60px rgba(0, 0, 0, 0.5)'
+            : '0 20px 60px rgba(0, 0, 0, 0.15)',
+        },
+      }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
         <IconButton 
@@ -96,10 +111,16 @@ const CustomAlert = ({
           <CloseIcon />
         </IconButton>
       </Box>
-      <DialogTitle id="alert-dialog-title" sx={{ pt: 0 }}>
+      <DialogTitle id="alert-dialog-title" sx={{ pt: 3, pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {getIcon()}
-          <Typography variant="h6" component="span">
+          <Typography 
+            variant="h6" 
+            component="span"
+            sx={{
+              fontWeight: 600,
+            }}
+          >
             {getTitle()}
           </Typography>
         </Box>
@@ -109,13 +130,17 @@ const CustomAlert = ({
           {message}
         </DialogContentText>
       </DialogContent>
-      <DialogActions sx={{ p: 3, pt: 0, gap: 2 }}>
+      <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
         {showCancelButton && (
           <Button 
             onClick={handleCancel}
             variant="outlined"
             fullWidth
-            sx={{ py: 1.5 }}
+            sx={{ 
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+            }}
           >
             {cancelText}
           </Button>
@@ -126,7 +151,11 @@ const CustomAlert = ({
           color={severity === 'error' ? 'error' : 'primary'}
           autoFocus
           fullWidth
-          sx={{ py: 1.5 }}
+          sx={{ 
+            py: 1.5,
+            borderRadius: 2,
+            fontWeight: 600,
+          }}
         >
           {confirmText}
         </Button>

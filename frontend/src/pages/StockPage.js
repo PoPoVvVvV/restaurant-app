@@ -311,9 +311,21 @@ function StockPage() {
   if (error) return <Typography color="error" align="center">{error}</Typography>;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {deliveryStatus.isActive && (
-        <Alert severity="info" sx={{ mb: 3 }}>
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mb: 4,
+            borderRadius: 3,
+            background: (theme) => theme.palette.mode === 'dark'
+              ? 'rgba(59, 130, 246, 0.15)'
+              : 'rgba(59, 130, 246, 0.1)',
+            border: (theme) => theme.palette.mode === 'dark'
+              ? '1px solid rgba(59, 130, 246, 0.3)'
+              : '1px solid rgba(59, 130, 246, 0.2)',
+          }}
+        >
           <AlertTitle>Information</AlertTitle>
           Une commande de matière première est en route via l'entreprise : <strong>{deliveryStatus.companyName}</strong>
           {groupedReceipts.length > 0 && (
@@ -356,31 +368,98 @@ function StockPage() {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4" component="h1">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Typography 
+          variant="h4" 
+          component="h1"
+          sx={{
+            fontWeight: 700,
+            background: (theme) => theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+              : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '-0.02em',
+          }}
+        >
           Gestion des Stocks
         </Typography>
-        <Paper elevation={2} sx={{ p: 2 }}>
-          <Typography variant="h6">
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 2.5,
+            background: (theme) => theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+            border: (theme) => theme.palette.mode === 'dark'
+              ? '1px solid rgba(99, 102, 241, 0.3)'
+              : '1px solid rgba(99, 102, 241, 0.2)',
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Valeur Totale Produits : ${totalStockValue.toFixed(2)}
           </Typography>
         </Paper>
       </Box>
 
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h5">Stocks Produits Finis</Typography>
+      <Accordion 
+        defaultExpanded
+        sx={{
+          mb: 2,
+          borderRadius: 3,
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'rgba(30, 41, 59, 0.5)'
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(10px)',
+          border: (theme) => theme.palette.mode === 'dark'
+            ? '1px solid rgba(148, 163, 184, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.05)',
+          '&:before': {
+            display: 'none',
+          },
+        }}
+      >
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />}
+          sx={{
+            '& .MuiAccordionSummary-content': {
+              my: 2,
+            },
+          }}
+        >
+          <Typography 
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              fontSize: '1.5rem',
+            }}
+          >
+            Stocks Produits Finis
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
-            <TableContainer component={Paper} elevation={3}>
+            <TableContainer 
+              component={Paper} 
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                background: (theme) => theme.palette.mode === 'dark'
+                  ? 'rgba(15, 23, 42, 0.5)'
+                  : 'rgba(255, 255, 255, 0.9)',
+                border: (theme) => theme.palette.mode === 'dark'
+                  ? '1px solid rgba(148, 163, 184, 0.1)'
+                  : '1px solid rgba(0, 0, 0, 0.05)',
+              }}
+            >
                 <Table>
                 <TableHead>
                     <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Produit</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Catégorie</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock Actuel</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Modifier le Stock</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Produit</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Catégorie</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Statut</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Stock Actuel</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Modifier le Stock</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -415,9 +494,38 @@ function StockPage() {
         </AccordionDetails>
       </Accordion>
       
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h5">Inventaire des Matières Premières</Typography>
+      <Accordion
+        sx={{
+          borderRadius: 3,
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'rgba(30, 41, 59, 0.5)'
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(10px)',
+          border: (theme) => theme.palette.mode === 'dark'
+            ? '1px solid rgba(148, 163, 184, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.05)',
+          '&:before': {
+            display: 'none',
+          },
+        }}
+      >
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />}
+          sx={{
+            '& .MuiAccordionSummary-content': {
+              my: 2,
+            },
+          }}
+        >
+          <Typography 
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              fontSize: '1.5rem',
+            }}
+          >
+            Inventaire des Matières Premières
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <IngredientManager />

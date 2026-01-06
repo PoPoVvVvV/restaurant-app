@@ -19,8 +19,31 @@ const Leaderboard = () => {
            .catch(err => console.error("Erreur chargement classement."));
     }, []);
     return (
-        <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>🏆 Top 5 Vendeurs de la Semaine</Typography>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 3, 
+            height: '100%',
+            background: (theme) => theme.palette.mode === 'dark'
+              ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%)'
+              : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: (theme) => theme.palette.mode === 'dark'
+              ? '1px solid rgba(148, 163, 184, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.05)',
+            borderRadius: 3,
+          }}
+        >
+            <Typography 
+              variant="h6" 
+              gutterBottom
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+              }}
+            >
+              🏆 Top 5 Vendeurs de la Semaine
+            </Typography>
             <TableContainer>
                 <Table size="small">
                     <TableBody>
@@ -143,33 +166,283 @@ function MaComptabilitePage() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{
+          fontWeight: 700,
+          mb: 4,
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+            : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          letterSpacing: '-0.02em',
+        }}
+      >
         Tableau de Bord - {user?.username}
       </Typography>
 
       <Grid container spacing={3}>
         {/* Cartes de KPIs - Totaux */}
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Grade</Typography><Typography variant="h4" color="primary">{user?.grade || 'N/A'}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Ventes Total</Typography><Typography variant="h4">{nombreDeVentes}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">CA Total</Typography><Typography variant="h4">${totalCA.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center' }}><Typography variant="h6">Marge Total</Typography><Typography variant="h4">${totalMargin.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.main', color: 'success.contrastText' }}><Typography variant="h6">Salaire Estimé</Typography><Typography variant="h4">${totalBonus.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+                : 'linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 12px 32px rgba(99, 102, 241, 0.3)'
+                  : '0 12px 32px rgba(99, 102, 241, 0.2)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, opacity: 0.8 }}>Grade</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{user?.grade || 'N/A'}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+                : 'linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, opacity: 0.8 }}>Ventes Total</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>{nombreDeVentes}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+                : 'linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, opacity: 0.8 }}>CA Total</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>${totalCA.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+                : 'linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, opacity: 0.8 }}>Marge Total</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>${totalMargin.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 12px 32px rgba(16, 185, 129, 0.3)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>Salaire Estimé</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>${totalBonus.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
         
         {/* Cartes de KPIs - Ventes Particuliers */}
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">Ventes Particuliers</Typography><Typography variant="h4">{nombreDeVentesParticuliers}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">CA Particuliers</Typography><Typography variant="h4">${totalCAParticuliers.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Typography variant="h6">Marge Particuliers</Typography><Typography variant="h4">${totalMarginParticuliers.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 12px 32px rgba(99, 102, 241, 0.3)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>Ventes Particuliers</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>{nombreDeVentesParticuliers}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>CA Particuliers</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>${totalCAParticuliers.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>Marge Particuliers</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>${totalMarginParticuliers.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
         
         {/* Cartes de KPIs - Ventes Entreprises */}
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">Ventes Entreprises</Typography><Typography variant="h4">{nombreDeVentesEntreprises}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">CA Entreprises</Typography><Typography variant="h4">${totalCAEntreprises.toFixed(2)}</Typography></Paper></Grid>
-        <Grid item xs={12} sm={2}><Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.main', color: 'secondary.contrastText' }}><Typography variant="h6">Marge Entreprises</Typography><Typography variant="h4">${totalMarginEntreprises.toFixed(2)}</Typography></Paper></Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 12px 32px rgba(236, 72, 153, 0.3)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>Ventes Entreprises</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>{nombreDeVentesEntreprises}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>CA Entreprises</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>${totalCAEntreprises.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+              borderRadius: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              },
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'rgba(255, 255, 255, 0.9)' }}>Marge Entreprises</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff' }}>${totalMarginEntreprises.toFixed(2)}</Typography>
+          </Paper>
+        </Grid>
 
         {/* Graphique des ventes */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2, height: '400px' }}>
-            <Typography variant="h6" gutterBottom>Ventes Journalières de la Semaine par Type</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              height: '400px',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(148, 163, 184, 0.1)'
+                : '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: 3,
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              gutterBottom
+              sx={{
+                fontWeight: 600,
+                mb: 3,
+              }}
+            >
+              Ventes Journalières de la Semaine par Type
+            </Typography>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={dailyDataParticuliers}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -191,8 +464,31 @@ function MaComptabilitePage() {
         
         {/* Résumé comparatif */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, mt: 2 }}>
-            <Typography variant="h6" gutterBottom>📊 Résumé Comparatif des Ventes</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mt: 2,
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(148, 163, 184, 0.1)'
+                : '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: 3,
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              gutterBottom
+              sx={{
+                fontWeight: 600,
+                mb: 3,
+              }}
+            >
+              📊 Résumé Comparatif des Ventes
+            </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="primary" gutterBottom>Ventes Particuliers</Typography>
