@@ -51,12 +51,27 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback((newToken) => {
     try {
+      // Vérifier que le token existe et n'est pas vide
+      if (!newToken || typeof newToken !== 'string') {
+        console.error('Token invalide');
+        logout();
+        return;
+      }
+
       // Décoder immédiatement pour vérifier que le token est valide
       const decodedToken = jwtDecode(newToken);
       
       // Vérifier si le token est expiré
       if (decodedToken.exp * 1000 < Date.now()) {
         console.error('Token expiré');
+        logout();
+        return;
+      }
+
+      // Vérifier que le token contient les informations utilisateur
+      if (!decodedToken.user) {
+        console.error('Token ne contient pas les informations utilisateur');
+        logout();
         return;
       }
       
@@ -68,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Erreur lors de la connexion:', error);
       logout();
+      throw error; // Propager l'erreur pour que LoginPage puisse la gérer
     }
   }, [logout]);
 

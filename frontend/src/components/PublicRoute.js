@@ -11,7 +11,7 @@ const PublicRoute = ({ children }) => {
   }
 
   // Si l'utilisateur est connecté, on le redirige vers la page des ventes
-  return isAuthenticated ? <Navigate to="/ventes" /> : children;
+  return isAuthenticated ? <Navigate to="/ventes" replace /> : children;
 };
 
 export default PublicRoute;

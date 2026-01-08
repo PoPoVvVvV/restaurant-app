@@ -29,14 +29,38 @@ function LoginPage() {
     setLoading(true);
     try {
       const response = await api.post('/auth/login', formData);
-      login(response.data.token);
-      // Attendre que le contexte se mette à jour avant la navigation
-      // Le useEffect dans AuthContext va décoder le token et mettre à jour l'utilisateur
-      setTimeout(() => {
-        navigate('/ventes');
-      }, 100);
+      
+      // Vérifier que la réponse contient un token
+      if (!response.data || !response.data.token) {
+        throw new Error('Réponse invalide du serveur');
+      }
+
+      // Appeler login et attendre qu'il se termine
+      try {
+        login(response.data.token);
+        
+        // Attendre un peu pour que le contexte se mette à jour
+        // Utiliser requestAnimationFrame pour s'assurer que React a terminé le rendu
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            // Vérifier que l'utilisateur est bien connecté avant de naviguer
+            const token = localStorage.getItem('token');
+            if (token) {
+              navigate('/ventes', { replace: true });
+            } else {
+              setError('Erreur lors de la connexion. Veuillez réessayer.');
+              setLoading(false);
+            }
+          }, 150);
+        });
+      } catch (loginError) {
+        console.error('Erreur lors de la connexion:', loginError);
+        setError('Erreur lors de la connexion. Veuillez réessayer.');
+        setLoading(false);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Une erreur est survenue.');
+      console.error('Erreur de connexion:', err);
+      setError(err.response?.data?.message || err.message || 'Une erreur est survenue.');
       setLoading(false);
     }
   };

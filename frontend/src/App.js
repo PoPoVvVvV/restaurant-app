@@ -11,14 +11,36 @@ import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
 // ProtectedRoute et PublicRoute ne doivent pas être lazy loaded car ils utilisent le contexte d'authentification
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Composants UI
 const Navbar = lazy(() => import('./components/Navbar'));
 const SnakeGameWrapper = lazy(() => import('./components/SnakeGameWrapper'));
 
-// Pages (lazy loaded avec prefetch)
+// Pages (lazy loaded avec prefetch et gestion d'erreur)
 const withLazy = (importFn) => {
-  const Component = lazy(importFn);
+  const Component = lazy(() => 
+    importFn().catch((error) => {
+      console.error('Erreur lors du chargement du composant:', error);
+      // Retourner un composant de fallback en cas d'erreur
+      return {
+        default: () => (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" color="error">
+              Erreur lors du chargement de la page
+            </Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => window.location.reload()}
+              sx={{ mt: 2 }}
+            >
+              Recharger
+            </Button>
+          </Box>
+        )
+      };
+    })
+  );
   Component.preload = importFn;
   return Component;
 };
@@ -311,13 +333,15 @@ function ThemedApp() {
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeModeProvider>
-        <NotificationProvider>
-          <ThemedApp />
-        </NotificationProvider>
-      </ThemeModeProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeModeProvider>
+          <NotificationProvider>
+            <ThemedApp />
+          </NotificationProvider>
+        </ThemeModeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
