@@ -152,9 +152,6 @@ function SalesPage() {
           const items = productsByCategory[category] || [];
           if (items.length === 0) return null;
 
-          // Limiter à 5 items maximum par catégorie
-          const displayItems = items.slice(0, 5);
-
           return (
             <Box key={category} sx={{ mb: 4 }}>
               <Typography 
@@ -168,7 +165,7 @@ function SalesPage() {
                 {category === 'Partenariat' ? 'Menu Partinariat' : category}
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {displayItems.map((product) => {
+                {items.map((product) => {
                   const boxSize = getBoxSize();
                   return (
                     <Box
