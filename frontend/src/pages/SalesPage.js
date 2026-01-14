@@ -5,8 +5,8 @@ import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
-  Box, Grid, Card, CardActionArea, CardContent, Typography, Paper, List, ListItem, ListItemText,
-  Divider, Button, CircularProgress, TextField, IconButton, Alert, AlertTitle, Checkbox, FormControlLabel
+  Box, Grid, Typography, Paper, List, ListItem, ListItemText,
+  Divider, Button, CircularProgress, TextField, IconButton, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -125,270 +125,253 @@ function SalesPage() {
     [totalAmount, cart]
   );
 
+  // Taille uniforme pour toutes les catégories
+  const getBoxSize = () => {
+    return { width: '120px', height: '100px' };
+  };
+
+  // Ordre des catégories selon le plan
+  const categoryOrder = ['Menus', 'Plats', 'Boissons', 'Desserts', 'Partenariat'];
+
   return (
-    <Box sx={{ width: '100%', p: 3 }}>
-      <Grid container spacing={3}>
-        {/* Colonne de gauche : Produits */}
-        <Grid item xs={12} md={8}>
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-              <CircularProgress />
-            </Box>
-          )}
-          {error && (
-            <Typography color="error" sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: 'error.light' }}>
-              {error}
-            </Typography>
-          )}
-          
-          {Object.entries(productsByCategory).map(([category, items]) => (
-            items.length > 0 && (
-              <Box key={category} sx={{ mb: 4 }}>
-                <Typography 
-                  variant="h5" 
-                  gutterBottom 
-                  component="h2"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 3,
-                    fontSize: '1.75rem',
-                    background: (theme) => theme.palette.mode === 'dark'
-                      ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                      : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {category}
-                </Typography>
-                <Grid container spacing={2.5}>
-                  {items.map((product, index) => (
-                    <Grid item key={product._id} xs={6} sm={4} md={3}>
-                      <Card 
-                        sx={{ 
-                          height: '100%',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          animation: `fadeIn 0.4s ease-out ${index * 0.05}s both`,
-                        }}
-                      >
-                        <CardActionArea 
-                          onClick={() => addToCart(product)} 
-                          sx={{ 
-                            height: '100%',
-                            '&:active': {
-                              transform: 'scale(0.98)',
-                            },
-                          }}
-                        >
-                          <CardContent sx={{ p: 2.5 }}>
-                            <Typography 
-                              variant="subtitle1" 
-                              component="div" 
-                              sx={{ 
-                                fontWeight: 600,
-                                mb: 1,
-                                fontSize: '1rem',
-                              }}
-                            >
-                              {product.name}
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary"
-                              sx={{ 
-                                mb: 1.5,
-                                fontSize: '0.85rem',
-                              }}
-                            >
-                              Stock: {product.stock}
-                            </Typography>
-                            <Typography 
-                              variant="h6" 
-                              sx={{ 
-                                mt: 1,
-                                fontWeight: 700,
-                                background: (theme) => theme.palette.mode === 'dark'
-                                  ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                                  : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                              }}
-                            >
-                              ${product.price.toFixed(2)}
-                            </Typography>
-                          </CardContent>
-                        </CardActionArea>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )
-          ))}
-        </Grid>
+    <Box sx={{ width: '100%', p: 3, display: 'flex', gap: 4 }}>
+      {/* Colonne de gauche : Produits */}
+      <Box sx={{ flex: 1 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+        {error && (
+          <Typography color="error" sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: 'error.light' }}>
+            {error}
+          </Typography>
+        )}
+        
+        {categoryOrder.map((category) => {
+          const items = productsByCategory[category] || [];
+          if (items.length === 0) return null;
 
-        {/* Colonne de droite : Commande */}
-        <Grid item xs={12} md={4}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              position: 'sticky', 
-              top: '20px',
-              background: (theme) => theme.palette.mode === 'dark'
-                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)'
-                : 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: (theme) => theme.palette.mode === 'dark'
-                ? '1px solid rgba(148, 163, 184, 0.1)'
-                : '1px solid rgba(0, 0, 0, 0.05)',
-              borderRadius: 3,
-              boxShadow: (theme) => theme.palette.mode === 'dark'
-                ? '0 20px 60px rgba(0, 0, 0, 0.4)'
-                : '0 20px 60px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            <Typography 
-              variant="h5" 
-              gutterBottom
-              sx={{
-                fontWeight: 700,
-                mb: 3,
-                fontSize: '1.5rem',
-                background: (theme) => theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                  : 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Commande en cours
-            </Typography>
+          // Limiter à 5 items maximum par catégorie
+          const displayItems = items.slice(0, 5);
 
-            {freeMenus.length > 0 && (
-              <Alert 
-                severity="success" 
-                sx={{ 
-                  mb: 3,
-                  borderRadius: 2,
-                  background: (theme) => theme.palette.mode === 'dark'
-                    ? 'rgba(16, 185, 129, 0.15)'
-                    : 'rgba(16, 185, 129, 0.1)',
-                  border: (theme) => theme.palette.mode === 'dark'
-                    ? '1px solid rgba(16, 185, 129, 0.3)'
-                    : '1px solid rgba(16, 185, 129, 0.2)',
+          return (
+            <Box key={category} sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{
+                  mb: 2,
+                  fontSize: '1.2rem',
+                  fontWeight: 600,
                 }}
               >
-                <AlertTitle sx={{ fontWeight: 600 }}>🎉 Promotion 5 achetés = 1 offert</AlertTitle>
-                Vous devez offrir :
-                {freeMenus.map(menu => (
-                  <strong key={menu.name} style={{ display: 'block', marginTop: '8px' }}>
-                    {menu.freeCount} x {menu.name}
-                  </strong>
-                ))}
-              </Alert>
-            )}
-
-            {cart.length === 0 ? (
-              <Typography>La commande est vide.</Typography>
-            ) : (
-              <>
-                <List sx={{ maxHeight: '55vh', overflow: 'auto' }}>
-                  {cart.map(item => (
-                    <ListItem key={item._id} disablePadding sx={{ mb: 1 }}>
-                      <ListItemText primary={item.name} />
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity - 1)}><RemoveCircleOutlineIcon fontSize="small" /></IconButton>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateCartQuantity(item._id, e.target.value)}
-                          sx={{
-                            width: `${(item.quantity.toString().length * 10) + 30}px`,
-                            minWidth: '50px',
-                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
-                              '-webkit-appearance': 'none',
-                              margin: 0,
-                            },
-                            '& input[type=number]': {
-                              '-moz-appearance': 'textfield',
-                            },
-                          }}
-                          inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}}
-                        />
-                        <IconButton size="small" onClick={() => updateCartQuantity(item._id, item.quantity + 1)}><AddCircleOutlineIcon fontSize="small" /></IconButton>
-                      </Box>
-                    </ListItem>
-                  ))}
-                </List>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ textAlign: 'left', mb: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={splitPayment} 
-                        onChange={(e) => setSplitPayment(e.target.checked)}
-                        color="primary"
-                      />
-                    }
-                    label="Décomposer le paiement (max 750$ par versement)"
-                  />
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  {splitPayment && totalAmount > 0 ? (
-                    <Box sx={{ mb: 2, textAlign: 'left' }}>
-                      <Typography variant="subtitle2" gutterBottom>Décomposition du paiement :</Typography>
-                      {Array.from({ length: Math.ceil(totalAmount / 750) }).map((_, index) => {
-                        const amount = index === Math.ceil(totalAmount / 750) - 1 
-                          ? (totalAmount % 750 || 750).toFixed(2)
-                          : '750.00';
-                        return (
-                          <Typography key={index} variant="body2">
-                            Paiement {index + 1}: ${amount}
-                          </Typography>
-                        );
-                      })}
-                      <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
-                        Total: ${totalAmount.toFixed(2)}
+                {category === 'Partenariat' ? 'Menu Partinariat' : category}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {displayItems.map((product) => {
+                  const boxSize = getBoxSize();
+                  return (
+                    <Box
+                      key={product._id}
+                      onClick={() => addToCart(product)}
+                      sx={{
+                        ...boxSize,
+                        border: '2px solid',
+                        borderColor: (theme) => theme.palette.mode === 'dark' 
+                          ? 'rgba(148, 163, 184, 0.3)' 
+                          : 'rgba(0, 0, 0, 0.2)',
+                        borderRadius: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        backgroundColor: (theme) => theme.palette.mode === 'dark'
+                          ? 'rgba(30, 41, 59, 0.5)'
+                          : 'rgba(255, 255, 255, 0.8)',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          borderColor: (theme) => theme.palette.primary.main,
+                          backgroundColor: (theme) => theme.palette.mode === 'dark'
+                            ? 'rgba(30, 41, 59, 0.8)'
+                            : 'rgba(255, 255, 255, 1)',
+                          transform: 'scale(1.05)',
+                        },
+                        '&:active': {
+                          transform: 'scale(0.98)',
+                        },
+                        p: 1,
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 600,
+                          textAlign: 'center',
+                          fontSize: '0.85rem',
+                          mb: 0.5,
+                        }}
+                      >
+                        {product.name}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          fontSize: '0.7rem',
+                          color: 'text.secondary',
+                        }}
+                      >
+                        ${product.price.toFixed(2)}
                       </Typography>
                     </Box>
-                  ) : (
-                    <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
-                  )}
-                  <Typography variant="body2" color="text.secondary">Marge brute: ${margin.toFixed(2)}</Typography>
+                  );
+                })}
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {/* Colonne de droite : Commandes en cours */}
+      <Box sx={{ width: '300px' }}>
+        <Typography 
+          variant="h6" 
+          sx={{
+            mb: 3,
+            fontSize: '1.2rem',
+            fontWeight: 600,
+          }}
+        >
+          Commandes en cours
+        </Typography>
+
+        {freeMenus.length > 0 && (
+          <Box 
+            sx={{ 
+              mb: 3,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: (theme) => theme.palette.mode === 'dark'
+                ? 'rgba(16, 185, 129, 0.15)'
+                : 'rgba(16, 185, 129, 0.1)',
+              border: (theme) => theme.palette.mode === 'dark'
+                ? '1px solid rgba(16, 185, 129, 0.3)'
+                : '1px solid rgba(16, 185, 129, 0.2)',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              🎉 Promotion 5 achetés = 1 offert
+            </Typography>
+            {freeMenus.map(menu => (
+              <Typography key={menu.name} variant="body2" sx={{ display: 'block', mt: 0.5 }}>
+                <strong>{menu.freeCount} x {menu.name}</strong>
+              </Typography>
+            ))}
+          </Box>
+        )}
+
+        {cart.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            La commande est vide.
+          </Typography>
+        ) : (
+          <>
+            <List sx={{ maxHeight: '55vh', overflow: 'auto', mb: 2 }}>
+              {cart.map(item => (
+                <ListItem key={item._id} disablePadding sx={{ mb: 1 }}>
+                  <ListItemText 
+                    primary={item.name} 
+                    secondary={`${item.quantity} x $${item.price.toFixed(2)}`}
+                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => updateCartQuantity(item._id, item.quantity - 1)}
+                    >
+                      <RemoveCircleOutlineIcon fontSize="small" />
+                    </IconButton>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateCartQuantity(item._id, e.target.value)}
+                      sx={{
+                        width: `${(item.quantity.toString().length * 10) + 30}px`,
+                        minWidth: '50px',
+                        '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                          '-webkit-appearance': 'none',
+                          margin: 0,
+                        },
+                        '& input[type=number]': {
+                          '-moz-appearance': 'textfield',
+                        },
+                      }}
+                      inputProps={{ style: { textAlign: 'center', fontSize: '1rem' }}}
+                    />
+                    <IconButton 
+                      size="small" 
+                      onClick={() => updateCartQuantity(item._id, item.quantity + 1)}
+                    >
+                      <AddCircleOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ textAlign: 'left', mb: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={splitPayment} 
+                    onChange={(e) => setSplitPayment(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Décomposer le paiement (max 750$ par versement)"
+              />
+            </Box>
+            <Box sx={{ textAlign: 'right', mb: 2 }}>
+              {splitPayment && totalAmount > 0 ? (
+                <Box sx={{ mb: 2, textAlign: 'left' }}>
+                  <Typography variant="subtitle2" gutterBottom>Décomposition du paiement :</Typography>
+                  {Array.from({ length: Math.ceil(totalAmount / 750) }).map((_, index) => {
+                    const amount = index === Math.ceil(totalAmount / 750) - 1 
+                      ? (totalAmount % 750 || 750).toFixed(2)
+                      : '750.00';
+                    return (
+                      <Typography key={index} variant="body2">
+                        Paiement {index + 1}: ${amount}
+                      </Typography>
+                    );
+                  })}
+                  <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                    Total: ${totalAmount.toFixed(2)}
+                  </Typography>
                 </Box>
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ 
-                    mt: 3,
-                    py: 1.5,
-                    fontSize: '1rem',
-                    borderRadius: 2,
-                    background: (theme) => theme.palette.mode === 'dark'
-                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                      : 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-                    '&:hover': {
-                      background: (theme) => theme.palette.mode === 'dark'
-                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                        : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
-                    },
-                  }} 
-                  onClick={handleSaveTransaction} 
-                  disabled={loading || cart.length === 0}
-                >
-                  {loading ? <CircularProgress size={24} /> : 'Enregistrer'}
-                </Button>
-              </>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+              ) : (
+                <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
+              )}
+              <Typography variant="body2" color="text.secondary">
+                Marge brute: ${margin.toFixed(2)}
+              </Typography>
+            </Box>
+            <Button 
+              variant="contained" 
+              fullWidth 
+              sx={{ 
+                py: 1.5,
+                fontSize: '1rem',
+                borderRadius: 2,
+              }} 
+              onClick={handleSaveTransaction} 
+              disabled={loading || cart.length === 0}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Enregistrer'}
+            </Button>
+          </>
+        )}
+      </Box>
     </Box>
   );
 }
