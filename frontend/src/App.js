@@ -90,9 +90,8 @@ function ThemedApp() {
         },
         background: {
           default: mode === 'dark' ? '#0f172a' : '#f8fafc',
-          paper: mode === 'dark' 
-            ? 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)' 
-            : '#ffffff',
+          // IMPORTANT: `paper` doit être une couleur valide (sinon certains menus deviennent transparents)
+          paper: mode === 'dark' ? '#0b1220' : '#ffffff',
         },
         text: {
           primary: mode === 'dark' ? '#f1f5f9' : '#1e293b',
@@ -222,7 +221,11 @@ function ThemedApp() {
         MuiPaper: {
           styleOverrides: {
             root: {
-              backgroundImage: 'none',
+              // Fond lisible pour TOUS les surfaces (menus, popover, select, etc.)
+              backgroundColor: mode === 'dark' ? '#0b1220' : '#ffffff',
+              backgroundImage: mode === 'dark'
+                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.92) 0%, rgba(11, 18, 32, 0.92) 100%)'
+                : 'none',
               borderRadius: 16,
             },
             elevation1: {

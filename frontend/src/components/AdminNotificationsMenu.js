@@ -73,25 +73,6 @@ export default function AdminNotificationsMenu() {
   const handleOpen = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  const handleMarkRead = useCallback(
-    async (notificationId) => {
-      try {
-        const { data } = await api.patch(`/notifications/${notificationId}/read`);
-        setNotifications((prev) =>
-          prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
-        );
-        if (typeof data?.unreadCount === 'number') {
-          setUnreadCount(data.unreadCount);
-        } else {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-      } catch (e) {
-        // silencieux
-      }
-    },
-    [setNotifications]
-  );
-
   const handleMarkAllRead = useCallback(async () => {
     try {
       await api.patch('/notifications/read-all');
