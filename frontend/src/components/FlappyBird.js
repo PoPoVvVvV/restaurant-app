@@ -473,153 +473,6 @@ const FlappyBird = ({ open, onClose }) => {
     return () => clearInterval(collisionInterval);
   }, [gameState, playSound, endGameOnce, GAME_CONFIG.PIPE_WIDTH]);
 
-  // Dessiner le jeu optimisé
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!open) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    
-    // Optimisation du rendu
-    ctx.imageSmoothingEnabled = settings.smoothGraphics;
-    ctx.imageSmoothingQuality = 'high';
-
-    const draw = () => {
-      // Effacer le canvas avec dégradé
-      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.CANVAS_HEIGHT);
-      gradient.addColorStop(0, '#87CEEB');
-      gradient.addColorStop(1, '#98FB98');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
-
-      if (gameState === 'menu') {
-        // Dessiner le menu avec style amélioré
-        ctx.fillStyle = '#2C3E50';
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.strokeStyle = '#FFF';
-        ctx.lineWidth = 2;
-        ctx.strokeText('🐦 Flappy Bird Ultra', GAME_CONFIG.CANVAS_WIDTH / 2, 120);
-        ctx.fillText('🐦 Flappy Bird Ultra', GAME_CONFIG.CANVAS_WIDTH / 2, 120);
-        
-        ctx.font = '18px Arial';
-        ctx.fillStyle = '#34495E';
-        ctx.fillText('Appuyez sur ESPACE pour jouer', GAME_CONFIG.CANVAS_WIDTH / 2, 180);
-        ctx.fillText(`Meilleur score: ${highScore}`, GAME_CONFIG.CANVAS_WIDTH / 2, 220);
-        ctx.fillText(`Difficulté: ${settings.difficulty.toUpperCase()}`, GAME_CONFIG.CANVAS_WIDTH / 2, 260);
-        
-        // Dessiner l'oiseau animé
-        drawBird(ctx, bird.x, bird.y, bird.rotation, true);
-      } else if (gameState === 'playing' || gameState === 'paused' || gameState === 'gameOver') {
-        // Dessiner les tuyaux avec style amélioré
-        drawPipes(ctx, pipes);
-        
-        // Dessiner l'oiseau
-        drawBird(ctx, bird.x, bird.y, bird.rotation, gameState === 'gameOver');
-        
-        // Dessiner les particules
-        if (settings.particlesEnabled) {
-          drawParticles(ctx);
-        }
-
-        // Dessiner le score avec style
-        drawScore(ctx, score, highScore);
-
-        // Dessiner le sol
-        drawGround(ctx);
-
-        if (gameState === 'paused') {
-          drawPauseOverlay(ctx);
-        } else if (gameState === 'gameOver') {
-          drawGameOverOverlay(ctx);
-        }
-      }
-    };
-
-    // Rendu unique au lieu d'une boucle infinie
-    draw();
-  }, [
-    open,
-    gameState,
-    bird,
-    pipes,
-    score,
-    highScore,
-    settings.difficulty,
-    settings.smoothGraphics,
-    settings.particlesEnabled,
-    GAME_CONFIG.CANVAS_HEIGHT,
-    GAME_CONFIG.CANVAS_WIDTH,
-    drawBird,
-    drawGameOverOverlay,
-    drawGround,
-    drawPauseOverlay,
-    drawPipes,
-    drawScore,
-  ]);
-
-  // Rendu optimisé pour le jeu en cours
-  useEffect(() => {
-    if (gameState !== 'playing') return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    
-    const render = () => {
-      // Effacer le canvas avec dégradé
-      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.CANVAS_HEIGHT);
-      gradient.addColorStop(0, '#87CEEB');
-      gradient.addColorStop(1, '#98FB98');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
-
-      // Dessiner les tuyaux
-      drawPipes(ctx, pipes);
-      
-      // Dessiner l'oiseau
-      drawBird(ctx, bird.x, bird.y, bird.rotation, false);
-      
-      // Dessiner les particules
-      if (settings.particlesEnabled) {
-        drawParticles(ctx);
-      }
-
-      // Dessiner le score
-      drawScore(ctx, score, highScore);
-
-      // Dessiner le sol
-      drawGround(ctx);
-    };
-
-    // Rendu immédiat
-    render();
-    
-    // Rendu périodique seulement si nécessaire
-    const renderInterval = setInterval(render, 1000 / TARGET_FPS);
-    
-    return () => {
-      clearInterval(renderInterval);
-    };
-  }, [
-    gameState,
-    bird,
-    pipes,
-    score,
-    highScore,
-    settings.particlesEnabled,
-    GAME_CONFIG.CANVAS_HEIGHT,
-    GAME_CONFIG.CANVAS_WIDTH,
-    drawBird,
-    drawGround,
-    drawPipes,
-    drawScore,
-  ]);
-
   // Fonction pour dessiner l'oiseau optimisée
   const drawBird = useCallback((ctx, x, y, rotation, isDead = false) => {
     ctx.save();
@@ -772,6 +625,154 @@ const FlappyBird = ({ open, onClose }) => {
     ctx.font = '16px Arial';
     ctx.fillText('Appuyez sur R pour rejouer', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 45);
   }, [GAME_CONFIG.CANVAS_HEIGHT, GAME_CONFIG.CANVAS_WIDTH, highScore, score]);
+
+  // Dessiner le jeu optimisé
+  useEffect(() => {
+    if (!open) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    // Optimisation du rendu
+    ctx.imageSmoothingEnabled = settings.smoothGraphics;
+    ctx.imageSmoothingQuality = 'high';
+
+    const draw = () => {
+      // Effacer le canvas avec dégradé
+      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.CANVAS_HEIGHT);
+      gradient.addColorStop(0, '#87CEEB');
+      gradient.addColorStop(1, '#98FB98');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+
+      if (gameState === 'menu') {
+        // Dessiner le menu avec style amélioré
+        ctx.fillStyle = '#2C3E50';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#FFF';
+        ctx.lineWidth = 2;
+        ctx.strokeText('🐦 Flappy Bird Ultra', GAME_CONFIG.CANVAS_WIDTH / 2, 120);
+        ctx.fillText('🐦 Flappy Bird Ultra', GAME_CONFIG.CANVAS_WIDTH / 2, 120);
+
+        ctx.font = '18px Arial';
+        ctx.fillStyle = '#34495E';
+        ctx.fillText('Appuyez sur ESPACE pour jouer', GAME_CONFIG.CANVAS_WIDTH / 2, 180);
+        ctx.fillText(`Meilleur score: ${highScore}`, GAME_CONFIG.CANVAS_WIDTH / 2, 220);
+        ctx.fillText(`Difficulté: ${settings.difficulty.toUpperCase()}`, GAME_CONFIG.CANVAS_WIDTH / 2, 260);
+
+        // Dessiner l'oiseau animé
+        drawBird(ctx, bird.x, bird.y, bird.rotation, true);
+      } else if (gameState === 'playing' || gameState === 'paused' || gameState === 'gameOver') {
+        // Dessiner les tuyaux avec style amélioré
+        drawPipes(ctx, pipes);
+
+        // Dessiner l'oiseau
+        drawBird(ctx, bird.x, bird.y, bird.rotation, gameState === 'gameOver');
+
+        // Dessiner les particules
+        if (settings.particlesEnabled) {
+          drawParticles(ctx);
+        }
+
+        // Dessiner le score avec style
+        drawScore(ctx, score, highScore);
+
+        // Dessiner le sol
+        drawGround(ctx);
+
+        if (gameState === 'paused') {
+          drawPauseOverlay(ctx);
+        } else if (gameState === 'gameOver') {
+          drawGameOverOverlay(ctx);
+        }
+      }
+    };
+
+    // Rendu unique au lieu d'une boucle infinie
+    draw();
+  }, [
+    open,
+    gameState,
+    bird,
+    pipes,
+    score,
+    highScore,
+    settings.difficulty,
+    settings.smoothGraphics,
+    settings.particlesEnabled,
+    GAME_CONFIG.CANVAS_HEIGHT,
+    GAME_CONFIG.CANVAS_WIDTH,
+    drawBird,
+    drawGameOverOverlay,
+    drawGround,
+    drawPauseOverlay,
+    drawPipes,
+    drawScore,
+    drawParticles,
+  ]);
+
+  // Rendu optimisé pour le jeu en cours
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    const render = () => {
+      // Effacer le canvas avec dégradé
+      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.CANVAS_HEIGHT);
+      gradient.addColorStop(0, '#87CEEB');
+      gradient.addColorStop(1, '#98FB98');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+
+      // Dessiner les tuyaux
+      drawPipes(ctx, pipes);
+
+      // Dessiner l'oiseau
+      drawBird(ctx, bird.x, bird.y, bird.rotation, false);
+
+      // Dessiner les particules
+      if (settings.particlesEnabled) {
+        drawParticles(ctx);
+      }
+
+      // Dessiner le score
+      drawScore(ctx, score, highScore);
+
+      // Dessiner le sol
+      drawGround(ctx);
+    };
+
+    // Rendu immédiat
+    render();
+
+    // Rendu périodique seulement si nécessaire
+    const renderInterval = setInterval(render, 1000 / TARGET_FPS);
+
+    return () => {
+      clearInterval(renderInterval);
+    };
+  }, [
+    gameState,
+    bird,
+    pipes,
+    score,
+    highScore,
+    settings.particlesEnabled,
+    GAME_CONFIG.CANVAS_HEIGHT,
+    GAME_CONFIG.CANVAS_WIDTH,
+    drawBird,
+    drawGround,
+    drawPipes,
+    drawScore,
+    drawParticles,
+  ]);
 
   // Gérer la fermeture
   const handleClose = () => {
