@@ -10,6 +10,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import AuthContext from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import { useEasterEgg } from '../context/EasterEggContext';
+import AdminNotificationsMenu from './AdminNotificationsMenu';
 import logo from '../assets/Popov.png';
 
 const Navbar = memo(() => {
@@ -291,6 +292,9 @@ const Navbar = memo(() => {
           {/* Boutons d'authentification et thème à droite */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {renderAuthButtons}
+
+            {/* Onglet Notifications (icône + badge + menu déroulant) */}
+            <AdminNotificationsMenu />
             
             <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
               <IconButton 
