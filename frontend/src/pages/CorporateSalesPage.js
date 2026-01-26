@@ -108,6 +108,11 @@ function CorporateSalesPage() {
 
   return (
     <Box sx={{ width: '100%', p: 2 }}>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
           {loading && !products.length ? <CircularProgress /> :

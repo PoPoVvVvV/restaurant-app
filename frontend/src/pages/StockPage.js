@@ -26,7 +26,7 @@ const IngredientManager = () => {
     } catch (err) {
         showNotification("Impossible de charger les matières premières.", "error");
     }
-  }, []);
+  }, [showNotification]);
   
   useEffect(() => { 
       fetchIngredients();

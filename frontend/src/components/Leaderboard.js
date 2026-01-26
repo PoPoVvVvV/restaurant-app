@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip,
   CircularProgress,
   Tabs,
   Tab,
@@ -49,11 +48,7 @@ const Leaderboard = ({ easterEggType = 'snake-game' }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
 
-  useEffect(() => {
-    fetchData();
-  }, [easterEggType]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [leaderboardRes, statsRes, myBestRes] = await Promise.all([
@@ -63,14 +58,18 @@ const Leaderboard = ({ easterEggType = 'snake-game' }) => {
       ]);
 
       setLeaderboard(leaderboardRes.data.leaderboard);
-      setStats(leaderboardRes.data.stats);
+      setStats(statsRes.data?.stats || statsRes.data);
       setMyBestScore(myBestRes.data.bestScore);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [easterEggType]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const getRankIcon = (rank) => {
     switch (rank) {
@@ -78,15 +77,6 @@ const Leaderboard = ({ easterEggType = 'snake-game' }) => {
       case 2: return '🥈';
       case 3: return '🥉';
       default: return `#${rank}`;
-    }
-  };
-
-  const getRankColor = (rank) => {
-    switch (rank) {
-      case 1: return '#ffff00';
-      case 2: return '#c0c0c0';
-      case 3: return '#cd7f32';
-      default: return '#00ff00';
     }
   };
 

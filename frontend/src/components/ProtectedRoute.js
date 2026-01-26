@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-import { CircularProgress, Box, Typography, Button } from '@mui/material';
+import { CircularProgress, Box } from '@mui/material';
 import AuthContext from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {

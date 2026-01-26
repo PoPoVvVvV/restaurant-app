@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Switch, Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  DialogContentText, FormControlLabel
+  IconButton, Switch, Box, FormControlLabel
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
-import { useCallback } from 'react';
 
 const UserManager = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-  const { showNotification, showError, showSuccess, showWarning, confirm } = useNotification();
+  const { showError, showSuccess, showWarning, confirm } = useNotification();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -30,7 +26,7 @@ const UserManager = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleStatusChange = async (userId, isActive) => {
     try {

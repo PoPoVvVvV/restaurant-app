@@ -96,14 +96,6 @@ const AddRecipeForm = ({ products, onRecipeAdded }) => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [ingredients, setIngredients] = useState([{ name: '', quantity50: '', quantity100: '' }]);
 
-  const handleIngredientChange = (index, field, value) => {
-    // On conserve tous les espaces sauf les espaces multiples consécutifs
-    const processedValue = value.replace(/\s{2,}/g, ' ');
-    const newIngredients = [...ingredients];
-    newIngredients[index][field] = processedValue;
-    setIngredients(newIngredients);
-  };
-
   const addIngredientField = () => {
     setIngredients([...ingredients, { name: '', quantity50: '', quantity100: '' }]);
   };
@@ -185,7 +177,6 @@ function RecipePage() {
   const [recipes, setRecipes] = useState([]);
   const [products, setProducts] = useState([]);
   const [editingRecipe, setEditingRecipe] = useState(null);
-  const [editedIngredients, setEditedIngredients] = useState([]);
 
   const fetchRecipes = async () => {
     try {
@@ -233,12 +224,10 @@ function RecipePage() {
 
   const startEditing = (recipe) => {
     setEditingRecipe(recipe._id);
-    setEditedIngredients([...recipe.ingredients]);
   };
 
   const cancelEditing = () => {
     setEditingRecipe(null);
-    setEditedIngredients([]);
   };
 
   const saveRecipe = async (recipeId) => {

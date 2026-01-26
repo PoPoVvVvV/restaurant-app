@@ -5,7 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 
 // Imports depuis Material-UI
 import {
-  Box, Grid, Typography, Paper, List, ListItem, ListItemText,
+  Box, Typography, List, ListItem, ListItemText,
   Divider, Button, CircularProgress, TextField, IconButton, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';

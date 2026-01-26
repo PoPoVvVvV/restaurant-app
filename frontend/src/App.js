@@ -7,7 +7,7 @@ import { CircularProgress, Box, Typography, Button } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeModeProvider, useThemeMode } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { EasterEggProvider, useEasterEgg } from './context/EasterEggContext';
+import { EasterEggProvider } from './context/EasterEggContext';
 // ProtectedRoute et PublicRoute ne doivent pas être lazy loaded car ils utilisent le contexte d'authentification
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';

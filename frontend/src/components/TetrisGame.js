@@ -42,7 +42,6 @@ const TetrisGame = ({ open, onClose }) => {
   const canvasRef = useRef(null);
   const boardRef = useRef(Array.from({ length: ROWS }, () => Array(COLS).fill(null)));
   const pieceRef = useRef(randomPiece());
-  const dropIntervalRef = useRef(null);
   const speedMsRef = useRef(600);
   const lastDropRef = useRef(0);
   const scoreRef = useRef(0);
@@ -226,7 +225,7 @@ const TetrisGame = ({ open, onClose }) => {
       window.removeEventListener('keydown', handleKey);
       cancelAnimationFrame(id);
     };
-  }, [open, resetGame, draw]);
+  }, [open, resetGame, draw, hardDrop, move, rotatePiece, tickDown]);
 
   const handleGameOver = useCallback(async () => {
     if (isGameOverRef.current) return;

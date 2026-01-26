@@ -17,15 +17,11 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import api from '../services/api';
 
 const FlappyBird = ({ open, onClose }) => {
   const canvasRef = useRef(null);
   const gameLoopRef = useRef(null);
-  const animationFrameRef = useRef(null);
-  const lastTimeRef = useRef(0);
   const particlesRef = useRef([]);
   const audioContextRef = useRef(null);
   const isGameOverRef = useRef(false);
@@ -281,7 +277,7 @@ const FlappyBird = ({ open, onClose }) => {
     setGameState('gameOver');
     playSound(150, 0.5, 'sawtooth');
     saveScore(finalScore);
-  }, [playSound]);
+  }, [playSound, saveScore]);
 
   // Gérer le saut optimisé
   const jump = useCallback(() => {
@@ -310,7 +306,7 @@ const FlappyBird = ({ open, onClose }) => {
       playSound(800 + Math.random() * 200, 0.1, 'square');
       setTimeout(() => setIsJumping(false), 80);
     }
-  }, [gameState, isJumping, bird.x, bird.y, bird.size, settings.difficulty, settings.particlesEnabled, playSound]);
+  }, [gameState, isJumping, bird.x, bird.y, bird.size, settings.difficulty, settings.particlesEnabled, playSound, GAME_CONFIG.DIFFICULTY]);
 
   // Gérer les touches optimisées
   useEffect(() => {
@@ -331,9 +327,10 @@ const FlappyBird = ({ open, onClose }) => {
       window.addEventListener('keydown', handleKeyPress);
       return () => window.removeEventListener('keydown', handleKeyPress);
     }
-  }, [open, jump, gameState]);
+  }, [open, jump, gameState, initGame]);
 
   // Logique du jeu optimisée
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -398,9 +395,20 @@ const FlappyBird = ({ open, onClose }) => {
         clearInterval(gameLoopRef.current);
       }
     };
-  }, [gameState, settings.difficulty, settings.particlesEnabled, playSound]);
+  }, [
+    gameState,
+    settings.difficulty,
+    settings.particlesEnabled,
+    playSound,
+    endGameOnce,
+    GAME_CONFIG.CANVAS_WIDTH,
+    GAME_CONFIG.PIPE_WIDTH,
+    GAME_CONFIG.SKY_HEIGHT,
+    GAME_CONFIG.DIFFICULTY,
+  ]);
 
   // Vérification des collisions (stable via refs pour éviter les recréations d'intervalle)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -448,9 +456,10 @@ const FlappyBird = ({ open, onClose }) => {
 
     const collisionInterval = setInterval(checkCollisions, 1000 / TARGET_FPS);
     return () => clearInterval(collisionInterval);
-  }, [gameState, playSound, endGameOnce]);
+  }, [gameState, playSound, endGameOnce, GAME_CONFIG.PIPE_WIDTH]);
 
   // Dessiner le jeu optimisé
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
 
@@ -520,6 +529,7 @@ const FlappyBird = ({ open, onClose }) => {
   }, [open, gameState, bird, pipes, score, highScore, settings.difficulty, settings.smoothGraphics, settings.particlesEnabled]);
 
   // Rendu optimisé pour le jeu en cours
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (gameState !== 'playing') return;
 

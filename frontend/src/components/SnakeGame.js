@@ -80,16 +80,26 @@ const SnakeGame = ({ open, onClose }) => {
   const generateFood = useCallback((currentSnake = [{ x: 200, y: 200 }]) => {
     const maxX = Math.floor(400 / 20) - 1;
     const maxY = Math.floor(400 / 20) - 1;
-    
-    let newFood;
-    do {
-      newFood = {
+
+    // Évite `no-loop-func` : pas de callback créé dans une boucle.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const candidate = {
         x: Math.floor(Math.random() * maxX) * 20,
         y: Math.floor(Math.random() * maxY) * 20,
       };
-    } while (currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-    
-    return newFood;
+
+      let collides = false;
+      for (let i = 0; i < currentSnake.length; i++) {
+        const segment = currentSnake[i];
+        if (segment.x === candidate.x && segment.y === candidate.y) {
+          collides = true;
+          break;
+        }
+      }
+
+      if (!collides) return candidate;
+    }
   }, []);
 
   // Vérifier les collisions
@@ -138,7 +148,7 @@ const SnakeGame = ({ open, onClose }) => {
 
       return newSnake;
     });
-  }, [gameState, direction, food, checkCollision, generateFood]);
+  }, [gameState, direction, food, checkCollision, generateFood, gameStartTime]);
 
   // Gestion des touches
   const handleKeyPress = useCallback((event) => {
@@ -267,7 +277,7 @@ const SnakeGame = ({ open, onClose }) => {
       console.log('Réponse du serveur:', response.data);
       
       // Afficher le message approprié selon la réponse
-      const { message, isNewRecord, isScoreRejected, previousScore } = response.data;
+      const { message, isNewRecord, isScoreRejected } = response.data;
       
       if (isScoreRejected) {
         // Score rejeté - afficher en rouge/orange

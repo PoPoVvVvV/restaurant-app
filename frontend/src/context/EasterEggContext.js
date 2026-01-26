@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import api from '../services/api';
 
 const EasterEggContext = createContext();
@@ -35,6 +35,8 @@ export const EasterEggProvider = ({ children }) => {
   });
   const [showTetrisGame, setShowTetrisGame] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
+  const checkSequenceRef = useRef(null);
+  const triggerEasterEggEffectRef = useRef(null);
 
   // Fonction pour vérifier le déblocage du Flappy Bird
   const checkFlappyBirdUnlock = useCallback(async () => {
@@ -113,9 +115,9 @@ export const EasterEggProvider = ({ children }) => {
     if (currentSequence.length > EXPECTED_SEQUENCE.length) {
       // Garder seulement les derniers clics
       const recentSequence = currentSequence.slice(-EXPECTED_SEQUENCE.length);
-      checkSequence(recentSequence);
+      checkSequenceRef.current?.(recentSequence);
     } else {
-      checkSequence(currentSequence);
+      checkSequenceRef.current?.(currentSequence);
     }
 
     // Jouer un son de progression si c'est un bon clic
@@ -137,10 +139,14 @@ export const EasterEggProvider = ({ children }) => {
         // Sauvegarder dans localStorage pour rendre permanent
         localStorage.setItem('easterEggUnlocked', 'true');
         // Effet visuel et sonore
-        triggerEasterEggEffect();
+        triggerEasterEggEffectRef.current?.();
       }
     }
   }, [isEasterEggUnlocked]);
+
+  useEffect(() => {
+    checkSequenceRef.current = checkSequence;
+  }, [checkSequence]);
 
   // Effet visuel et sonore pour le déblocage
   const triggerEasterEggEffect = useCallback(async () => {
@@ -244,6 +250,10 @@ export const EasterEggProvider = ({ children }) => {
       setShowSnakeGame(true);
     }, 1000);
   }, []);
+
+  useEffect(() => {
+    triggerEasterEggEffectRef.current = triggerEasterEggEffect;
+  }, [triggerEasterEggEffect]);
 
   // Ouvrir le jeu Snake
   const openSnakeGame = useCallback(() => {
