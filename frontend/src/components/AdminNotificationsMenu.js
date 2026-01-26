@@ -127,7 +127,24 @@ export default function AdminNotificationsMenu() {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        PaperProps={{ sx: { width: 360, maxWidth: '90vw' } }}
+        PaperProps={{
+          sx: {
+            width: 360,
+            maxWidth: '90vw',
+            // Fond opaque pour éviter la transparence (lisibilité)
+            backgroundColor: (theme) =>
+              theme.palette.mode === 'dark' ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(14px)',
+            border: (theme) =>
+              theme.palette.mode === 'dark'
+                ? '1px solid rgba(148, 163, 184, 0.18)'
+                : '1px solid rgba(15, 23, 42, 0.08)',
+            boxShadow: (theme) =>
+              theme.palette.mode === 'dark'
+                ? '0 12px 32px rgba(0,0,0,0.45)'
+                : '0 12px 32px rgba(2,6,23,0.18)',
+          },
+        }}
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
