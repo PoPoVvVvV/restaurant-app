@@ -67,7 +67,35 @@ const TetrisGame = ({ open, onClose }) => {
     startedAtRef.current = Date.now();
   }, []);
 
-  const collides = (piece, dx = 0, dy = 0, shape = piece.shape) => {
+  const handleGameOver = useCallback(async () => {
+    if (isGameOverRef.current) return;
+    isGameOverRef.current = true;
+    setGameOver(true);
+    // Sauvegarde automatique du score
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    try {
+      const duration = Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000));
+      const payload = {
+        easterEggType: 'tetris',
+        score: Math.max(0, scoreRef.current),
+        level: Math.max(1, Math.floor(lines / 10) + 1),
+        duration,
+        snakeLength: 0,
+        gameData: {
+          linesCleared: lines,
+          finalSpeedMs: speedMsRef.current,
+        }
+      };
+      await api.post('/easter-egg-scores', payload);
+    } catch (e) {
+      // silencieux: on ne bloque pas l'UX
+    } finally {
+      isSavingRef.current = false;
+    }
+  }, [lines]);
+
+  const collides = useCallback((piece, dx = 0, dy = 0, shape = piece.shape) => {
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[0].length; x++) {
         if (!shape[y][x]) continue;
@@ -78,9 +106,9 @@ const TetrisGame = ({ open, onClose }) => {
       }
     }
     return false;
-  };
+  }, []);
 
-  const mergePiece = (piece) => {
+  const mergePiece = useCallback((piece) => {
     const color = COLORS[piece.key];
     for (let y = 0; y < piece.shape.length; y++) {
       for (let x = 0; x < piece.shape[0].length; x++) {
@@ -91,9 +119,9 @@ const TetrisGame = ({ open, onClose }) => {
         }
       }
     }
-  };
+  }, []);
 
-  const clearLines = () => {
+  const clearLines = useCallback(() => {
     let cleared = 0;
     for (let y = ROWS - 1; y >= 0; y--) {
       if (boardRef.current[y].every(cell => cell)) {
@@ -110,23 +138,16 @@ const TetrisGame = ({ open, onClose }) => {
       setLines(prev => prev + cleared);
       speedMsRef.current = Math.max(120, speedMsRef.current - cleared * 20);
     }
-  };
+  }, []);
 
-  const spawnPiece = () => {
+  const spawnPiece = useCallback(() => {
     pieceRef.current = randomPiece();
     if (collides(pieceRef.current, 0, 0)) {
       handleGameOver();
     }
-  };
+  }, [collides, handleGameOver]);
 
-  const hardDrop = () => {
-    while (!collides(pieceRef.current, 0, 1)) {
-      pieceRef.current.y += 1;
-    }
-    tickDown(true);
-  };
-
-  const tickDown = (forceMerge = false) => {
+  const tickDown = useCallback((forceMerge = false) => {
     if (!collides(pieceRef.current, 0, 1)) {
       pieceRef.current.y += 1;
     } else if (forceMerge || collides(pieceRef.current, 0, 1)) {
@@ -134,15 +155,22 @@ const TetrisGame = ({ open, onClose }) => {
       clearLines();
       spawnPiece();
     }
-  };
+  }, [clearLines, collides, mergePiece, spawnPiece]);
 
-  const move = (dx) => {
+  const hardDrop = useCallback(() => {
+    while (!collides(pieceRef.current, 0, 1)) {
+      pieceRef.current.y += 1;
+    }
+    tickDown(true);
+  }, [collides, tickDown]);
+
+  const move = useCallback((dx) => {
     if (!collides(pieceRef.current, dx, 0)) {
       pieceRef.current.x += dx;
     }
-  };
+  }, [collides]);
 
-  const rotatePiece = () => {
+  const rotatePiece = useCallback(() => {
     const rotated = rotate(pieceRef.current.shape);
     if (!collides(pieceRef.current, 0, 0, rotated)) {
       pieceRef.current.shape = rotated;
@@ -154,7 +182,7 @@ const TetrisGame = ({ open, onClose }) => {
         pieceRef.current.x += 1; pieceRef.current.shape = rotated;
       }
     }
-  };
+  }, [collides]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -226,35 +254,6 @@ const TetrisGame = ({ open, onClose }) => {
       cancelAnimationFrame(id);
     };
   }, [open, resetGame, draw, hardDrop, move, rotatePiece, tickDown]);
-
-  const handleGameOver = useCallback(async () => {
-    if (isGameOverRef.current) return;
-    isGameOverRef.current = true;
-    setGameOver(true);
-    // Sauvegarde automatique du score
-    if (isSavingRef.current) return;
-    isSavingRef.current = true;
-    try {
-      const duration = Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000));
-      const payload = {
-        easterEggType: 'tetris',
-        score: Math.max(0, scoreRef.current),
-        level: Math.max(1, Math.floor(lines / 10) + 1),
-        duration,
-        snakeLength: 0,
-        gameData: {
-          linesCleared: lines,
-          finalSpeedMs: speedMsRef.current,
-        }
-      };
-      await api.post('/easter-egg-scores', payload);
-    } catch (e) {
-      // silencieux: on ne bloque pas l'UX
-      // console.error('Erreur sauvegarde Tetris', e);
-    } finally {
-      isSavingRef.current = false;
-    }
-  }, [lines]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

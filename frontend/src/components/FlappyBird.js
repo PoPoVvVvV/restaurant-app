@@ -27,6 +27,8 @@ const FlappyBird = ({ open, onClose }) => {
   const isGameOverRef = useRef(false);
   const scoreRef = useRef(0);
   const birdRef = useRef({ x: 80, y: 250, velocity: 0, size: 20, rotation: 0 });
+  const gameSpeedRef = useRef(2);
+  const settingsRef = useRef(null);
   const pipesRef = useRef([]);
   const passedPipeIdsRef = useRef(new Set());
   
@@ -67,6 +69,15 @@ const FlappyBird = ({ open, onClose }) => {
     difficulty: 'normal', // 'easy', 'normal', 'hard', 'extreme'
     fps: 60
   });
+
+  // Garder des refs stables (évite de recréer des callbacks)
+  useEffect(() => {
+    gameSpeedRef.current = gameSpeed;
+  }, [gameSpeed]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   // Limite d'images par seconde
   const TARGET_FPS = 30; // plafonné à 30 FPS max
@@ -126,6 +137,38 @@ const FlappyBird = ({ open, onClose }) => {
     }
   }, [settings.soundEnabled]);
 
+  // Charger le meilleur score de l'utilisateur
+  const loadHighScore = useCallback(async () => {
+    try {
+      console.log('📊 Chargement du meilleur score...');
+      const response = await api.get('/easter-egg-scores/my-best/flappy-bird');
+      console.log('📥 Réponse meilleur score:', response.data);
+      if (response.data.bestScore) {
+        setHighScore(response.data.bestScore.score);
+        console.log('✅ Meilleur score chargé:', response.data.bestScore.score);
+      } else {
+        console.log('ℹ️ Aucun meilleur score trouvé');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement du meilleur score:', error);
+      console.error('Détails:', error.response?.data || error.message);
+    }
+  }, []);
+
+  // Charger le classement
+  const loadLeaderboard = useCallback(async () => {
+    try {
+      console.log('🏆 Chargement du classement...');
+      const response = await api.get('/easter-egg-scores/leaderboard/flappy-bird?limit=10');
+      console.log('📥 Réponse classement:', response.data);
+      setLeaderboard(response.data.leaderboard || []);
+      console.log('✅ Classement chargé:', response.data.leaderboard?.length || 0, 'entrées');
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement du classement:', error);
+      console.error('Détails:', error.response?.data || error.message);
+    }
+  }, []);
+
   // Charger le meilleur score au montage
   useEffect(() => {
     if (open) {
@@ -144,42 +187,10 @@ const FlappyBird = ({ open, onClose }) => {
       loadLeaderboard();
       initAudio();
     }
-  }, [open, initAudio]);
-
-  // Charger le meilleur score de l'utilisateur
-  const loadHighScore = async () => {
-    try {
-      console.log('📊 Chargement du meilleur score...');
-      const response = await api.get('/easter-egg-scores/my-best/flappy-bird');
-      console.log('📥 Réponse meilleur score:', response.data);
-      if (response.data.bestScore) {
-        setHighScore(response.data.bestScore.score);
-        console.log('✅ Meilleur score chargé:', response.data.bestScore.score);
-      } else {
-        console.log('ℹ️ Aucun meilleur score trouvé');
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement du meilleur score:', error);
-      console.error('Détails:', error.response?.data || error.message);
-    }
-  };
-
-  // Charger le classement
-  const loadLeaderboard = async () => {
-    try {
-      console.log('🏆 Chargement du classement...');
-      const response = await api.get('/easter-egg-scores/leaderboard/flappy-bird?limit=10');
-      console.log('📥 Réponse classement:', response.data);
-      setLeaderboard(response.data.leaderboard || []);
-      console.log('✅ Classement chargé:', response.data.leaderboard?.length || 0, 'entrées');
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement du classement:', error);
-      console.error('Détails:', error.response?.data || error.message);
-    }
-  };
+  }, [open, initAudio, loadHighScore, loadLeaderboard]);
 
   // Sauvegarder le score (ne garde que le meilleur)
-  const saveScore = async (finalScore) => {
+  const saveScore = useCallback(async (finalScore) => {
     if (isSaving) {
       console.log('⚠️ Sauvegarde déjà en cours, ignorée');
       return;
@@ -197,12 +208,15 @@ const FlappyBird = ({ open, onClose }) => {
     setIsSaving(true);
     
     try {
+      const currentSettings = settingsRef.current;
+      const currentBird = birdRef.current;
+      if (!currentSettings || !currentBird) return;
       const gameData = {
         pipesPassed: Math.floor(finalScore / 10),
-        gameSpeed: gameSpeed,
-        finalBirdY: bird.y,
-        difficulty: settings.difficulty,
-        settings: settings,
+        gameSpeed: gameSpeedRef.current,
+        finalBirdY: currentBird.y,
+        difficulty: currentSettings.difficulty,
+        settings: currentSettings,
         timestamp: new Date().toISOString()
       };
 
@@ -248,11 +262,12 @@ const FlappyBird = ({ open, onClose }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, loadLeaderboard, loadHighScore, playSound]);
 
   // Initialiser le jeu
-  const initGame = () => {
-    const config = GAME_CONFIG.DIFFICULTY[settings.difficulty];
+  const initGame = useCallback(() => {
+    const difficulty = settingsRef.current?.difficulty || 'normal';
+    const config = GAME_CONFIG.DIFFICULTY[difficulty];
     setBird({ 
       x: 80, 
       y: GAME_CONFIG.SKY_HEIGHT / 2, 
@@ -268,7 +283,7 @@ const FlappyBird = ({ open, onClose }) => {
     isGameOverRef.current = false;
     passedPipeIdsRef.current = new Set();
     playSound(440, 0.1); // Son de démarrage
-  };
+  }, [GAME_CONFIG, playSound]);
 
   // Centraliser la fin de partie pour éviter les doublons (sauvegarde unique)
   const endGameOnce = useCallback((finalScore) => {
@@ -525,11 +540,28 @@ const FlappyBird = ({ open, onClose }) => {
     };
 
     // Rendu unique au lieu d'une boucle infinie
-      draw();
-  }, [open, gameState, bird, pipes, score, highScore, settings.difficulty, settings.smoothGraphics, settings.particlesEnabled]);
+    draw();
+  }, [
+    open,
+    gameState,
+    bird,
+    pipes,
+    score,
+    highScore,
+    settings.difficulty,
+    settings.smoothGraphics,
+    settings.particlesEnabled,
+    GAME_CONFIG.CANVAS_HEIGHT,
+    GAME_CONFIG.CANVAS_WIDTH,
+    drawBird,
+    drawGameOverOverlay,
+    drawGround,
+    drawPauseOverlay,
+    drawPipes,
+    drawScore,
+  ]);
 
   // Rendu optimisé pour le jeu en cours
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -573,10 +605,23 @@ const FlappyBird = ({ open, onClose }) => {
     return () => {
       clearInterval(renderInterval);
     };
-  }, [gameState, bird, pipes, score, highScore, settings.particlesEnabled]);
+  }, [
+    gameState,
+    bird,
+    pipes,
+    score,
+    highScore,
+    settings.particlesEnabled,
+    GAME_CONFIG.CANVAS_HEIGHT,
+    GAME_CONFIG.CANVAS_WIDTH,
+    drawBird,
+    drawGround,
+    drawPipes,
+    drawScore,
+  ]);
 
   // Fonction pour dessiner l'oiseau optimisée
-  const drawBird = (ctx, x, y, rotation, isDead = false) => {
+  const drawBird = useCallback((ctx, x, y, rotation, isDead = false) => {
     ctx.save();
     ctx.translate(x + GAME_CONFIG.BIRD_SIZE / 2, y + GAME_CONFIG.BIRD_SIZE / 2);
     ctx.rotate(rotation * Math.PI / 180);
@@ -613,10 +658,10 @@ const FlappyBird = ({ open, onClose }) => {
     ctx.fill();
     
     ctx.restore();
-  };
+  }, [GAME_CONFIG.BIRD_SIZE]);
 
   // Fonction pour dessiner les tuyaux
-  const drawPipes = (ctx, pipes) => {
+  const drawPipes = useCallback((ctx, pipes) => {
     pipes.forEach(pipe => {
       // Tuyau du haut
       const topGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + GAME_CONFIG.PIPE_WIDTH, 0);
@@ -637,10 +682,10 @@ const FlappyBird = ({ open, onClose }) => {
       // Bordure du tuyau du bas
       ctx.strokeRect(pipe.x, pipe.bottomY, GAME_CONFIG.PIPE_WIDTH, GAME_CONFIG.SKY_HEIGHT - pipe.bottomY);
     });
-  };
+  }, [GAME_CONFIG.PIPE_WIDTH, GAME_CONFIG.SKY_HEIGHT]);
 
   // Fonction pour dessiner les particules
-  const drawParticles = (ctx) => {
+  const drawParticles = useCallback((ctx) => {
     particlesRef.current.forEach(particle => {
       const alpha = particle.life / particle.maxLife;
       ctx.save();
@@ -651,10 +696,10 @@ const FlappyBird = ({ open, onClose }) => {
       ctx.fill();
       ctx.restore();
     });
-  };
+  }, []);
 
   // Fonction pour dessiner le score
-  const drawScore = (ctx, score, highScore) => {
+  const drawScore = useCallback((ctx, score, highScore) => {
     ctx.fillStyle = '#2C3E50';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
@@ -666,19 +711,19 @@ const FlappyBird = ({ open, onClose }) => {
     ctx.font = '16px Arial';
     ctx.fillStyle = '#7F8C8D';
     ctx.fillText(`Meilleur: ${highScore}`, GAME_CONFIG.CANVAS_WIDTH / 2, 90);
-  };
+  }, [GAME_CONFIG.CANVAS_WIDTH]);
 
   // Fonction pour dessiner le sol
-  const drawGround = (ctx) => {
+  const drawGround = useCallback((ctx) => {
     const gradient = ctx.createLinearGradient(0, GAME_CONFIG.SKY_HEIGHT, 0, GAME_CONFIG.CANVAS_HEIGHT);
     gradient.addColorStop(0, '#8B4513');
     gradient.addColorStop(1, '#654321');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, GAME_CONFIG.SKY_HEIGHT, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.GROUND_HEIGHT);
-  };
+  }, [GAME_CONFIG.CANVAS_HEIGHT, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.GROUND_HEIGHT, GAME_CONFIG.SKY_HEIGHT]);
 
   // Fonction pour dessiner l'overlay de pause
-  const drawPauseOverlay = (ctx) => {
+  const drawPauseOverlay = useCallback((ctx) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
     
@@ -689,10 +734,10 @@ const FlappyBird = ({ open, onClose }) => {
     
     ctx.font = '18px Arial';
     ctx.fillText('Appuyez sur P pour reprendre', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 40);
-  };
+  }, [GAME_CONFIG.CANVAS_HEIGHT, GAME_CONFIG.CANVAS_WIDTH]);
 
   // Fonction pour dessiner l'overlay de game over
-  const drawGameOverOverlay = (ctx) => {
+  const drawGameOverOverlay = useCallback((ctx) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
     
@@ -726,7 +771,7 @@ const FlappyBird = ({ open, onClose }) => {
     ctx.fillStyle = '#FFF';
     ctx.font = '16px Arial';
     ctx.fillText('Appuyez sur R pour rejouer', GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2 + 45);
-  };
+  }, [GAME_CONFIG.CANVAS_HEIGHT, GAME_CONFIG.CANVAS_WIDTH, highScore, score]);
 
   // Gérer la fermeture
   const handleClose = () => {
