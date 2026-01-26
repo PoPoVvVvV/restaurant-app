@@ -121,4 +121,22 @@ router.patch('/:id/read', protect, async (req, res) => {
   }
 });
 
+// @route   PATCH /api/notifications/read-all
+// @desc    Marquer toutes les notifications comme lues (par utilisateur)
+// @access  Privé
+router.patch('/read-all', protect, async (req, res) => {
+  try {
+    const userId = getUserObjectId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Utilisateur invalide.' });
+    }
+
+    await AdminNotification.updateMany({}, { $addToSet: { readBy: userId } });
+    res.json({ message: 'Toutes les notifications ont été marquées comme lues.', unreadCount: 0 });
+  } catch (error) {
+    console.error('Erreur PATCH /api/notifications/read-all:', error);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 export default router;

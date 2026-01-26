@@ -92,6 +92,16 @@ export default function AdminNotificationsMenu() {
     [setNotifications]
   );
 
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await api.patch('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (e) {
+      // silencieux
+    }
+  }, []);
+
   const badgeContent = useMemo(() => {
     if (!user) return 0;
     return unreadCount > 99 ? '99+' : unreadCount;
@@ -146,13 +156,21 @@ export default function AdminNotificationsMenu() {
           },
         }}
       >
-        <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Notifications
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {unreadCount ? `${unreadCount} non lue(s)` : 'Tout est lu'}
-          </Typography>
+        <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Notifications
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {unreadCount ? `${unreadCount} non lue(s)` : 'Tout est lu'}
+            </Typography>
+          </Box>
+
+          {unreadCount ? (
+            <Button size="small" onClick={handleMarkAllRead} sx={{ whiteSpace: 'nowrap' }}>
+              Marquer comme lu
+            </Button>
+          ) : null}
         </Box>
         <Divider />
 
@@ -176,19 +194,6 @@ export default function AdminNotificationsMenu() {
                     py: 1.25,
                     backgroundColor: n.isRead ? 'transparent' : 'rgba(244, 67, 54, 0.06)',
                   }}
-                  secondaryAction={
-                    !n.isRead ? (
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkRead(n._id);
-                        }}
-                      >
-                        Marquer comme lu
-                      </Button>
-                    ) : null
-                  }
                 >
                   <ListItemText
                     primary={
