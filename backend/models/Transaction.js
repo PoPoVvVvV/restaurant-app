@@ -55,6 +55,14 @@ const TransactionSchema = new mongoose.Schema({
     default: 'particulier',
     required: true,
   },
+  deliveryFee: {
+    type: Number,
+    default: 0,
+  },
+  deliveryZone: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

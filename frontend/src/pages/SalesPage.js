@@ -6,7 +6,8 @@ import { useNotification } from '../context/NotificationContext';
 // Imports depuis Material-UI
 import {
   Box, Typography, List, ListItem, ListItemText,
-  Divider, Button, CircularProgress, TextField, IconButton, Checkbox, FormControlLabel
+  Divider, Button, CircularProgress, TextField, IconButton, Checkbox, FormControlLabel,
+  Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -17,7 +18,15 @@ function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [splitPayment, setSplitPayment] = useState(false);
+  const [includeDeliveryFee, setIncludeDeliveryFee] = useState(false);
+  const [deliveryZone, setDeliveryZone] = useState('');
   const { showNotification } = useNotification();
+
+  const DELIVERY_OPTIONS = useMemo(() => ([
+    { value: 'paleto_roxwood', label: 'Paleto & Roxwood', fee: 100 },
+    { value: 'sandy_grapeseed', label: 'Sandy Shores & Grapeseed', fee: 50 },
+    { value: 'los_santos', label: 'Los Santos', fee: 10 },
+  ]), []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -102,26 +111,46 @@ function SalesPage() {
 
   const handleSaveTransaction = useCallback(async () => {
     if (cart.length === 0) return;
+    if (includeDeliveryFee && !deliveryZone) {
+      showNotification("Veuillez sélectionner une zone de livraison.", "warning");
+      return;
+    }
     setLoading(true);
     try {
-      const { data } = await api.post('/transactions', { cart });
+      const { data } = await api.post('/transactions', {
+        cart,
+        delivery: includeDeliveryFee ? { zone: deliveryZone } : undefined,
+      });
       showNotification(data.message, 'success');
       setCart([]);
+      setIncludeDeliveryFee(false);
+      setDeliveryZone('');
       fetchProducts();
     } catch (err) {
       showNotification(err.response?.data?.message || "Une erreur est survenue.", 'error');
     } finally {
       setLoading(false);
     }
-  }, [cart, fetchProducts, showNotification]);
+  }, [cart, deliveryZone, fetchProducts, includeDeliveryFee, showNotification]);
 
-  const totalAmount = useMemo(() => 
+  const subtotalAmount = useMemo(() =>
     cart.reduce((sum, item) => sum + item.price * item.quantity, 0), 
     [cart]
   );
+
+  const deliveryFee = useMemo(() => {
+    if (!includeDeliveryFee) return 0;
+    const option = DELIVERY_OPTIONS.find(o => o.value === deliveryZone);
+    return option ? option.fee : 0;
+  }, [DELIVERY_OPTIONS, deliveryZone, includeDeliveryFee]);
+
+  const totalAmount = useMemo(
+    () => subtotalAmount + deliveryFee,
+    [deliveryFee, subtotalAmount]
+  );
   
   const margin = useMemo(() => 
-    totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0), 
+    totalAmount - cart.reduce((sum, item) => sum + item.cost * item.quantity, 0),
     [totalAmount, cart]
   );
 
@@ -328,6 +357,39 @@ function SalesPage() {
                 label="Décomposer le paiement (max 750$ par versement)"
               />
             </Box>
+            <Box sx={{ textAlign: 'left', mb: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={includeDeliveryFee}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIncludeDeliveryFee(checked);
+                      if (!checked) setDeliveryZone('');
+                    }}
+                    color="primary"
+                  />
+                }
+                label="Ajouter des frais de livraison"
+              />
+              {includeDeliveryFee && (
+                <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+                  <InputLabel id="delivery-zone-label">Zone de livraison</InputLabel>
+                  <Select
+                    labelId="delivery-zone-label"
+                    value={deliveryZone}
+                    label="Zone de livraison"
+                    onChange={(e) => setDeliveryZone(e.target.value)}
+                  >
+                    {DELIVERY_OPTIONS.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label} (+{opt.fee}$)
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            </Box>
             <Box sx={{ textAlign: 'right', mb: 2 }}>
               {splitPayment && totalAmount > 0 ? (
                 <Box sx={{ mb: 2, textAlign: 'left' }}>
@@ -342,12 +404,24 @@ function SalesPage() {
                       </Typography>
                     );
                   })}
+                  {deliveryFee > 0 && (
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Frais de livraison: +${deliveryFee.toFixed(2)}
+                    </Typography>
+                  )}
                   <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
                     Total: ${totalAmount.toFixed(2)}
                   </Typography>
                 </Box>
               ) : (
-                <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
+                <Box>
+                  {deliveryFee > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      Frais de livraison: +${deliveryFee.toFixed(2)}
+                    </Typography>
+                  )}
+                  <Typography variant="h6">Total: ${totalAmount.toFixed(2)}</Typography>
+                </Box>
               )}
               <Typography variant="body2" color="text.secondary">
                 Marge brute: ${margin.toFixed(2)}

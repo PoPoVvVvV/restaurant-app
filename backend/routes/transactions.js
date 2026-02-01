@@ -12,17 +12,41 @@ const router = express.Router();
 // @desc    Créer une ou plusieurs transactions (gère la répartition)
 // @access  Privé (Employé/Admin)
 router.post('/', protect, async (req, res) => {
-  const { cart, employeeIds } = req.body;
+  const { cart, employeeIds, delivery } = req.body;
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    const DELIVERY_FEES = {
+      paleto_roxwood: 100,
+      sandy_grapeseed: 50,
+      los_santos: 10,
+    };
+    const DELIVERY_LABELS = {
+      paleto_roxwood: 'Paleto & Roxwood',
+      sandy_grapeseed: 'Sandy Shores & Grapeseed',
+      los_santos: 'Los Santos',
+    };
+
     const weekSetting = await Setting.findOne({ key: 'currentWeekId' }).session(session);
     const currentWeekId = weekSetting?.value || 1;
     let totalAmount = 0;
     let totalCost = 0;
     const transactionProducts = [];
     const isCorporateSale = employeeIds && employeeIds.length > 0;
+    let deliveryFee = 0;
+    let deliveryZone = null;
+
+    if (delivery?.zone) {
+      if (typeof delivery.zone !== 'string') {
+        throw new Error(`Zone de livraison invalide.`);
+      }
+      if (!(delivery.zone in DELIVERY_FEES)) {
+        throw new Error(`Zone de livraison inconnue.`);
+      }
+      deliveryZone = delivery.zone;
+      deliveryFee = DELIVERY_FEES[delivery.zone];
+    }
 
     // 1. Calculer les totaux et mettre à jour les stocks (si nécessaire)
     // D'abord, calculer les menus offerts pour la promotion "5 achetés = 1 offert"
@@ -95,6 +119,8 @@ router.post('/', protect, async (req, res) => {
         totalCost += product.cost * freeQuantity;
       }
     }
+    // Ajouter les frais de livraison (revenu pur, coût 0)
+    totalAmount += deliveryFee;
     const totalMargin = totalAmount - totalCost;
 
     // 2. Déterminer la liste des employés cibles
@@ -104,6 +130,7 @@ router.post('/', protect, async (req, res) => {
     const dividedAmount = totalAmount / employeeCount;
     const dividedCost = totalCost / employeeCount;
     const dividedMargin = totalMargin / employeeCount;
+    const dividedDeliveryFee = deliveryFee / employeeCount;
 
     // 3. Créer une transaction pour chaque employé
     for (const empId of targetEmployeeIds) {
@@ -114,7 +141,9 @@ router.post('/', protect, async (req, res) => {
         totalAmount: dividedAmount,
         totalCost: dividedCost,
         margin: dividedMargin,
-        saleType: isCorporateSale ? 'entreprise' : 'particulier'
+        saleType: isCorporateSale ? 'entreprise' : 'particulier',
+        deliveryFee: dividedDeliveryFee,
+        deliveryZone: deliveryZone,
       });
       await newTransaction.save({ session });
     }
@@ -126,12 +155,19 @@ router.post('/', protect, async (req, res) => {
     const webhookUrl = process.env.DISCORD_SALES_WEBHOOK_URL;
     if (webhookUrl) {
         const productList = transactionProducts.map(p => `• ${p.quantity} x ${p.name}`).join('\n');
+        const deliveryLine = deliveryFee > 0
+          ? `${DELIVERY_LABELS[deliveryZone] || deliveryZone} (+$${deliveryFee.toFixed(2)})`
+          : null;
         const embed = {
             author: { name: `Vente enregistrée par ${req.user.username}` },
             title: `Transaction de ${totalAmount.toFixed(2)}$`,
             description: `Vente répartie sur ${employeeCount} employé(s).`,
             color: 5763719,
-            fields: [ { name: "Produits Vendus", value: productList }, { name: "Marge Brute Totale", value: `$${totalMargin.toFixed(2)}` } ],
+            fields: [
+              { name: "Produits Vendus", value: productList || "Aucun produit" },
+              ...(deliveryLine ? [{ name: "Livraison", value: deliveryLine }] : []),
+              { name: "Marge Brute Totale", value: `$${totalMargin.toFixed(2)}` }
+            ],
             timestamp: new Date().toISOString(),
         };
         axios.post(webhookUrl, { embeds: [embed] }).catch(err => console.error("Erreur Webhook Ventes:", err.message));
