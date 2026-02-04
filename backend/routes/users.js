@@ -89,6 +89,47 @@ router.put('/:id/grade', [protect, admin], async (req, res) => {
   }
 });
 
+// @route   PUT /api/users/:id/role
+// @desc    Modifier le rôle d'un utilisateur (employe/admin)
+// @access  Privé/Admin
+router.put('/:id/role', [protect, admin], async (req, res) => {
+  try {
+    const { role } = req.body;
+    const targetUserId = req.params.id;
+
+    if (!role || typeof role !== 'string') {
+      return res.status(400).json({ message: 'Rôle requis.' });
+    }
+
+    const normalizedRole = role.trim().toLowerCase();
+    const validRoles = ['employe', 'admin'];
+    if (!validRoles.includes(normalizedRole)) {
+      return res.status(400).json({ message: 'Rôle non valide.' });
+    }
+
+    // Empêcher un admin de se retirer ses propres droits (évite de se verrouiller)
+    if (req.user && String(req.user._id) === String(targetUserId)) {
+      return res.status(400).json({ message: 'Vous ne pouvez pas modifier votre propre rôle.' });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    user.role = normalizedRole;
+    await user.save();
+
+    res.json({
+      message: `Le rôle de ${user.username} a été mis à jour.`,
+      user: { _id: user._id, username: user.username, role: user.role }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   GET /api/users/reset-tokens
 // @desc    Obtenir les tokens de réinitialisation de mot de passe actifs
 // @access  Privé/Admin

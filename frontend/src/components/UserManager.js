@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
   Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Switch, Box, FormControlLabel
+  IconButton, Switch, Box, FormControlLabel, Select, MenuItem
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import AuthContext from '../context/AuthContext';
 
 const UserManager = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatingRoleUserId, setUpdatingRoleUserId] = useState(null);
   const { showError, showSuccess, showWarning, confirm } = useNotification();
+  const { user: currentUser } = useContext(AuthContext);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -36,6 +39,39 @@ const UserManager = () => {
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       showError('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const handleRoleChange = async (targetUser, nextRole) => {
+    const targetId = targetUser?._id;
+    if (!targetId) return;
+
+    // Eviter de tenter un changement inutile
+    if (targetUser.role === nextRole) return;
+
+    const roleLabel = nextRole === 'admin' ? 'admin' : 'employé';
+    const shouldProceed = await confirm(
+      `Confirmez-vous le changement de rôle de ${targetUser.username} vers ${roleLabel} ?`,
+      {
+        title: 'Confirmer le changement de rôle',
+        severity: 'warning',
+        confirmText: 'Confirmer',
+        cancelText: 'Annuler'
+      }
+    );
+    if (!shouldProceed) return;
+
+    try {
+      setUpdatingRoleUserId(targetId);
+      await api.put(`/users/${targetId}/role`, { role: nextRole });
+      showSuccess(`Rôle mis à jour pour ${targetUser.username}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du rôle:', error);
+      showError(error.response?.data?.message || 'Erreur lors de la mise à jour du rôle');
+      fetchUsers(); // Pour resynchroniser l’affichage si besoin
+    } finally {
+      setUpdatingRoleUserId(null);
     }
   };
 
@@ -110,19 +146,19 @@ const UserManager = () => {
               <TableRow key={user._id}>
                 <TableCell>{user.username}</TableCell>
                 <TableCell>
-                  <Box sx={{ 
-                    display: 'inline-block',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    backgroundColor: user.role === 'admin' ? 'primary.light' : 'grey.300',
-                    color: user.role === 'admin' ? 'primary.contrastText' : 'text.primary',
-                    fontWeight: 'medium',
-                    fontSize: '0.75rem',
-                    textTransform: 'capitalize'
-                  }}>
-                    {user.role}
-                  </Box>
+                  <Select
+                    size="small"
+                    value={user.role || 'employe'}
+                    onChange={(e) => handleRoleChange(user, e.target.value)}
+                    disabled={
+                      updatingRoleUserId === user._id ||
+                      (currentUser?.id && String(currentUser.id) === String(user._id))
+                    }
+                    sx={{ minWidth: 140 }}
+                  >
+                    <MenuItem value="employe">Employé</MenuItem>
+                    <MenuItem value="admin">Admin</MenuItem>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <FormControlLabel

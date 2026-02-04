@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 // Middleware pour vérifier le token (déjà créé en théorie)
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   // Logique de base : on suppose que le token est dans l'en-tête
   const token = req.header('x-auth-token');
   if (!token) {
@@ -11,23 +12,28 @@ export const protect = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Vérifier si le token a la structure attendue
-    if (decoded && decoded.user) {
-      // Si le token contient un objet user, l'utiliser directement
-      req.user = decoded.user;
-    } else if (decoded.id) {
-      // Si le token contient directement les propriétés de l'utilisateur
-      req.user = {
-        _id: decoded.id,
-        role: decoded.role,
-        username: decoded.username,
-        grade: decoded.grade
-      };
-    } else {
+    // Récupérer l'ID utilisateur depuis les structures de token supportées
+    const userId =
+      decoded?.user?.id ||
+      decoded?.user?._id ||
+      decoded?.id ||
+      decoded?._id;
+
+    if (!userId) {
       // Si la structure du token n'est pas reconnue
       console.error('Structure de token non reconnue:', decoded);
       return res.status(400).json({ message: 'Structure de token invalide.' });
     }
+
+    // Toujours recharger l'utilisateur depuis la base pour avoir le rôle/statut à jour
+    const dbUser = await User.findById(userId).select('-password');
+    if (!dbUser) {
+      return res.status(401).json({ message: 'Utilisateur introuvable. Veuillez vous reconnecter.' });
+    }
+    if (dbUser.isActive === false) {
+      return res.status(401).json({ message: 'Compte désactivé. Accès refusé.' });
+    }
+    req.user = dbUser;
     
     console.log('Utilisateur authentifié:', { userId: req.user._id, role: req.user.role });
     next();
