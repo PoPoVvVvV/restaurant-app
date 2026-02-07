@@ -38,24 +38,24 @@ const computeEstimatedSalaryFromMargin = ({
   salaryPercentageOfMargin,
 }) => {
   const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
+  // Règle métier: Patron & Co-Patronne = toujours 20 000$, sans condition de ventes/marge
+  if (isHighLevel) {
+    return 20000;
+  }
   const effectiveMaxSalary =
     (typeof maxSalary === 'number' && Number.isFinite(maxSalary))
       ? maxSalary
-      : (isHighLevel ? 20000 : 19000);
+      : 19000;
 
   const canExceed = Boolean(allowMaxSalaryExceed);
 
   // Compat: Patron/Co-Patronne = fixe (comme avant) tant qu'aucun % n'est défini
   let raw;
-  if (isHighLevel && (salaryPercentageOfMargin === null || salaryPercentageOfMargin === undefined)) {
-    raw = effectiveMaxSalary;
-  } else {
-    const effectivePercentage =
-      (typeof salaryPercentageOfMargin === 'number' && Number.isFinite(salaryPercentageOfMargin))
-        ? salaryPercentageOfMargin
-        : 0.5; // défaut: 50%
-    raw = (Number(totalMargin) || 0) * effectivePercentage;
-  }
+  const effectivePercentage =
+    (typeof salaryPercentageOfMargin === 'number' && Number.isFinite(salaryPercentageOfMargin))
+      ? salaryPercentageOfMargin
+      : 0.5; // défaut: 50%
+  raw = (Number(totalMargin) || 0) * effectivePercentage;
 
   if (canExceed) return raw;
   return Math.min(raw, effectiveMaxSalary);
@@ -122,6 +122,7 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
       {
         $project: {
           _id: 0,
+          employeeId: '$_id',
           totalMargin: '$totalMargin',
           grade: '$employeeInfo.grade',
           maxSalary: '$employeeInfo.maxSalary',
@@ -142,6 +143,18 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
       });
       totalBonusWithCaps += estimated;
     });
+
+    // IMPORTANT: inclure Patron/Co-Patronne même sans transactions (sinon absent de l'agrégation)
+    const highLevelUsers = await User.find({ grade: { $in: ['Patron', 'Co-Patronne'] } })
+      .select('_id')
+      .lean();
+    const presentHighLevelIds = new Set(
+      performanceData
+        .filter(d => d.grade === 'Patron' || d.grade === 'Co-Patronne')
+        .map(d => String(d.employeeId))
+    );
+    const missingHighLevelCount = highLevelUsers.filter(u => !presentHighLevelIds.has(String(u._id))).length;
+    totalBonusWithCaps += missingHighLevelCount * 20000;
     
     summary.totalBonus = totalBonusWithCaps;
     summary.liveBalance = summary.startingBalance + summary.netMargin - summary.taxPayable;
@@ -184,6 +197,26 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
         }
       },
     ]);
+
+    // IMPORTANT: inclure Patron/Co-Patronne même sans transactions
+    const highLevelUsers = await User.find({ grade: { $in: ['Patron', 'Co-Patronne'] } })
+      .select('_id username grade maxSalary allowMaxSalaryExceed salaryPercentageOfMargin')
+      .lean();
+    const presentIds = new Set(performanceData.map(d => String(d.employeeId)));
+    for (const u of highLevelUsers) {
+      if (!presentIds.has(String(u._id))) {
+        performanceData.push({
+          employeeId: u._id,
+          employeeName: u.username,
+          grade: u.grade,
+          totalRevenue: 0,
+          totalMargin: 0,
+          maxSalary: u.maxSalary ?? null,
+          allowMaxSalaryExceed: Boolean(u.allowMaxSalaryExceed),
+          salaryPercentageOfMargin: u.salaryPercentageOfMargin ?? null,
+        });
+      }
+    }
     
     const finalReport = performanceData.map(data => {
       const estimatedBonus = computeEstimatedSalaryFromMargin({

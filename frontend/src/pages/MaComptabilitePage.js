@@ -132,6 +132,8 @@ function MaComptabilitePage() {
   const totalBonus = useMemo(() => {
     const grade = me?.grade || user?.grade;
     const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
+    // Règle métier: Patron & Co-Patronne = toujours 20 000$, même sans ventes
+    if (isHighLevel) return 20000;
 
     const effectiveMaxSalary =
       (typeof me?.maxSalary === 'number' && Number.isFinite(me.maxSalary))
@@ -140,16 +142,11 @@ function MaComptabilitePage() {
     const canExceed = Boolean(me?.allowMaxSalaryExceed);
 
     let raw;
-    if (isHighLevel && (me?.salaryPercentageOfMargin === null || me?.salaryPercentageOfMargin === undefined)) {
-      // Compat: fixe par défaut pour Patron/Co-Patronne
-      raw = effectiveMaxSalary;
-    } else {
-      const effectivePercentage =
-        (typeof me?.salaryPercentageOfMargin === 'number' && Number.isFinite(me.salaryPercentageOfMargin))
-          ? me.salaryPercentageOfMargin
-          : 0.5; // défaut: 50%
-      raw = totalMargin * effectivePercentage;
-    }
+    const effectivePercentage =
+      (typeof me?.salaryPercentageOfMargin === 'number' && Number.isFinite(me.salaryPercentageOfMargin))
+        ? me.salaryPercentageOfMargin
+        : 0.5; // défaut: 50%
+    raw = totalMargin * effectivePercentage;
 
     if (canExceed) return raw;
     return Math.min(raw, effectiveMaxSalary);

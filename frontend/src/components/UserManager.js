@@ -105,6 +105,11 @@ const UserManager = () => {
   };
 
   const handleSaveSalarySettings = async (user) => {
+    const isHighLevel = user?.grade === 'Patron' || user?.grade === 'Co-Patronne';
+    if (isHighLevel) {
+      showWarning('Patron / Co-Patronne : salaire fixe à 20 000$ (non modifiable).');
+      return;
+    }
     try {
       setSavingSalaryUserId(user._id);
       const maxSalary =
@@ -251,6 +256,21 @@ const UserManager = () => {
                   </Select>
                 </TableCell>
                 <TableCell align="right">
+                  {(() => {
+                    const isHighLevel = user.grade === 'Patron' || user.grade === 'Co-Patronne';
+                    if (isHighLevel) {
+                      return (
+                        <TextField
+                          size="small"
+                          type="number"
+                          value="20000"
+                          disabled
+                          sx={{ maxWidth: 140 }}
+                          variant="standard"
+                        />
+                      );
+                    }
+                    return (
                   <TextField
                     size="small"
                     type="number"
@@ -260,34 +280,58 @@ const UserManager = () => {
                     sx={{ maxWidth: 140 }}
                     variant="standard"
                   />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell align="center">
-                  <Switch
-                    checked={Boolean(user.allowMaxSalaryExceed)}
-                    onChange={(e) => updateUserField(user._id, { allowMaxSalaryExceed: e.target.checked })}
-                    size="small"
-                  />
+                  {(() => {
+                    const isHighLevel = user.grade === 'Patron' || user.grade === 'Co-Patronne';
+                    return (
+                      <Switch
+                        checked={Boolean(user.allowMaxSalaryExceed)}
+                        onChange={(e) => updateUserField(user._id, { allowMaxSalaryExceed: e.target.checked })}
+                        size="small"
+                        disabled={isHighLevel}
+                      />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell align="right">
-                  <TextField
-                    size="small"
-                    type="number"
-                    value={(user.salaryPercentageOfMargin === null || user.salaryPercentageOfMargin === undefined)
-                      ? '50'
-                      : String(Number(user.salaryPercentageOfMargin) * 100)
+                  {(() => {
+                    const isHighLevel = user.grade === 'Patron' || user.grade === 'Co-Patronne';
+                    if (isHighLevel) {
+                      return (
+                        <TextField
+                          size="small"
+                          value="—"
+                          disabled
+                          sx={{ maxWidth: 110 }}
+                          variant="standard"
+                        />
+                      );
                     }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === '') return updateUserField(user._id, { salaryPercentageOfMargin: null });
-                      const asNumber = Number(v);
-                      updateUserField(user._id, {
-                        salaryPercentageOfMargin: Number.isFinite(asNumber) ? (asNumber / 100) : null
-                      });
-                    }}
-                    inputProps={{ min: 0, max: 100, step: 0.1 }}
-                    sx={{ maxWidth: 110 }}
-                    variant="standard"
-                  />
+                    return (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={(user.salaryPercentageOfMargin === null || user.salaryPercentageOfMargin === undefined)
+                          ? '50'
+                          : String(Number(user.salaryPercentageOfMargin) * 100)
+                        }
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '') return updateUserField(user._id, { salaryPercentageOfMargin: null });
+                          const asNumber = Number(v);
+                          updateUserField(user._id, {
+                            salaryPercentageOfMargin: Number.isFinite(asNumber) ? (asNumber / 100) : null
+                          });
+                        }}
+                        inputProps={{ min: 0, max: 100, step: 0.1 }}
+                        sx={{ maxWidth: 110 }}
+                        variant="standard"
+                      />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <FormControlLabel
@@ -309,6 +353,20 @@ const UserManager = () => {
                   </Box>
                 </TableCell>
                 <TableCell>
+                  {(() => {
+                    const isHighLevel = user.grade === 'Patron' || user.grade === 'Co-Patronne';
+                    if (isHighLevel) {
+                      return (
+                        <Chip
+                          label="Salaire fixe 20 000$"
+                          color="info"
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
                   <Button
                     variant="contained"
                     size="small"
