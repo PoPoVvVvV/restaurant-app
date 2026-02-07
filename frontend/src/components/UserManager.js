@@ -273,7 +273,7 @@ const UserManager = () => {
                     size="small"
                     type="number"
                     value={(user.salaryPercentageOfMargin === null || user.salaryPercentageOfMargin === undefined)
-                      ? ''
+                      ? '50'
                       : String(Number(user.salaryPercentageOfMargin) * 100)
                     }
                     onChange={(e) => {

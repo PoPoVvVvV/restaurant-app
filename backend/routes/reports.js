@@ -53,7 +53,7 @@ const computeEstimatedSalaryFromMargin = ({
     const effectivePercentage =
       (typeof salaryPercentageOfMargin === 'number' && Number.isFinite(salaryPercentageOfMargin))
         ? salaryPercentageOfMargin
-        : 0;
+        : 0.5; // défaut: 50%
     raw = (Number(totalMargin) || 0) * effectivePercentage;
   }
 

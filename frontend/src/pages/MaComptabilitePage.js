@@ -147,7 +147,7 @@ function MaComptabilitePage() {
       const effectivePercentage =
         (typeof me?.salaryPercentageOfMargin === 'number' && Number.isFinite(me.salaryPercentageOfMargin))
           ? me.salaryPercentageOfMargin
-          : 0;
+          : 0.5; // défaut: 50%
       raw = totalMargin * effectivePercentage;
     }
 

@@ -36,7 +36,8 @@ const UserSchema = new mongoose.Schema({
   },
   salaryPercentageOfMargin: {
     type: Number,
-    default: null,
+    // 50% par défaut
+    default: 0.5,
     min: 0,
     max: 1,
   },
