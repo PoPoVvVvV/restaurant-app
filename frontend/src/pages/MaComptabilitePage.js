@@ -134,6 +134,10 @@ function MaComptabilitePage() {
     const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
     // Règle métier: Patron & Co-Patronne = toujours 20 000$, même sans ventes
     if (isHighLevel) return 20000;
+    // Salaire fixe override (défini par admin)
+    if (typeof me?.fixedSalary === 'number' && Number.isFinite(me.fixedSalary) && me.fixedSalary >= 0) {
+      return me.fixedSalary;
+    }
 
     const effectiveMaxSalary =
       (typeof me?.maxSalary === 'number' && Number.isFinite(me.maxSalary))

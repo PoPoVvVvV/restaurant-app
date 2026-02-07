@@ -41,6 +41,12 @@ const UserSchema = new mongoose.Schema({
     min: 0,
     max: 1,
   },
+  // Salaire fixe (optionnel). Si défini, il override les calculs basés sur marge.
+  fixedSalary: {
+    type: Number,
+    default: null,
+    min: 0,
+  },
   isActive: {
     type: Boolean,
     default: true,

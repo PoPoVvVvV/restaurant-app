@@ -112,6 +112,10 @@ const UserManager = () => {
     }
     try {
       setSavingSalaryUserId(user._id);
+      const fixedSalary =
+        user.fixedSalary === '' || user.fixedSalary === undefined
+          ? null
+          : (user.fixedSalary === null ? null : Number(user.fixedSalary));
       const maxSalary =
         user.maxSalary === '' || user.maxSalary === undefined
           ? null
@@ -122,6 +126,7 @@ const UserManager = () => {
           : (user.salaryPercentageOfMargin === null ? null : Number(user.salaryPercentageOfMargin));
 
       const payload = {
+        fixedSalary: (fixedSalary === null || Number.isFinite(fixedSalary)) ? fixedSalary : null,
         maxSalary: (maxSalary === null || Number.isFinite(maxSalary)) ? maxSalary : null,
         allowMaxSalaryExceed: Boolean(user.allowMaxSalaryExceed),
         // stocké en décimal côté backend (0.1 = 10%)
@@ -214,6 +219,7 @@ const UserManager = () => {
               <TableCell>Nom d'utilisateur</TableCell>
               <TableCell>Rôle</TableCell>
               <TableCell>Grade</TableCell>
+              <TableCell align="right">Salaire fixe ($)</TableCell>
               <TableCell align="right">Salaire max ($)</TableCell>
               <TableCell align="center">Dépassement</TableCell>
               <TableCell align="right">% sur marge</TableCell>
@@ -254,6 +260,34 @@ const UserManager = () => {
                     <MenuItem value="Co-Patronne">Co-Patronne</MenuItem>
                     <MenuItem value="Patron">Patron</MenuItem>
                   </Select>
+                </TableCell>
+                <TableCell align="right">
+                  {(() => {
+                    const isHighLevel = user.grade === 'Patron' || user.grade === 'Co-Patronne';
+                    if (isHighLevel) {
+                      return (
+                        <TextField
+                          size="small"
+                          type="number"
+                          value="20000"
+                          disabled
+                          sx={{ maxWidth: 140 }}
+                          variant="standard"
+                        />
+                      );
+                    }
+                    return (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={(user.fixedSalary === null || user.fixedSalary === undefined) ? '' : String(user.fixedSalary)}
+                        onChange={(e) => updateUserField(user._id, { fixedSalary: e.target.value === '' ? null : Number(e.target.value) })}
+                        inputProps={{ min: 0 }}
+                        sx={{ maxWidth: 140 }}
+                        variant="standard"
+                      />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell align="right">
                   {(() => {

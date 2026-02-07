@@ -134,13 +134,28 @@ router.post('/new-week', [protect, admin], async (req, res) => {
 
       // Ajout des salaires fixes comme dépense pour la nouvelle semaine
       const nextWeekId = (setting?.value || 0) + 1;
-      const highLevelStaff = await User.find({ grade: { $in: ['Patron', 'Co-Patronne'] } });
-      for (const staff of highLevelStaff) {
+      // Règle métier:
+      // - Patron/Co-Patronne : toujours 20 000$
+      // - Autres : salaire fixe si défini par admin (user.fixedSalary)
+      const fixedSalaryUsers = await User.find({
+        $or: [
+          { grade: { $in: ['Patron', 'Co-Patronne'] } },
+          { fixedSalary: { $ne: null } },
+        ]
+      }).select('username grade fixedSalary').lean();
+
+      for (const staff of fixedSalaryUsers) {
+        const isHighLevel = staff.grade === 'Patron' || staff.grade === 'Co-Patronne';
+        const amount = isHighLevel ? 20000 : (Number(staff.fixedSalary) || 0);
+        if (!amount || amount <= 0) continue;
+
         const salaryExpense = new Expense({
           weekId: nextWeekId,
-          amount: 20000,
+          amount,
           category: 'Salaires',
-          description: `Salaire fixe pour ${staff.username} (Grade: ${staff.grade})`,
+          description: isHighLevel
+            ? `Salaire fixe pour ${staff.username} (Grade: ${staff.grade})`
+            : `Salaire fixe pour ${staff.username}`,
           addedBy: req.user.id
         });
         await salaryExpense.save();

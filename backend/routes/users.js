@@ -66,10 +66,21 @@ router.get('/me', protect, async (req, res) => {
 // @access  Privé/Admin
 router.put('/:id/salary-settings', [protect, admin], async (req, res) => {
   try {
-    const { maxSalary, allowMaxSalaryExceed, salaryPercentageOfMargin } = req.body || {};
+    const { maxSalary, allowMaxSalaryExceed, salaryPercentageOfMargin, fixedSalary } = req.body || {};
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // fixedSalary: null ou nombre >= 0
+    if (fixedSalary === '' || fixedSalary === undefined) {
+      if (fixedSalary === '') user.fixedSalary = null;
+    } else if (fixedSalary === null) {
+      user.fixedSalary = null;
+    } else if (typeof fixedSalary === 'number' && Number.isFinite(fixedSalary) && fixedSalary >= 0) {
+      user.fixedSalary = fixedSalary;
+    } else {
+      return res.status(400).json({ message: 'fixedSalary invalide (attendu: null ou nombre >= 0).' });
     }
 
     // maxSalary: null ou nombre >= 0
@@ -111,6 +122,7 @@ router.put('/:id/salary-settings', [protect, admin], async (req, res) => {
       user: {
         _id: user._id,
         username: user.username,
+        fixedSalary: user.fixedSalary,
         maxSalary: user.maxSalary,
         allowMaxSalaryExceed: user.allowMaxSalaryExceed,
         salaryPercentageOfMargin: user.salaryPercentageOfMargin,
