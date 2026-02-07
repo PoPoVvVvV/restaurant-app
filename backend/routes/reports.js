@@ -36,7 +36,6 @@ const computeEstimatedSalaryFromMargin = ({
   maxSalary,
   allowMaxSalaryExceed,
   salaryPercentageOfMargin,
-  defaultBonusPercentage,
 }) => {
   const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
   const effectiveMaxSalary =
@@ -54,7 +53,7 @@ const computeEstimatedSalaryFromMargin = ({
     const effectivePercentage =
       (typeof salaryPercentageOfMargin === 'number' && Number.isFinite(salaryPercentageOfMargin))
         ? salaryPercentageOfMargin
-        : (defaultBonusPercentage || 0);
+        : 0;
     raw = (Number(totalMargin) || 0) * effectivePercentage;
   }
 
@@ -100,9 +99,6 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
         }
     }
 
-    const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
-    const bonusPercentage = bonusSetting?.value || 0;
-
     const summary = {
       startingBalance,
       totalRevenue: salesData[0]?.totalRevenue || 0,
@@ -143,7 +139,6 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
         maxSalary: data.maxSalary,
         allowMaxSalaryExceed: data.allowMaxSalaryExceed,
         salaryPercentageOfMargin: data.salaryPercentageOfMargin,
-        defaultBonusPercentage: bonusPercentage,
       });
       totalBonusWithCaps += estimated;
     });
@@ -190,9 +185,6 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
       },
     ]);
     
-    const bonusSetting = await Setting.findOne({ key: 'bonusPercentage' });
-    const bonusPercentage = bonusSetting?.value || 0;
-
     const finalReport = performanceData.map(data => {
       const estimatedBonus = computeEstimatedSalaryFromMargin({
         totalMargin: data.totalMargin,
@@ -200,7 +192,6 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
         maxSalary: data.maxSalary,
         allowMaxSalaryExceed: data.allowMaxSalaryExceed,
         salaryPercentageOfMargin: data.salaryPercentageOfMargin,
-        defaultBonusPercentage: bonusPercentage,
       });
       // Ne pas exposer toutes les configs côté front ici (optionnel)
       const { maxSalary, allowMaxSalaryExceed, salaryPercentageOfMargin, ...rest } = data;

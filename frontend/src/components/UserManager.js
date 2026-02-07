@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
   Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Switch, FormControlLabel, Select, MenuItem
+  IconButton, Switch, FormControlLabel, Select, MenuItem, TextField, Button, Box, Chip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../services/api';
@@ -12,6 +12,8 @@ const UserManager = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState(null);
+  const [savingSalaryUserId, setSavingSalaryUserId] = useState(null);
+  const [newCode, setNewCode] = useState('');
   const { showError, showSuccess, showWarning, confirm } = useNotification();
   const { user: currentUser } = useContext(AuthContext);
 
@@ -31,6 +33,21 @@ const UserManager = () => {
     fetchUsers();
   }, [fetchUsers]);
 
+  const updateUserField = (userId, patch) => {
+    setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...patch } : u));
+  };
+
+  const generateInviteCode = async () => {
+    try {
+      const { data } = await api.post('/users/generate-code');
+      setNewCode(data.invitationCode);
+      showSuccess('Code invitation généré');
+    } catch (error) {
+      console.error('Erreur génération code invitation:', error);
+      showError(error.response?.data?.message || 'Erreur lors de la génération du code');
+    }
+  };
+
   const handleStatusChange = async (userId, isActive) => {
     try {
       await api.put(`/users/${userId}/status`, { isActive: !isActive });
@@ -39,6 +56,18 @@ const UserManager = () => {
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       showError('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const handleGradeChange = async (userId, nextGrade) => {
+    try {
+      await api.put(`/users/${userId}/grade`, { grade: nextGrade });
+      showSuccess('Grade mis à jour');
+      fetchUsers();
+    } catch (error) {
+      console.error('Erreur mise à jour grade:', error);
+      showError(error.response?.data?.message || 'Erreur lors de la mise à jour du grade');
+      fetchUsers();
     }
   };
 
@@ -72,6 +101,39 @@ const UserManager = () => {
       fetchUsers(); // Pour resynchroniser l’affichage si besoin
     } finally {
       setUpdatingRoleUserId(null);
+    }
+  };
+
+  const handleSaveSalarySettings = async (user) => {
+    try {
+      setSavingSalaryUserId(user._id);
+      const maxSalary =
+        user.maxSalary === '' || user.maxSalary === undefined
+          ? null
+          : (user.maxSalary === null ? null : Number(user.maxSalary));
+      const salaryPercentageOfMargin =
+        user.salaryPercentageOfMargin === '' || user.salaryPercentageOfMargin === undefined
+          ? null
+          : (user.salaryPercentageOfMargin === null ? null : Number(user.salaryPercentageOfMargin));
+
+      const payload = {
+        maxSalary: (maxSalary === null || Number.isFinite(maxSalary)) ? maxSalary : null,
+        allowMaxSalaryExceed: Boolean(user.allowMaxSalaryExceed),
+        // stocké en décimal côté backend (0.1 = 10%)
+        salaryPercentageOfMargin: (salaryPercentageOfMargin === null || Number.isFinite(salaryPercentageOfMargin))
+          ? salaryPercentageOfMargin
+          : null
+      };
+
+      await api.put(`/users/${user._id}/salary-settings`, payload);
+      showSuccess('Paramètres salaire enregistrés');
+      fetchUsers();
+    } catch (error) {
+      console.error('Erreur paramètres salaire:', error);
+      showError(error.response?.data?.message || "Erreur lors de l'enregistrement");
+      fetchUsers();
+    } finally {
+      setSavingSalaryUserId(null);
     }
   };
 
@@ -130,6 +192,15 @@ const UserManager = () => {
       <Typography variant="h6" gutterBottom>
         Gestion des Utilisateurs
       </Typography>
+
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+        <Button variant="contained" onClick={generateInviteCode}>Générer Code Invitation</Button>
+        {newCode && (
+          <Typography fontFamily="monospace" sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+            {newCode}
+          </Typography>
+        )}
+      </Box>
       
       <TableContainer>
         <Table>
@@ -137,6 +208,10 @@ const UserManager = () => {
             <TableRow>
               <TableCell>Nom d'utilisateur</TableCell>
               <TableCell>Rôle</TableCell>
+              <TableCell>Grade</TableCell>
+              <TableCell align="right">Salaire max ($)</TableCell>
+              <TableCell align="center">Dépassement</TableCell>
+              <TableCell align="right">% sur marge</TableCell>
               <TableCell>Statut</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -161,6 +236,60 @@ const UserManager = () => {
                   </Select>
                 </TableCell>
                 <TableCell>
+                  <Select
+                    size="small"
+                    value={user.grade || 'Novice'}
+                    onChange={(e) => handleGradeChange(user._id, e.target.value)}
+                    sx={{ minWidth: 150 }}
+                  >
+                    <MenuItem value="Novice">Novice</MenuItem>
+                    <MenuItem value="Confirmé">Confirmé</MenuItem>
+                    <MenuItem value="Expérimenté">Expérimenté</MenuItem>
+                    <MenuItem value="Manageuse">Manageuse</MenuItem>
+                    <MenuItem value="Co-Patronne">Co-Patronne</MenuItem>
+                    <MenuItem value="Patron">Patron</MenuItem>
+                  </Select>
+                </TableCell>
+                <TableCell align="right">
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={(user.maxSalary === null || user.maxSalary === undefined) ? '' : String(user.maxSalary)}
+                    onChange={(e) => updateUserField(user._id, { maxSalary: e.target.value === '' ? null : Number(e.target.value) })}
+                    inputProps={{ min: 0 }}
+                    sx={{ maxWidth: 140 }}
+                    variant="standard"
+                  />
+                </TableCell>
+                <TableCell align="center">
+                  <Switch
+                    checked={Boolean(user.allowMaxSalaryExceed)}
+                    onChange={(e) => updateUserField(user._id, { allowMaxSalaryExceed: e.target.checked })}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={(user.salaryPercentageOfMargin === null || user.salaryPercentageOfMargin === undefined)
+                      ? ''
+                      : String(Number(user.salaryPercentageOfMargin) * 100)
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') return updateUserField(user._id, { salaryPercentageOfMargin: null });
+                      const asNumber = Number(v);
+                      updateUserField(user._id, {
+                        salaryPercentageOfMargin: Number.isFinite(asNumber) ? (asNumber / 100) : null
+                      });
+                    }}
+                    inputProps={{ min: 0, max: 100, step: 0.1 }}
+                    sx={{ maxWidth: 110 }}
+                    variant="standard"
+                  />
+                </TableCell>
+                <TableCell>
                   <FormControlLabel
                     control={
                       <Switch
@@ -171,8 +300,24 @@ const UserManager = () => {
                     }
                     label={user.isActive ? 'Actif' : 'Inactif'}
                   />
+                  <Box sx={{ mt: 0.5 }}>
+                    <Chip
+                      label={user.isActive ? 'Actif' : 'Désactivé'}
+                      color={user.isActive ? 'success' : 'error'}
+                      size="small"
+                    />
+                  </Box>
                 </TableCell>
                 <TableCell>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    sx={{ mr: 1, mb: 1 }}
+                    disabled={savingSalaryUserId === user._id}
+                    onClick={() => handleSaveSalarySettings(user)}
+                  >
+                    Enregistrer
+                  </Button>
                   <IconButton 
                     onClick={() => confirmDeleteUser(user)}
                     disabled={user.isActive}

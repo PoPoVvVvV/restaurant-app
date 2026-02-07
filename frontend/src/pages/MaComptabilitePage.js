@@ -65,21 +65,18 @@ function MaComptabilitePage() {
   const { user } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
-  const [bonusPercentage, setBonusPercentage] = useState(0);
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [transacRes, settingsRes, dailyRes, meRes] = await Promise.all([
+        const [transacRes, dailyRes, meRes] = await Promise.all([
           api.get('/transactions/me'),
-          api.get('/settings/bonusPercentage').catch(() => ({ data: { value: 0 } })),
           api.get('/reports/daily-sales/me'),
           api.get('/users/me').catch(() => ({ data: null }))
         ]);
         setTransactions(transacRes.data);
-        setBonusPercentage(settingsRes.data.value);
         setDailyData(dailyRes.data);
         setMe(meRes.data);
       } catch (err) {
@@ -150,13 +147,13 @@ function MaComptabilitePage() {
       const effectivePercentage =
         (typeof me?.salaryPercentageOfMargin === 'number' && Number.isFinite(me.salaryPercentageOfMargin))
           ? me.salaryPercentageOfMargin
-          : (bonusPercentage || 0);
+          : 0;
       raw = totalMargin * effectivePercentage;
     }
 
     if (canExceed) return raw;
     return Math.min(raw, effectiveMaxSalary);
-  }, [totalMargin, bonusPercentage, me, user?.grade]);
+  }, [totalMargin, me, user?.grade]);
   
   const nombreDeVentesParticuliers = useMemo(() => ventesParticuliers.length, [ventesParticuliers]);
   const nombreDeVentesEntreprises = useMemo(() => ventesEntreprises.length, [ventesEntreprises]);
