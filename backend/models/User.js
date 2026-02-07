@@ -21,6 +21,25 @@ const UserSchema = new mongoose.Schema({
     enum: ['Novice', 'Confirmé', 'Expérimenté', 'Manageuse', 'Co-Patronne', 'Patron'],
     default: 'Novice'
   },
+  // Paramètres "salaire/prime" par utilisateur (prime basée sur la marge)
+  // maxSalary: plafond du salaire estimé (en $)
+  // allowMaxSalaryExceed: si true, le plafond peut être dépassé
+  // salaryPercentageOfMargin: pourcentage (décimal, ex 0.1 = 10%) appliqué à la marge
+  maxSalary: {
+    type: Number,
+    default: null,
+    min: 0,
+  },
+  allowMaxSalaryExceed: {
+    type: Boolean,
+    default: false,
+  },
+  salaryPercentageOfMargin: {
+    type: Number,
+    default: null,
+    min: 0,
+    max: 1,
+  },
   isActive: {
     type: Boolean,
     default: true,

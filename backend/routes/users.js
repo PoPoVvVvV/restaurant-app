@@ -45,6 +45,83 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/users/me
+// @desc    Obtenir l'utilisateur courant (avec paramètres salaire/prime)
+// @access  Privé
+router.get('/me', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user._id).select('-password');
+    if (!me) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    res.json(me);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
+// @route   PUT /api/users/:id/salary-settings
+// @desc    Mettre à jour les paramètres salaire/prime d'un utilisateur
+// @access  Privé/Admin
+router.put('/:id/salary-settings', [protect, admin], async (req, res) => {
+  try {
+    const { maxSalary, allowMaxSalaryExceed, salaryPercentageOfMargin } = req.body || {};
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // maxSalary: null ou nombre >= 0
+    if (maxSalary === '' || maxSalary === undefined) {
+      // laisser inchangé si undefined; si '' on met null
+      if (maxSalary === '') user.maxSalary = null;
+    } else if (maxSalary === null) {
+      user.maxSalary = null;
+    } else if (typeof maxSalary === 'number' && Number.isFinite(maxSalary) && maxSalary >= 0) {
+      user.maxSalary = maxSalary;
+    } else {
+      return res.status(400).json({ message: 'maxSalary invalide (attendu: null ou nombre >= 0).' });
+    }
+
+    // allowMaxSalaryExceed: bool optionnel
+    if (allowMaxSalaryExceed !== undefined) {
+      user.allowMaxSalaryExceed = Boolean(allowMaxSalaryExceed);
+    }
+
+    // salaryPercentageOfMargin: null ou nombre entre 0 et 1 (décimal)
+    if (salaryPercentageOfMargin === '' || salaryPercentageOfMargin === undefined) {
+      if (salaryPercentageOfMargin === '') user.salaryPercentageOfMargin = null;
+    } else if (salaryPercentageOfMargin === null) {
+      user.salaryPercentageOfMargin = null;
+    } else if (
+      typeof salaryPercentageOfMargin === 'number' &&
+      Number.isFinite(salaryPercentageOfMargin) &&
+      salaryPercentageOfMargin >= 0 &&
+      salaryPercentageOfMargin <= 1
+    ) {
+      user.salaryPercentageOfMargin = salaryPercentageOfMargin;
+    } else {
+      return res.status(400).json({ message: 'salaryPercentageOfMargin invalide (attendu: null ou nombre entre 0 et 1).' });
+    }
+
+    await user.save();
+    res.json({
+      message: `Paramètres salaire mis à jour pour ${user.username}.`,
+      user: {
+        _id: user._id,
+        username: user.username,
+        maxSalary: user.maxSalary,
+        allowMaxSalaryExceed: user.allowMaxSalaryExceed,
+        salaryPercentageOfMargin: user.salaryPercentageOfMargin,
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur du serveur' });
+  }
+});
+
 // @route   PUT /api/users/:id/status
 // @desc    Activer ou désactiver un compte utilisateur
 // @access  Privé/Admin

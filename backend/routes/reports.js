@@ -29,6 +29,39 @@ const calculateTax = (benefit) => {
   return tax;
 };
 
+// Calcul du "salaire/prime" estimé à partir de la marge, avec paramètres par utilisateur
+const computeEstimatedSalaryFromMargin = ({
+  totalMargin,
+  grade,
+  maxSalary,
+  allowMaxSalaryExceed,
+  salaryPercentageOfMargin,
+  defaultBonusPercentage,
+}) => {
+  const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
+  const effectiveMaxSalary =
+    (typeof maxSalary === 'number' && Number.isFinite(maxSalary))
+      ? maxSalary
+      : (isHighLevel ? 20000 : 19000);
+
+  const canExceed = Boolean(allowMaxSalaryExceed);
+
+  // Compat: Patron/Co-Patronne = fixe (comme avant) tant qu'aucun % n'est défini
+  let raw;
+  if (isHighLevel && (salaryPercentageOfMargin === null || salaryPercentageOfMargin === undefined)) {
+    raw = effectiveMaxSalary;
+  } else {
+    const effectivePercentage =
+      (typeof salaryPercentageOfMargin === 'number' && Number.isFinite(salaryPercentageOfMargin))
+        ? salaryPercentageOfMargin
+        : (defaultBonusPercentage || 0);
+    raw = (Number(totalMargin) || 0) * effectivePercentage;
+  }
+
+  if (canExceed) return raw;
+  return Math.min(raw, effectiveMaxSalary);
+};
+
 // @route   GET /api/reports/financial-summary
 // @desc    Obtenir un résumé financier global pour une semaine donnée
 // @access  Privé/Admin
@@ -90,17 +123,29 @@ router.get('/financial-summary', [protect, admin], async (req, res) => {
       { $group: { _id: '$employeeId', totalMargin: { $sum: '$margin' } } },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'employeeInfo' } },
       { $unwind: '$employeeInfo' },
-      { $project: { _id: 0, totalMargin: '$totalMargin', grade: '$employeeInfo.grade' } }
+      {
+        $project: {
+          _id: 0,
+          totalMargin: '$totalMargin',
+          grade: '$employeeInfo.grade',
+          maxSalary: '$employeeInfo.maxSalary',
+          allowMaxSalaryExceed: '$employeeInfo.allowMaxSalaryExceed',
+          salaryPercentageOfMargin: '$employeeInfo.salaryPercentageOfMargin',
+        }
+      }
     ]);
     
     let totalBonusWithCaps = 0;
     performanceData.forEach(data => {
-      if (data.grade === 'Patron' || data.grade === 'Co-Patronne') {
-        totalBonusWithCaps += 20000;
-      } else {
-        const calculatedBonus = data.totalMargin * bonusPercentage;
-        totalBonusWithCaps += Math.min(calculatedBonus, 19000);
-      }
+      const estimated = computeEstimatedSalaryFromMargin({
+        totalMargin: data.totalMargin,
+        grade: data.grade,
+        maxSalary: data.maxSalary,
+        allowMaxSalaryExceed: data.allowMaxSalaryExceed,
+        salaryPercentageOfMargin: data.salaryPercentageOfMargin,
+        defaultBonusPercentage: bonusPercentage,
+      });
+      totalBonusWithCaps += estimated;
     });
     
     summary.totalBonus = totalBonusWithCaps;
@@ -137,7 +182,10 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
           employeeName: '$employeeInfo.username',
           grade: '$employeeInfo.grade',
           totalRevenue: '$totalRevenue',
-          totalMargin: '$totalMargin'
+          totalMargin: '$totalMargin',
+          maxSalary: '$employeeInfo.maxSalary',
+          allowMaxSalaryExceed: '$employeeInfo.allowMaxSalaryExceed',
+          salaryPercentageOfMargin: '$employeeInfo.salaryPercentageOfMargin',
         }
       },
     ]);
@@ -146,16 +194,17 @@ router.get('/employee-performance', [protect, admin], async (req, res) => {
     const bonusPercentage = bonusSetting?.value || 0;
 
     const finalReport = performanceData.map(data => {
-      let estimatedBonus;
-      if (data.grade === 'Patron' || data.grade === 'Co-Patronne') {
-        // Patron et Co-Patronne reçoivent exactement 20 000$ (plafonné)
-        estimatedBonus = 20000;
-      } else {
-        // Autres employés : prime basée sur le pourcentage de marge, plafonnée à 19 000$
-        const calculatedBonus = data.totalMargin * bonusPercentage;
-        estimatedBonus = Math.min(calculatedBonus, 19000);
-      }
-      return { ...data, estimatedBonus };
+      const estimatedBonus = computeEstimatedSalaryFromMargin({
+        totalMargin: data.totalMargin,
+        grade: data.grade,
+        maxSalary: data.maxSalary,
+        allowMaxSalaryExceed: data.allowMaxSalaryExceed,
+        salaryPercentageOfMargin: data.salaryPercentageOfMargin,
+        defaultBonusPercentage: bonusPercentage,
+      });
+      // Ne pas exposer toutes les configs côté front ici (optionnel)
+      const { maxSalary, allowMaxSalaryExceed, salaryPercentageOfMargin, ...rest } = data;
+      return { ...rest, estimatedBonus };
     });
 
     res.json(finalReport);

@@ -66,19 +66,22 @@ function MaComptabilitePage() {
   const [transactions, setTransactions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
   const [bonusPercentage, setBonusPercentage] = useState(0);
+  const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [transacRes, settingsRes, dailyRes] = await Promise.all([
+        const [transacRes, settingsRes, dailyRes, meRes] = await Promise.all([
           api.get('/transactions/me'),
           api.get('/settings/bonusPercentage').catch(() => ({ data: { value: 0 } })),
-          api.get('/reports/daily-sales/me')
+          api.get('/reports/daily-sales/me'),
+          api.get('/users/me').catch(() => ({ data: null }))
         ]);
         setTransactions(transacRes.data);
         setBonusPercentage(settingsRes.data.value);
         setDailyData(dailyRes.data);
+        setMe(meRes.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -129,10 +132,31 @@ function MaComptabilitePage() {
     [totalMarginParticuliers, totalMarginEntreprises]
   );
   
-  const totalBonus = useMemo(() => 
-    totalMargin * bonusPercentage, 
-    [totalMargin, bonusPercentage]
-  );
+  const totalBonus = useMemo(() => {
+    const grade = me?.grade || user?.grade;
+    const isHighLevel = grade === 'Patron' || grade === 'Co-Patronne';
+
+    const effectiveMaxSalary =
+      (typeof me?.maxSalary === 'number' && Number.isFinite(me.maxSalary))
+        ? me.maxSalary
+        : (isHighLevel ? 20000 : 19000);
+    const canExceed = Boolean(me?.allowMaxSalaryExceed);
+
+    let raw;
+    if (isHighLevel && (me?.salaryPercentageOfMargin === null || me?.salaryPercentageOfMargin === undefined)) {
+      // Compat: fixe par défaut pour Patron/Co-Patronne
+      raw = effectiveMaxSalary;
+    } else {
+      const effectivePercentage =
+        (typeof me?.salaryPercentageOfMargin === 'number' && Number.isFinite(me.salaryPercentageOfMargin))
+          ? me.salaryPercentageOfMargin
+          : (bonusPercentage || 0);
+      raw = totalMargin * effectivePercentage;
+    }
+
+    if (canExceed) return raw;
+    return Math.min(raw, effectiveMaxSalary);
+  }, [totalMargin, bonusPercentage, me, user?.grade]);
   
   const nombreDeVentesParticuliers = useMemo(() => ventesParticuliers.length, [ventesParticuliers]);
   const nombreDeVentesEntreprises = useMemo(() => ventesEntreprises.length, [ventesEntreprises]);
