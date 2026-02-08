@@ -256,7 +256,7 @@ const UserManager = () => {
                     <MenuItem value="Novice">Novice</MenuItem>
                     <MenuItem value="Confirmé">Confirmé</MenuItem>
                     <MenuItem value="Expérimenté">Expérimenté</MenuItem>
-                    <MenuItem value="Manageuse">Manageuse</MenuItem>
+                    <MenuItem value="Manageur">Manageur</MenuItem>
                     <MenuItem value="Co-Patronne">Co-Patronne</MenuItem>
                     <MenuItem value="Patron">Patron</MenuItem>
                   </Select>

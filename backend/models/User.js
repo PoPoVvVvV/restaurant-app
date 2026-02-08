@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
   },
   grade: {
     type: String,
-    enum: ['Novice', 'Confirmé', 'Expérimenté', 'Manageuse', 'Co-Patronne', 'Patron'],
+    enum: ['Novice', 'Confirmé', 'Expérimenté', 'Manageur', 'Co-Patronne', 'Patron'],
     default: 'Novice'
   },
   // Paramètres "salaire/prime" par utilisateur (prime basée sur la marge)
@@ -61,6 +61,15 @@ const UserSchema = new mongoose.Schema({
 UserSchema.index({ username: 1 }); // Déjà unique, mais index explicite
 UserSchema.index({ isActive: 1 });
 UserSchema.index({ role: 1 });
+
+UserSchema.pre('validate', function (next) {
+  // Normaliser tout grade invalide vers Manageur (compat legacy)
+  const validGrades = ['Novice', 'Confirmé', 'Expérimenté', 'Manageur', 'Co-Patronne', 'Patron'];
+  if (this.grade && !validGrades.includes(this.grade)) {
+    this.grade = 'Manageur';
+  }
+  next();
+});
 
 const User = mongoose.model('User', UserSchema);
 

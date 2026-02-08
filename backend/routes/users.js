@@ -164,7 +164,7 @@ router.put('/:id/grade', [protect, admin], async (req, res) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    const validGrades = ['Novice', 'Confirmé', 'Expérimenté', 'Manageuse', 'Co-Patronne', 'Patron'];
+    const validGrades = ['Novice', 'Confirmé', 'Expérimenté', 'Manageur', 'Co-Patronne', 'Patron'];
     if (!validGrades.includes(grade)) {
       return res.status(400).json({ message: 'Grade non valide.' });
     }
