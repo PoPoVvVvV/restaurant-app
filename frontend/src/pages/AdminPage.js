@@ -1080,6 +1080,106 @@ const OrderForecastManager = () => {
           </AccordionDetails>
         </Accordion>
       ))}
+
+      {/* Bon de commande (unique) - pour la totalité à commander, séparé par fournisseur */}
+      <Box sx={{ mt: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              Bon de commande (total)
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label={`Total à commander: ${totalToOrder}`}
+                color={totalToOrder > 0 ? 'warning' : 'success'}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={`Total estimé: $${Number(totalCost || 0).toFixed(2)}`}
+                color={totalCost > 0 ? 'info' : 'success'}
+                size="small"
+                variant="outlined"
+              />
+            </Box>
+          </Box>
+
+          {totalToOrder <= 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Rien à commander pour le moment.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {suppliers
+                .filter(g => (Number(g.totalToOrder) || 0) > 0)
+                .map(g => (
+                  <Box key={`po-global-${g.supplierName}`}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        Fournisseur : {g.supplierName}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip
+                          label={`À commander: ${g.totalToOrder}`}
+                          color="warning"
+                          size="small"
+                          variant="outlined"
+                        />
+                        <Chip
+                          label={`Total: $${Number(g.totalCost || 0).toFixed(2)}`}
+                          color="info"
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Box>
+                    </Box>
+
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Produit</TableCell>
+                            <TableCell>Unité</TableCell>
+                            <TableCell align="right">Quantité</TableCell>
+                            <TableCell align="right">Prix unitaire</TableCell>
+                            <TableCell align="right">Total</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {g.rows
+                            .filter(r => (Number(r.toOrder) || 0) > 0)
+                            .map(r => (
+                              <TableRow key={`po-global-row-${r._id}`}>
+                                <TableCell>{r.name}</TableCell>
+                                <TableCell>{r.unit}</TableCell>
+                                <TableCell align="right">{r.toOrder}</TableCell>
+                                <TableCell align="right">${Number(r.supplierUnitPrice || 0).toFixed(2)}</TableCell>
+                                <TableCell align="right">${Number(r.cost || 0).toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                          <TableRow>
+                            <TableCell colSpan={4} align="right" sx={{ fontWeight: 700 }}>
+                              Total fournisseur
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              ${Number(g.totalCost || 0).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                ))}
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Typography sx={{ fontWeight: 900 }}>
+                  Total général : ${Number(totalCost || 0).toFixed(2)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Paper>
+      </Box>
     </Paper>
   );
 };
@@ -1494,8 +1594,9 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Performance des Employés</Typography></AccordionSummary><AccordionDetails><EmployeePerformance viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Entrées / Sorties</Typography></AccordionSummary><AccordionDetails><IncomeExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
+      <Accordion defaultExpanded><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Prévision de commande</Typography></AccordionSummary><AccordionDetails><OrderForecastManager /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Utilisateurs</Typography></AccordionSummary><AccordionDetails><UserManager /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces & Paramètres</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><OrderForecastManager /></Grid><Grid item xs={12}><AdminNotificationsManager /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces & Paramètres</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12}><AdminNotificationsManager /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Notes de Frais</Typography></AccordionSummary><AccordionDetails><ExpenseNoteManager /></AccordionDetails></Accordion>
     </Container>
