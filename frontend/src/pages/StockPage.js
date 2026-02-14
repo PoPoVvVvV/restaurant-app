@@ -22,7 +22,11 @@ const IngredientManager = () => {
   const fetchIngredients = useCallback(async () => {
     try {
         const { data } = await api.get('/ingredients');
-        setIngredients(data.map(ing => ({ ...ing, editedStock: ing.stock })));
+        setIngredients(data.map(ing => ({
+          ...ing,
+          editedStock: ing.stock,
+          editedLowStockThreshold: (typeof ing.lowStockThreshold === 'number') ? ing.lowStockThreshold : 500
+        })));
     } catch (err) {
         showNotification("Impossible de charger les matières premières.", "error");
     }
@@ -42,6 +46,10 @@ const IngredientManager = () => {
 
   const handleStockChange = (id, value) => {
     setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedStock: value } : i));
+  };
+
+  const handleThresholdChange = (id, value) => {
+    setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedLowStockThreshold: value } : i));
   };
 
   const handleSaveStock = useCallback((id) => {
@@ -87,6 +95,53 @@ const IngredientManager = () => {
       return updatedIngredients;
     });
   }, [showNotification]);
+
+  const handleSaveThreshold = useCallback((id) => {
+    if (user?.role !== 'admin') return;
+
+    setIngredients(prevIngredients => {
+      const ingredient = prevIngredients.find(i => i._id === id);
+      if (!ingredient) return prevIngredients;
+
+      const newThreshold = ingredient.editedLowStockThreshold;
+      const parsedThreshold = parseFloat(newThreshold);
+
+      if (isNaN(parsedThreshold) || parsedThreshold < 0) {
+        showNotification("Veuillez entrer un seuil valide (>= 0).", "error");
+        return prevIngredients.map(i =>
+          i._id === id
+            ? { ...i, editedLowStockThreshold: (typeof i.lowStockThreshold === 'number') ? i.lowStockThreshold : 500 }
+            : i
+        );
+      }
+
+      const currentThreshold = (typeof ingredient.lowStockThreshold === 'number') ? ingredient.lowStockThreshold : 500;
+      if (parsedThreshold === currentThreshold) return prevIngredients;
+
+      const updatedIngredients = prevIngredients.map(i =>
+        i._id === id
+          ? { ...i, lowStockThreshold: parsedThreshold, editedLowStockThreshold: parsedThreshold }
+          : i
+      );
+
+      api.put(`/ingredients/${id}`, { lowStockThreshold: parsedThreshold })
+        .then(() => {
+          showNotification("Seuil de stock bas mis à jour.", "success");
+        })
+        .catch(() => {
+          showNotification("Erreur lors de la mise à jour du seuil.", "error");
+          setIngredients(prev =>
+            prev.map(i =>
+              i._id === id
+                ? { ...i, editedLowStockThreshold: (typeof i.lowStockThreshold === 'number') ? i.lowStockThreshold : 500 }
+                : i
+            )
+          );
+        });
+
+      return updatedIngredients;
+    });
+  }, [showNotification, user?.role]);
 
   const handleSync = async () => {
     const shouldSync = await confirm(
@@ -145,6 +200,7 @@ const IngredientManager = () => {
               <TableCell>Ingrédient</TableCell>
               <TableCell>Unité</TableCell>
               <TableCell align="right">Stock</TableCell>
+              <TableCell align="right">Seuil stock bas</TableCell>
               <TableCell align="center">Statut</TableCell>
               <TableCell align="center">Mettre à jour</TableCell>
               {user?.role === 'admin' && <TableCell align="center">Actions</TableCell>}
@@ -156,7 +212,29 @@ const IngredientManager = () => {
                 <TableCell>{ing.name}</TableCell>
                 <TableCell>{ing.unit}</TableCell>
                 <TableCell align="right">{ing.stock}</TableCell>
-                <TableCell align="center">{ing.stock <= 500 && (<span title="Stock bas">⚠️</span>)}</TableCell>
+                <TableCell align="right">
+                  {user?.role === 'admin' ? (
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={ing.editedLowStockThreshold}
+                      onChange={(e) => handleThresholdChange(ing._id, e.target.value)}
+                      onBlur={() => handleSaveThreshold(ing._id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.target.blur();
+                        }
+                      }}
+                      sx={{ width: '120px' }}
+                      inputProps={{ min: 0 }}
+                    />
+                  ) : (
+                    (typeof ing.lowStockThreshold === 'number') ? ing.lowStockThreshold : 500
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  {ing.stock <= ((typeof ing.lowStockThreshold === 'number') ? ing.lowStockThreshold : 500) && (<span title="Stock bas">⚠️</span>)}
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <TextField 
@@ -191,14 +269,13 @@ const IngredientManager = () => {
 };
 
 function StockPage() {
+  const { user } = useContext(AuthContext);
   const [products, setProducts] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [deliveryStatus, setDeliveryStatus] = useState({ isActive: false, companyName: '', expectedReceipts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { showNotification } = useNotification();
-
-  const LOW_STOCK_THRESHOLD = 10;
 
   const fetchData = useCallback(async () => {
     try {
@@ -215,7 +292,11 @@ function StockPage() {
         return indexA - indexB;
       });
       
-      const productsWithEdit = sortedProducts.map(p => ({ ...p, editedStock: p.stock }));
+      const productsWithEdit = sortedProducts.map(p => ({
+        ...p,
+        editedStock: p.stock,
+        editedLowStockThreshold: (typeof p.lowStockThreshold === 'number') ? p.lowStockThreshold : 10
+      }));
       setProducts(productsWithEdit);
       setIngredients(ingredientsRes.data || []);
       const value = statusRes.data.value || { isActive: false, companyName: '', expectedReceipts: [] };
@@ -249,6 +330,14 @@ function StockPage() {
     setProducts(prevProducts =>
       prevProducts.map(p =>
         p._id === productId ? { ...p, editedStock: value } : p
+      )
+    );
+  };
+
+  const handleProductThresholdChange = (productId, value) => {
+    setProducts(prevProducts =>
+      prevProducts.map(p =>
+        p._id === productId ? { ...p, editedLowStockThreshold: value } : p
       )
     );
   };
@@ -293,6 +382,51 @@ function StockPage() {
           );
         });
       
+      return updatedProducts;
+    });
+  }, [showNotification]);
+
+  const handleSaveProductThreshold = useCallback((productId) => {
+    setProducts(prevProducts => {
+      const product = prevProducts.find(p => p._id === productId);
+      if (!product) return prevProducts;
+
+      const newThreshold = product.editedLowStockThreshold;
+      const parsedThreshold = parseInt(newThreshold, 10);
+
+      if (isNaN(parsedThreshold) || parsedThreshold < 0) {
+        showNotification("Veuillez entrer un seuil valide (>= 0).", "error");
+        return prevProducts.map(p =>
+          p._id === productId
+            ? { ...p, editedLowStockThreshold: (typeof p.lowStockThreshold === 'number') ? p.lowStockThreshold : 10 }
+            : p
+        );
+      }
+
+      const currentThreshold = (typeof product.lowStockThreshold === 'number') ? product.lowStockThreshold : 10;
+      if (parsedThreshold === currentThreshold) return prevProducts;
+
+      const updatedProducts = prevProducts.map(p =>
+        p._id === productId
+          ? { ...p, lowStockThreshold: parsedThreshold, editedLowStockThreshold: parsedThreshold }
+          : p
+      );
+
+      api.put(`/products/${productId}`, { lowStockThreshold: parsedThreshold })
+        .then(() => {
+          showNotification("Seuil de stock bas du produit mis à jour.", "success");
+        })
+        .catch(() => {
+          showNotification("Erreur lors de la mise à jour du seuil.", "error");
+          setProducts(prev =>
+            prev.map(p =>
+              p._id === productId
+                ? { ...p, editedLowStockThreshold: (typeof p.lowStockThreshold === 'number') ? p.lowStockThreshold : 10 }
+                : p
+            )
+          );
+        });
+
       return updatedProducts;
     });
   }, [showNotification]);
@@ -477,6 +611,9 @@ function StockPage() {
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Catégorie</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Statut</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Stock Actuel</TableCell>
+                    {user?.role === 'admin' && (
+                      <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Seuil stock bas</TableCell>
+                    )}
                     <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Modifier le Stock</TableCell>
                     </TableRow>
                 </TableHead>
@@ -486,9 +623,32 @@ function StockPage() {
                         <TableCell component="th" scope="row">{product.name}</TableCell>
                         <TableCell>{product.category}</TableCell>
                         <TableCell align="center">
-                        {product.stock <= LOW_STOCK_THRESHOLD ? (<Chip label="Stock bas" color="error" size="small"/>) : (<Chip label="OK" color="success" size="small" />)}
+                        {product.stock <= ((typeof product.lowStockThreshold === 'number') ? product.lowStockThreshold : 10)
+                          ? (<Chip label="Stock bas" color="error" size="small"/>)
+                          : (<Chip label="OK" color="success" size="small" />)
+                        }
                         </TableCell>
                         <TableCell align="right" sx={{ fontSize: '1rem' }}>{product.stock}</TableCell>
+                        {user?.role === 'admin' && (
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <TextField
+                                type="number"
+                                size="small"
+                                value={product.editedLowStockThreshold}
+                                onChange={(e) => handleProductThresholdChange(product._id, e.target.value)}
+                                onBlur={() => handleSaveProductThreshold(product._id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.target.blur();
+                                  }
+                                }}
+                                sx={{ width: '110px' }}
+                                inputProps={{ min: 0 }}
+                              />
+                            </Box>
+                          </TableCell>
+                        )}
                         <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <TextField

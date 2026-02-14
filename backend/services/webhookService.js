@@ -5,6 +5,7 @@ class WebhookService {
   constructor() {
     this.webhookUrl = process.env.WEBHOOK_URL || null;
     this.enabled = process.env.WEBHOOK_ENABLED === 'true' || false;
+    this.directionRoleId = '1439034802853646367'; // Direction
   }
 
   /**
@@ -141,6 +142,110 @@ class WebhookService {
   }
 
   /**
+   * Envoie une alerte "stock bas" (mentionne la Direction sur Discord)
+   * @param {Object} data
+   * @param {string} data.type - 'product' | 'ingredient'
+   * @param {string} data.itemName
+   * @param {number} data.newStock
+   * @param {number} data.threshold
+   * @param {string} data.user
+   * @param {Date|string} data.timestamp
+   */
+  async sendLowStockAlertNotification(data) {
+    const config = await this.getWebhookConfig();
+    console.log('Tentative d\'envoi webhook stock bas:', { config, data });
+
+    if (!config.enabled || !config.url) {
+      console.log('Webhook désactivé ou URL non configurée:', { enabled: config.enabled, url: config.url });
+      return;
+    }
+
+    try {
+      const isDiscordWebhook = config.url.includes('discord.com/api/webhooks');
+      const timestamp = data.timestamp || new Date().toISOString();
+
+      let payload;
+      if (isDiscordWebhook) {
+        const mention = `<@&${this.directionRoleId}>`;
+        payload = {
+          // Mention explicite du rôle (avec allowlist pour éviter les mentions non désirées)
+          content: `${mention} **Stock bas détecté** — une commande doit être effectuée rapidement.`,
+          allowed_mentions: {
+            parse: [],
+            roles: [this.directionRoleId],
+          },
+          embeds: [{
+            title: `⚠️ Stock bas - ${data.itemName}`,
+            color: 0xff0000,
+            description: `Le stock est passé sous le seuil défini.`,
+            fields: [
+              {
+                name: "Type d'item",
+                value: data.type === 'product' ? '🛍️ Produit' : '🥘 Ingrédient',
+                inline: true
+              },
+              {
+                name: "Stock actuel",
+                value: String(data.newStock),
+                inline: true
+              },
+              {
+                name: "Seuil (stock bas)",
+                value: String(data.threshold),
+                inline: true
+              },
+              {
+                name: "Déclenché par",
+                value: data.user,
+                inline: true
+              },
+              {
+                name: "Heure",
+                value: new Date(timestamp).toLocaleString('fr-FR'),
+                inline: true
+              }
+            ],
+            footer: {
+              text: "Restaurant App - Alerte Stock Bas"
+            },
+            timestamp: timestamp
+          }]
+        };
+      } else {
+        payload = {
+          type: 'low_stock_alert',
+          action: 'low_stock_detected',
+          item: {
+            type: data.type,
+            name: data.itemName,
+            stock: data.newStock,
+            threshold: data.threshold,
+          },
+          notifyRole: this.directionRoleId,
+          user: data.user,
+          timestamp,
+          message: `Stock bas: ${data.itemName} (${data.type}). Stock=${data.newStock} seuil=${data.threshold}. Notifier Direction (${this.directionRoleId}).`
+        };
+      }
+
+      const response = await axios.post(config.url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Restaurant-App-Webhook/1.0'
+        },
+        timeout: 5000
+      });
+
+      console.log('Webhook stock bas envoyé avec succès:', response.status);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du webhook stock bas:', error.message);
+      if (error.response) {
+        console.error('Réponse d\'erreur:', error.response.status, error.response.data);
+      }
+    }
+  }
+
+  /**
    * Envoie une notification pour une modification de stock de produit
    */
   async notifyProductStockUpdate(product, oldStock, newStock, user) {
@@ -166,6 +271,20 @@ class WebhookService {
       oldStock,
       newStock,
       user: user.username || user.email || 'Utilisateur inconnu',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * Notifie la Direction qu'un stock est bas
+   */
+  async notifyLowStock(type, itemName, newStock, threshold, user) {
+    await this.sendLowStockAlertNotification({
+      type,
+      itemName,
+      newStock,
+      threshold,
+      user: user?.username || user?.email || user || 'Utilisateur inconnu',
       timestamp: new Date().toISOString()
     });
   }

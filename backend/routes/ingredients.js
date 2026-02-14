@@ -23,14 +23,40 @@ router.get('/', protect, async (req, res) => {
 // @access  Privé/Admin
 router.post('/', [protect, admin], async (req, res) => {
   try {
-    const { name, unit, stock } = req.body;
-    const newIngredient = new Ingredient({ name, unit, stock });
+    const { name, unit, stock, lowStockThreshold } = req.body;
+    const newIngredient = new Ingredient({ name, unit, stock, lowStockThreshold });
     await newIngredient.save();
     
     req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });
     res.status(201).json(newIngredient);
   } catch (err) {
     res.status(400).json({ message: 'Erreur lors de la création de l\'ingrédient.' });
+  }
+});
+
+// @route   PUT /api/ingredients/:id
+// @desc    Mettre à jour des paramètres d'un ingrédient (ex: seuil stock bas)
+// @access  Privé/Admin
+router.put('/:id', [protect, admin], async (req, res) => {
+  try {
+    const ingredient = await Ingredient.findById(req.params.id);
+    if (!ingredient) {
+      return res.status(404).json({ message: 'Ingrédient non trouvé.' });
+    }
+
+    if (req.body.lowStockThreshold !== undefined) {
+      const threshold = Number(req.body.lowStockThreshold);
+      if (Number.isNaN(threshold) || threshold < 0) {
+        return res.status(400).json({ message: 'Le seuil de stock bas est invalide.' });
+      }
+      ingredient.lowStockThreshold = threshold;
+    }
+
+    await ingredient.save();
+    req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });
+    res.json(ingredient);
+  } catch (err) {
+    res.status(400).json({ message: 'Erreur lors de la mise à jour de l\'ingrédient.' });
   }
 });
 
@@ -46,17 +72,31 @@ router.put('/:id/stock', protect, async (req, res) => {
     
     // Sauvegarder l'ancien stock pour la notification
     const oldStock = ingredient.stock;
-    ingredient.stock = req.body.stock;
+    const parsedStock = Number(req.body.stock);
+    if (Number.isNaN(parsedStock) || parsedStock < 0) {
+      return res.status(400).json({ message: 'La valeur du stock est invalide.' });
+    }
+    const lowStockThreshold = (typeof ingredient.lowStockThreshold === 'number')
+      ? ingredient.lowStockThreshold
+      : 500;
+    ingredient.stock = parsedStock;
     await ingredient.save();
 
     // Répondre immédiatement sans attendre le webhook
     res.json(ingredient);
 
     // Envoyer notification webhook de manière asynchrone (ne bloque pas la réponse)
-    if (oldStock !== req.body.stock) {
-      webhookService.notifyIngredientStockUpdate(ingredient, oldStock, req.body.stock, req.user).catch(err => {
+    if (oldStock !== parsedStock) {
+      webhookService.notifyIngredientStockUpdate(ingredient, oldStock, parsedStock, req.user).catch(err => {
         console.error("Erreur webhook ingrédient:", err.message);
       });
+
+      // Alerte "stock bas" uniquement lors du passage au-dessous du seuil
+      if (oldStock > lowStockThreshold && parsedStock <= lowStockThreshold) {
+        webhookService.notifyLowStock('ingredient', ingredient.name, parsedStock, lowStockThreshold, req.user).catch(err => {
+          console.error("Erreur webhook stock bas ingrédient:", err.message);
+        });
+      }
     }
 
     req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });

@@ -10,8 +10,8 @@ const router = express.Router();
 // @access  Privé/Admin
 router.post('/', [protect, admin], async (req, res) => {
   try {
-    const { name, category, price, corporatePrice, cost, stock } = req.body;
-    const newProduct = new Product({ name, category, price, corporatePrice, cost, stock });
+    const { name, category, price, corporatePrice, cost, stock, lowStockThreshold } = req.body;
+    const newProduct = new Product({ name, category, price, corporatePrice, cost, stock, lowStockThreshold });
     const product = await newProduct.save();
     
     // Notifier tous les clients que les produits ont changé
@@ -99,6 +99,9 @@ router.put('/restock/:id', protect, async (req, res) => {
     
     // Sauvegarder l'ancien stock pour la notification
     const oldStock = product.stock;
+    const lowStockThreshold = (typeof product.lowStockThreshold === 'number')
+      ? product.lowStockThreshold
+      : 10;
     product.stock = stockValue;
     await product.save();
 
@@ -110,6 +113,13 @@ router.put('/restock/:id', protect, async (req, res) => {
       webhookService.notifyProductStockUpdate(product, oldStock, stockValue, req.user).catch(err => {
         console.error("Erreur webhook produit:", err.message);
       });
+
+      // Alerte "stock bas" uniquement lors du passage au-dessous du seuil
+      if (oldStock > lowStockThreshold && stockValue <= lowStockThreshold) {
+        webhookService.notifyLowStock('product', product.name, stockValue, lowStockThreshold, req.user).catch(err => {
+          console.error("Erreur webhook stock bas produit:", err.message);
+        });
+      }
     }
 
     // Notifier tous les clients que les produits ont changé

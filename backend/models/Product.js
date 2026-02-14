@@ -29,6 +29,12 @@ const ProductSchema = new mongoose.Schema({
     required: true,
     default: 0,
   },
+  // Seuil "stock bas" configurable par produit (utilisé pour l'UI + notifications)
+  lowStockThreshold: {
+    type: Number,
+    default: 10,
+    min: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

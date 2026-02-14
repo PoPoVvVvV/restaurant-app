@@ -4,6 +4,8 @@ const IngredientSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   unit: { type: String, required: true }, // ex: 'kg', 'L', 'pièce'
   stock: { type: Number, default: 0 },
+  // Seuil "stock bas" configurable par ingrédient (ex: g/mL)
+  lowStockThreshold: { type: Number, default: 500, min: 0 },
 });
 
 // Indexes pour optimiser les requêtes fréquentes
