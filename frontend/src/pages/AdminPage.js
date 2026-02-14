@@ -778,6 +778,312 @@ const DeliveryStatusManager = () => {
     );
 };
 
+// 10.1 Prévision de commande (fin de semaine)
+// L'admin définit un "stock permanent" par matière première.
+// La quantité à commander est calculée automatiquement : max(0, permanentStock - stock).
+const OrderForecastManager = () => {
+  const { showNotification } = useNotification();
+  const [ingredients, setIngredients] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchIngredients = useCallback(async () => {
+    try {
+      const { data } = await api.get('/ingredients');
+      const normalized = (data || []).map(ing => ({
+        ...ing,
+        editedPermanentStock: (typeof ing.permanentStock === 'number') ? ing.permanentStock : 0,
+        editedSupplierName: (typeof ing.supplierName === 'string') ? ing.supplierName : '',
+        editedSupplierUnitPrice: (typeof ing.supplierUnitPrice === 'number') ? ing.supplierUnitPrice : 0,
+      }));
+      setIngredients(normalized);
+    } catch (err) {
+      showNotification("Impossible de charger les ingrédients pour la prévision.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchIngredients();
+
+    const handleDataUpdate = (data) => {
+      if (data.type === 'INGREDIENTS_UPDATED') {
+        fetchIngredients();
+      }
+    };
+    socket.on('data-updated', handleDataUpdate);
+    return () => {
+      socket.off('data-updated', handleDataUpdate);
+    };
+  }, [fetchIngredients]);
+
+  const handlePermanentChange = (id, value) => {
+    setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedPermanentStock: value } : i));
+  };
+
+  const handleSupplierNameChange = (id, value) => {
+    setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedSupplierName: value } : i));
+  };
+
+  const handleSupplierUnitPriceChange = (id, value) => {
+    setIngredients(prev => prev.map(i => i._id === id ? { ...i, editedSupplierUnitPrice: value } : i));
+  };
+
+  const handleSaveForecastRow = useCallback((id) => {
+    setIngredients(prev => {
+      const ing = prev.find(i => i._id === id);
+      if (!ing) return prev;
+
+      const parsedPermanent = Number(ing.editedPermanentStock);
+      if (Number.isNaN(parsedPermanent) || parsedPermanent < 0) {
+        showNotification("Veuillez entrer un stock permanent valide (>= 0).", "error");
+        return prev.map(i =>
+          i._id === id
+            ? { ...i, editedPermanentStock: (typeof i.permanentStock === 'number') ? i.permanentStock : 0 }
+            : i
+        );
+      }
+
+      const supplierName = (typeof ing.editedSupplierName === 'string') ? ing.editedSupplierName.trim() : '';
+
+      const parsedUnitPrice = Number(ing.editedSupplierUnitPrice);
+      if (Number.isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
+        showNotification("Veuillez entrer un prix unitaire valide (>= 0).", "error");
+        return prev.map(i =>
+          i._id === id
+            ? { ...i, editedSupplierUnitPrice: (typeof i.supplierUnitPrice === 'number') ? i.supplierUnitPrice : 0 }
+            : i
+        );
+      }
+
+      const currentPermanent = (typeof ing.permanentStock === 'number') ? ing.permanentStock : 0;
+      const currentSupplierName = (typeof ing.supplierName === 'string') ? ing.supplierName : '';
+      const currentUnitPrice = (typeof ing.supplierUnitPrice === 'number') ? ing.supplierUnitPrice : 0;
+
+      const nothingChanged =
+        parsedPermanent === currentPermanent &&
+        supplierName === currentSupplierName &&
+        parsedUnitPrice === currentUnitPrice;
+      if (nothingChanged) return prev;
+
+      const updated = prev.map(i =>
+        i._id === id ? {
+          ...i,
+          permanentStock: parsedPermanent,
+          editedPermanentStock: parsedPermanent,
+          supplierName,
+          editedSupplierName: supplierName,
+          supplierUnitPrice: parsedUnitPrice,
+          editedSupplierUnitPrice: parsedUnitPrice,
+        } : i
+      );
+
+      api.put(`/ingredients/${id}`, {
+        permanentStock: parsedPermanent,
+        supplierName,
+        supplierUnitPrice: parsedUnitPrice,
+      })
+        .then(() => {
+          showNotification("Prévision mise à jour (fournisseur/prix/stock permanent).", "success");
+        })
+        .catch(() => {
+          showNotification("Erreur lors de la mise à jour de la prévision.", "error");
+          setIngredients(prev2 =>
+            prev2.map(i =>
+              i._id === id
+                ? {
+                  ...i,
+                  editedPermanentStock: (typeof i.permanentStock === 'number') ? i.permanentStock : 0,
+                  editedSupplierName: (typeof i.supplierName === 'string') ? i.supplierName : '',
+                  editedSupplierUnitPrice: (typeof i.supplierUnitPrice === 'number') ? i.supplierUnitPrice : 0,
+                }
+                : i
+            )
+          );
+        });
+
+      return updated;
+    });
+  }, [showNotification]);
+
+  const rows = useMemo(() => {
+    const mapped = (ingredients || []).map(ing => {
+      const permanent = (typeof ing.permanentStock === 'number') ? ing.permanentStock : 0;
+      const stock = Number(ing.stock) || 0;
+      const toOrder = Math.max(0, permanent - stock);
+      const supplierName = (typeof ing.supplierName === 'string' && ing.supplierName.trim()) ? ing.supplierName.trim() : 'Sans fournisseur';
+      const supplierUnitPrice = (typeof ing.supplierUnitPrice === 'number') ? ing.supplierUnitPrice : 0;
+      const cost = toOrder * supplierUnitPrice;
+      return { ...ing, permanent, stock, toOrder, supplierName, supplierUnitPrice, cost };
+    });
+    // Mettre en avant ce qui doit être commandé
+    mapped.sort((a, b) => (b.toOrder - a.toOrder) || a.name.localeCompare(b.name));
+    return mapped;
+  }, [ingredients]);
+
+  const totalToOrder = useMemo(() => {
+    return rows.reduce((sum, r) => sum + (Number(r.toOrder) || 0), 0);
+  }, [rows]);
+
+  const totalCost = useMemo(() => {
+    return rows.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+  }, [rows]);
+
+  const suppliers = useMemo(() => {
+    const map = {};
+    for (const r of rows) {
+      const key = r.supplierName || 'Sans fournisseur';
+      if (!map[key]) {
+        map[key] = { supplierName: key, rows: [], totalToOrder: 0, totalCost: 0 };
+      }
+      map[key].rows.push(r);
+      map[key].totalToOrder += Number(r.toOrder) || 0;
+      map[key].totalCost += Number(r.cost) || 0;
+    }
+    return Object.values(map)
+      .map(g => ({ ...g, rows: g.rows.sort((a, b) => (b.toOrder - a.toOrder) || a.name.localeCompare(b.name)) }))
+      .sort((a, b) => a.supplierName.localeCompare(b.supplierName));
+  }, [rows]);
+
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress /></Box>;
+  }
+
+  return (
+    <Paper elevation={3} sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+        <Box>
+          <Typography variant="h5" gutterBottom>Prévision de commande (Fin de semaine)</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Définissez un <strong>stock permanent</strong>, un <strong>fournisseur</strong> et un <strong>prix unitaire</strong>. L'app calcule automatiquement la <strong>quantité à commander</strong> et le <strong>total</strong>.
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Chip
+            label={`Total à commander: ${totalToOrder}`}
+            color={totalToOrder > 0 ? 'warning' : 'success'}
+            variant="outlined"
+          />
+          <Chip
+            label={`Total estimé: $${Number(totalCost || 0).toFixed(2)}`}
+            color={totalCost > 0 ? 'info' : 'success'}
+            variant="outlined"
+          />
+        </Box>
+      </Box>
+
+      {suppliers.map(group => (
+        <Accordion key={group.supplierName} defaultExpanded={group.totalToOrder > 0} sx={{ mb: 1 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+              <Typography sx={{ fontWeight: 700 }}>{group.supplierName}</Typography>
+              <Chip
+                label={`À commander: ${group.totalToOrder}`}
+                color={group.totalToOrder > 0 ? 'warning' : 'success'}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={`Total: $${Number(group.totalCost || 0).toFixed(2)}`}
+                color={group.totalCost > 0 ? 'info' : 'success'}
+                size="small"
+                variant="outlined"
+              />
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Matière Première</TableCell>
+                    <TableCell>Unité</TableCell>
+                    <TableCell align="right">Stock actuel</TableCell>
+                    <TableCell align="right">Stock permanent</TableCell>
+                    <TableCell>Fournisseur</TableCell>
+                    <TableCell align="right">Prix unitaire</TableCell>
+                    <TableCell align="right">À commander</TableCell>
+                    <TableCell align="right">Total</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {group.rows.map(r => (
+                    <TableRow key={r._id} hover>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell>{r.unit}</TableCell>
+                      <TableCell align="right">{r.stock}</TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={r.editedPermanentStock}
+                          onChange={(e) => handlePermanentChange(r._id, e.target.value)}
+                          onBlur={() => handleSaveForecastRow(r._id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.target.blur();
+                            }
+                          }}
+                          sx={{ width: '140px' }}
+                          inputProps={{ min: 0 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          value={r.editedSupplierName}
+                          onChange={(e) => handleSupplierNameChange(r._id, e.target.value)}
+                          onBlur={() => handleSaveForecastRow(r._id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.target.blur();
+                            }
+                          }}
+                          sx={{ minWidth: 180 }}
+                          placeholder="Nom fournisseur"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={r.editedSupplierUnitPrice}
+                          onChange={(e) => handleSupplierUnitPriceChange(r._id, e.target.value)}
+                          onBlur={() => handleSaveForecastRow(r._id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.target.blur();
+                            }
+                          }}
+                          sx={{ width: '140px' }}
+                          inputProps={{ min: 0, step: '0.01' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={r.toOrder}
+                          color={r.toOrder > 0 ? 'warning' : 'success'}
+                          size="small"
+                          variant={r.toOrder > 0 ? 'filled' : 'outlined'}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography sx={{ fontWeight: 700 }}>
+                          ${Number(r.cost || 0).toFixed(2)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </AccordionDetails>
+        </Accordion>
+      ))}
+    </Paper>
+  );
+};
+
 // 11. Configuration Webhook
 const WebhookConfigManager = () => {
     const { showNotification } = useNotification();
@@ -1189,7 +1495,7 @@ function AdminPage() {
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Relevé des Transactions</Typography></AccordionSummary><AccordionDetails><TransactionLog viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Entrées / Sorties</Typography></AccordionSummary><AccordionDetails><IncomeExpenseManager viewedWeek={viewedWeek} /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Utilisateurs</Typography></AccordionSummary><AccordionDetails><UserManager /></AccordionDetails></Accordion>
-      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces & Paramètres</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12}><AdminNotificationsManager /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
+      <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Annonces & Paramètres</Typography></AccordionSummary><AccordionDetails><Grid container spacing={2}><Grid item xs={12} md={6}><DeliveryStatusManager /></Grid><Grid item xs={12} md={6}><OrderForecastManager /></Grid><Grid item xs={12}><AdminNotificationsManager /></Grid><Grid item xs={12}><WebhookConfigManager /></Grid><Grid item xs={12}><ResetTokenManager /></Grid></Grid></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Gestion des Produits</Typography></AccordionSummary><AccordionDetails><ProductManager /></AccordionDetails></Accordion>
       <Accordion><AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="h6">Notes de Frais</Typography></AccordionSummary><AccordionDetails><ExpenseNoteManager /></AccordionDetails></Accordion>
     </Container>

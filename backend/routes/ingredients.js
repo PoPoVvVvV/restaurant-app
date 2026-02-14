@@ -23,8 +23,8 @@ router.get('/', protect, async (req, res) => {
 // @access  Privé/Admin
 router.post('/', [protect, admin], async (req, res) => {
   try {
-    const { name, unit, stock, lowStockThreshold } = req.body;
-    const newIngredient = new Ingredient({ name, unit, stock, lowStockThreshold });
+    const { name, unit, stock, lowStockThreshold, permanentStock, supplierName, supplierUnitPrice } = req.body;
+    const newIngredient = new Ingredient({ name, unit, stock, lowStockThreshold, permanentStock, supplierName, supplierUnitPrice });
     await newIngredient.save();
     
     req.io.emit('data-updated', { type: 'INGREDIENTS_UPDATED' });
@@ -50,6 +50,26 @@ router.put('/:id', [protect, admin], async (req, res) => {
         return res.status(400).json({ message: 'Le seuil de stock bas est invalide.' });
       }
       ingredient.lowStockThreshold = threshold;
+    }
+
+    if (req.body.permanentStock !== undefined) {
+      const permanent = Number(req.body.permanentStock);
+      if (Number.isNaN(permanent) || permanent < 0) {
+        return res.status(400).json({ message: 'Le stock permanent est invalide.' });
+      }
+      ingredient.permanentStock = permanent;
+    }
+
+    if (req.body.supplierName !== undefined) {
+      ingredient.supplierName = typeof req.body.supplierName === 'string' ? req.body.supplierName.trim() : '';
+    }
+
+    if (req.body.supplierUnitPrice !== undefined) {
+      const price = Number(req.body.supplierUnitPrice);
+      if (Number.isNaN(price) || price < 0) {
+        return res.status(400).json({ message: 'Le prix fournisseur est invalide.' });
+      }
+      ingredient.supplierUnitPrice = price;
     }
 
     await ingredient.save();

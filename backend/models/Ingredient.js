@@ -6,6 +6,12 @@ const IngredientSchema = new mongoose.Schema({
   stock: { type: Number, default: 0 },
   // Seuil "stock bas" configurable par ingrédient (ex: g/mL)
   lowStockThreshold: { type: Number, default: 500, min: 0 },
+  // Stock "cible" (permanent) à conserver en inventaire
+  permanentStock: { type: Number, default: 0, min: 0 },
+  // Fournisseur utilisé pour la prévision de commande (page admin)
+  supplierName: { type: String, default: '', trim: true },
+  // Prix unitaire (par unité de stock) chez le fournisseur
+  supplierUnitPrice: { type: Number, default: 0, min: 0 },
 });
 
 // Indexes pour optimiser les requêtes fréquentes
