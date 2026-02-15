@@ -785,6 +785,9 @@ const OrderForecastManager = () => {
   const { showNotification } = useNotification();
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Marge de sécurité appliquée automatiquement sur la quantité à commander.
+  // Exigence: ajouter 15 à 20% et arrondir au supérieur. On applique 20% (dans la fourchette).
+  const ORDER_BUFFER_RATE = 0.20;
 
   const fetchIngredients = useCallback(async () => {
     try {
@@ -910,7 +913,9 @@ const OrderForecastManager = () => {
     const mapped = (ingredients || []).map(ing => {
       const permanent = (typeof ing.permanentStock === 'number') ? ing.permanentStock : 0;
       const stock = Number(ing.stock) || 0;
-      const toOrder = Math.max(0, permanent - stock);
+      const baseToOrder = Math.max(0, permanent - stock);
+      // Quantité finale "ronde": +20% puis arrondi au supérieur
+      const toOrder = Math.ceil(baseToOrder * (1 + ORDER_BUFFER_RATE));
       const supplierName = (typeof ing.supplierName === 'string' && ing.supplierName.trim()) ? ing.supplierName.trim() : 'Sans fournisseur';
       const supplierUnitPrice = (typeof ing.supplierUnitPrice === 'number') ? ing.supplierUnitPrice : 0;
       const cost = toOrder * supplierUnitPrice;
@@ -955,7 +960,7 @@ const OrderForecastManager = () => {
         <Box>
           <Typography variant="h5" gutterBottom>Prévision de commande (Fin de semaine)</Typography>
           <Typography variant="body2" color="text.secondary">
-            Définissez un <strong>stock permanent</strong>, un <strong>fournisseur</strong> et un <strong>prix unitaire</strong>. L'app calcule automatiquement la <strong>quantité à commander</strong> et le <strong>total</strong>.
+            Définissez un <strong>stock permanent</strong>, un <strong>fournisseur</strong> et un <strong>prix unitaire</strong>. L'app calcule automatiquement la <strong>quantité à commander</strong> (+20% de marge, arrondi au supérieur) et le <strong>total</strong>.
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
