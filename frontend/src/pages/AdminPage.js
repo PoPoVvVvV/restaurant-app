@@ -16,6 +16,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // --- SOUS-COMPOSANTS DE LA PAGE ADMIN ---
@@ -1311,6 +1314,7 @@ const ExpenseNoteManager = () => {
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
     const [rejectDialog, setRejectDialog] = useState({ open: false, id: null, reason: '' });
     const [imageDialog, setImageDialog] = useState({ open: false, url: null });
+    const [imageZoom, setImageZoom] = useState(1);
 
     const fetchExpenseNotes = useCallback(async () => {
         try {
@@ -1322,6 +1326,18 @@ const ExpenseNoteManager = () => {
             setLoading(false);
         }
     }, [showNotification]);
+
+    // Réinitialiser le zoom à l'ouverture / changement d'image
+    useEffect(() => {
+        if (imageDialog.open && imageDialog.url) {
+            setImageZoom(1);
+        }
+    }, [imageDialog.open, imageDialog.url]);
+
+    const ZOOM_MIN = 0.5;
+    const ZOOM_MAX = 4;
+    const ZOOM_STEP = 0.25;
+    const clampZoom = (z) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
 
     useEffect(() => {
         fetchExpenseNotes();
@@ -1547,19 +1563,73 @@ const ExpenseNoteManager = () => {
                 maxWidth="md"
                 fullWidth
             >
-                <DialogTitle>Image de la note de frais</DialogTitle>
+                <DialogTitle>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <Typography sx={{ fontWeight: 700 }}>Image de la note de frais</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip
+                                size="small"
+                                variant="outlined"
+                                label={`${Math.round(imageZoom * 100)}%`}
+                            />
+                            <IconButton
+                                size="small"
+                                onClick={() => setImageZoom(z => clampZoom(z - ZOOM_STEP))}
+                                disabled={imageZoom <= ZOOM_MIN}
+                                title="Dézoomer"
+                            >
+                                <ZoomOutIcon />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                onClick={() => setImageZoom(1)}
+                                disabled={imageZoom === 1}
+                                title="Réinitialiser le zoom"
+                            >
+                                <RestartAltIcon />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                onClick={() => setImageZoom(z => clampZoom(z + ZOOM_STEP))}
+                                disabled={imageZoom >= ZOOM_MAX}
+                                title="Zoomer"
+                            >
+                                <ZoomInIcon />
+                            </IconButton>
+                        </Box>
+                    </Box>
+                </DialogTitle>
                 <DialogContent>
                     {imageDialog.url && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
+                        <Box
+                            onWheel={(e) => {
+                                // Zoom à la molette (sans Ctrl) dans le visualiseur
+                                e.preventDefault();
+                                const dir = e.deltaY < 0 ? 1 : -1;
+                                setImageZoom(z => clampZoom(z + dir * ZOOM_STEP));
+                            }}
+                            sx={{
+                                p: 2,
+                                height: '70vh',
+                                overflow: 'auto',
+                                borderRadius: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                bgcolor: 'background.default',
+                            }}
+                        >
                             <img 
                                 src={imageDialog.url} 
                                 alt="Note de frais" 
                                 style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: '70vh', 
-                                    objectFit: 'contain',
-                                    borderRadius: '8px'
+                                    width: `${imageZoom * 100}%`,
+                                    height: 'auto',
+                                    maxWidth: 'none',
+                                    display: 'block',
+                                    borderRadius: '8px',
+                                    cursor: 'zoom-in'
                                 }}
+                                onDoubleClick={() => setImageZoom(z => (z === 1 ? 2 : 1))}
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EImage non disponible%3C/text%3E%3C/svg%3E';
